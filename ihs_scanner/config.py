@@ -12,7 +12,8 @@ TIMEFRAMES = ("4h", "1d", "1w")
 
 DEFAULT_CONFIG: dict[str, Any] = {
     # --- spec step 12 ---
-    "pivot_window_by_timeframe": {"4h": 3, "1d": 3, "1w": 2},
+    # D19: upper end of the spec's suggested range (4h/1d 3-5, 1w 2-3) to cut noisy pivots
+    "pivot_window_by_timeframe": {"4h": 5, "1d": 5, "1w": 3},
     "shoulder_diff_limit_by_timeframe": {"4h": 0.05, "1d": 0.10, "1w": 0.10},
     "min_head_depth_by_timeframe": {"4h": 0.03, "1d": 0.05, "1w": 0.05},
     "max_neckline_angle": 30.0,
@@ -32,6 +33,18 @@ DEFAULT_CONFIG: dict[str, Any] = {
     "ideal_head_depth": 0.10,  # spec step 9
     "volume_avg_window": 20,  # D8: average of the N bars BEFORE the breakout bar
     "breakout_distance_range": 0.10,  # spec step 9: distance / 0.10
+    # --- D19: extra shape rules (neurotrader888/TechnicalAnalysisAutomation check_ihs_pattern, MIT) ---
+    # balance: reject if LS.low > (RS.low + N2.high)/2 or RS.low > (LS.low + N1.high)/2
+    "enable_balance_rule": True,
+    # symmetry: reject if one side (LS->H or H->RS, in bars) is > ratio x the other; None = off
+    "max_time_symmetry_ratio": 2.5,
+    # --- D19 optional, off by default (for later backtest comparison) ---
+    "min_pattern_bars": None,  # minimum LS->RS length in bars; None = off
+    # prior downtrend (concept from yanivil/SignalSync, MIT): highest close in the
+    # prior_trend_bars bars before LS must be >= LS.low + head height, where
+    # head height = neckline_price_at(H.index) - H.low
+    "require_prior_downtrend": False,
+    "prior_trend_bars": {"4h": 60, "1d": 50, "1w": 20},
 }
 
 

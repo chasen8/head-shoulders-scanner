@@ -116,6 +116,14 @@ def find_pattern_candidates(df: pd.DataFrame, timeframe: str,
     dist_range = float(cfg["breakout_distance_range"])
     vol_window = int(cfg["volume_avg_window"])
     mode = "breakout" if breakout_mode else "candidate"
+    # D19 extra shape rules
+    balance_rule = bool(cfg["enable_balance_rule"])
+    sym_ratio = cfg["max_time_symmetry_ratio"]
+    sym_ratio = None if sym_ratio is None else float(sym_ratio)
+    min_bars = cfg["min_pattern_bars"]
+    min_bars = None if min_bars is None else int(min_bars)
+    prior_downtrend = bool(cfg["require_prior_downtrend"])
+    prior_bars = int(tf_value(cfg, "prior_trend_bars", timeframe))
 
     times = get_timestamps(df)
     low = df["low"].to_numpy(dtype=float)
@@ -166,6 +174,15 @@ def find_pattern_candidates(df: pd.DataFrame, timeframe: str,
             for RS in rs_list:
                 if RS.index - LS.index > max_bars:  # D6 total length
                     break  # rs_list is sorted by index
+                if min_bars is not None and RS.index - LS.index < min_bars:  # D19 optional
+                    continue
+                # D19 symmetry (neurotrader888 check_ihs_pattern): neither side may be
+                # more than sym_ratio times as long (in bars) as the other
+                l_to_h = hi - LS.index
+                r_to_h = RS.index - hi
+                if sym_ratio is not None and (r_to_h > sym_ratio * l_to_h
+                                              or l_to_h > sym_ratio * r_to_h):
+                    continue
                 # spec step 3: shoulder difference
                 shoulder_avg = (LS.price + RS.price) / 2.0
                 shoulder_diff = abs(LS.price - RS.price) / shoulder_avg
@@ -181,11 +198,27 @@ def find_pattern_candidates(df: pd.DataFrame, timeframe: str,
                 if n2_pos is None:
                     continue
                 N2 = highs[n2_pos]
+                # D19 balance (neurotrader888 check_ihs_pattern): each shoulder must not be
+                # above the midpoint of the other shoulder and its neckline high
+                if balance_rule:
+                    r_midpoint = 0.5 * (RS.price + N2.price)
+                    l_midpoint = 0.5 * (LS.price + N1.price)
+                    if LS.price > r_midpoint or RS.price > l_midpoint:
+                        continue
                 # spec step 5: neckline angle
                 neck = calculate_neckline(N1, N2, angle_scale)
                 angle = neck.angle
                 if abs(angle) > max_angle:
                     continue
+                # D19 optional prior downtrend (concept: yanivil/SignalSync): the highest close
+                # in the prior_bars bars before LS must be >= LS.low + head height
+                if prior_downtrend:
+                    p0 = max(0, LS.index - prior_bars)
+                    if p0 >= LS.index:
+                        continue
+                    head_height = float(neck.price_at(hi)) - h_low
+                    if float(np.max(close[p0:LS.index])) - LS.price < head_height:
+                        continue
 
                 # D7 invalidation + D8 breakout, scanning bars after RS
                 breakout_i: int | None = None
@@ -261,6 +294,7 @@ def find_pattern_candidates(df: pd.DataFrame, timeframe: str,
                     "head_depth": head_depth,
                     "neckline_angle": angle,
                     "neckline_slope_pct_per_bar": neck.slope_pct_per_bar,
+                    "time_symmetry_ratio": max(l_to_h, r_to_h) / min(l_to_h, r_to_h),
                     "current_close": current_close,
                     "current_neckline_price": current_neck,
                     "distance_to_neckline": distance,

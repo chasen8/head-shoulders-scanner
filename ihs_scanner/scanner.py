@@ -19,7 +19,7 @@ OUTPUT_FIELDS = [
     "shoulder_score", "head_depth_score", "neckline_score", "breakout_score",
     "LS_time", "LS_price", "N1_time", "N1_price", "H_time", "H_price",
     "N2_time", "N2_price", "RS_time", "RS_price", "RS_confirm_time",
-    "shoulder_diff", "head_depth", "neckline_angle", "neckline_slope_pct_per_bar",
+    "shoulder_diff", "head_depth", "neckline_angle", "neckline_slope_pct_per_bar", "time_symmetry_ratio",
     "current_close", "current_neckline_price", "distance_to_neckline",
     "breakout_detected", "breakout_time", "breakout_price", "volume_ratio",
     "average_volume_20", "bars_since_rs", "bars_since_breakout", "signal_time", "as_of_time",

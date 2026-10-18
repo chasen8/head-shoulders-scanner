@@ -39,11 +39,32 @@ res = detect_inverse_head_shoulders(df, "4h", {"enable_breakout_filter": True}, 
 ## 網站
 
 ```bash
-/c/trading-data/ihs-scanner-v2/venv/Scripts/python.exe build_site.py            # 寫 site/data/scan.json
-/c/trading-data/ihs-scanner-v2/venv/Scripts/python.exe build_site.py --include-stale  # 本機預覽多看幾筆
+/c/trading-data/ihs-scanner-v2/venv/Scripts/python.exe build_site.py            # 幣安全部現貨 USDT 對
+/c/trading-data/ihs-scanner-v2/venv/Scripts/python.exe build_site.py --symbols BTCUSDT,ETHUSDT --include-stale
 cd site && /c/trading-data/ihs-scanner-v2/venv/Scripts/python.exe -m http.server 8000
 ```
-參數：`--symbols`、`--timeframes`、`--limit`、`--include-stale`、`--out`、`--scheduled`。
+
+| 參數 | 預設 | 說明 |
+|---|---|---|
+| `--symbols` | `all` | `all`＝exchangeInfo 裡 TRADING、quote USDT、可現貨交易的全部交易對，排除穩定幣／法幣基底（`data_binance.EXCLUDED_BASE_ASSETS`）與槓桿代幣；也可給逗號清單 |
+| `--timeframes` | `4h,1d,1w` | |
+| `--limit` | 1000 | 每組已收盤 K 線數；`1w` 上限 500（`LIMIT_CAP_BY_TIMEFRAME`） |
+| `--min-quote-volume` | 0 | >0 時用 24h ticker（weight 80）過濾 24h 成交額（USDT）低於此值的幣 |
+| `--workers` | 4 | 抓取執行緒（最多 4），共用一個 weight 節流器 |
+| `--weight-threshold` | 4500 | 本分鐘已用 weight（讀 `X-MBX-USED-WEIGHT-1M`）再加下一個請求會超過此值就等到下一分鐘；IP 上限 6000 |
+| `--include-stale` | 關 | 也輸出過期型態（本機預覽用） |
+| `--out` | `site/data/scan.json` | bars 檔寫在同目錄的 `bars/` |
+| `--scheduled` | 關 | 寫入 `next_scan_at`（`GITHUB_EVENT_NAME=schedule` 時自動） |
+
+輸出：`site/data/scan.json`（metadata＋每筆摘要，含 `scanned_symbols`、`failures`、`skipped`）與
+`site/data/bars/<檔名>.json`（每筆型態的 K 線、五點、頸線端點、突破點；網頁點選時才載入）。
+bars 先寫到 `bars.tmp/` 再整個換上，舊檔不會殘留。
+
+部分成功：個別 symbol/timeframe 抓取或偵測失敗只記在 `failures`（symbol、timeframe、stage、error）；
+失敗比例超過 20% 才非零退出且不覆寫舊的 scan.json／bars。剛上架、還沒有已收盤 K 線的組合記在 `skipped`，不算失敗。
+速率：klines 每次 weight 2（任何 limit；2026-10 官方文件與回應 header 實測）、exchangeInfo 20；
+遇 429/418 依 `Retry-After` 退避（超過 300 秒視為失敗）。
+
 設計與維護規則：`docs/site-design.md`。GitHub Actions：`.github/workflows/scan-and-deploy.yml`（目前手動觸發，產出 artifact）。
 
 ## config 參數（`ihs_scanner/config.py`，可部分覆寫）

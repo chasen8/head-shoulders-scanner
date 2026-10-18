@@ -17,7 +17,7 @@ def _detect(df, tf="4h", **overrides):
 def test_detects_clean_ihs_in_candidate_mode():
     df = make_df(IHS_WATCH, noise=0.05, seed=1)
     ts = df["timestamp"]
-    res = _detect(df)
+    res = _detect(df, pivot_window_by_timeframe={"4h": 3})  # explicit N=3 (RS confirm = RS+3)
     assert len(res) == 1
     r = res[0]
     assert r["mode"] == "candidate" and r["status"] == "watchlist"

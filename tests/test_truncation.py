@@ -18,8 +18,8 @@ KEY_TIMES = ("LS_time", "N1_time", "H_time", "N2_time", "RS_time", "RS_confirm_t
 STABLE_FIELDS = ("LS_time", "LS_price", "N1_time", "N1_price", "H_time", "H_price",
                  "N2_time", "N2_price", "RS_time", "RS_price", "RS_confirm_time",
                  "shoulder_diff", "head_depth", "neckline_angle", "pattern_id")
-CFG = {"include_stale": True}
-N = 3  # 4h pivot window
+N = 3  # 4h pivot window, pinned explicitly (default changed to 5 in D19)
+CFG = {"include_stale": True, "pivot_window_by_timeframe": {"4h": N}}
 
 
 def _check_times(res, df, t):

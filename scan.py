@@ -37,6 +37,10 @@ def parse_args(argv=None) -> argparse.Namespace:
     p.add_argument("--include-stale", action="store_true", help="also output stale patterns")
     p.add_argument("--output", default=None, help=".csv or .json (default: output dir, UTC timestamped csv)")
     p.add_argument("--no-cache", action="store_true", help="do not write the kline CSV cache")
+    p.add_argument("--no-balance", action="store_true", help="disable the shoulder balance rule (D19)")
+    p.add_argument("--symmetry-ratio", type=float, default=None,
+                   help="override max_time_symmetry_ratio; <= 0 disables the rule (D19)")
+    p.add_argument("--pivot-windows", default=None, help="e.g. 4h=3,1d=3,1w=2 (default 5/5/3)")
     return p.parse_args(argv)
 
 
@@ -60,6 +64,17 @@ def main(argv=None) -> int:
     }
     if args.min_score is not None:
         overrides["min_pattern_score"] = args.min_score
+    if args.no_balance:
+        overrides["enable_balance_rule"] = False
+    if args.symmetry_ratio is not None:
+        overrides["max_time_symmetry_ratio"] = args.symmetry_ratio if args.symmetry_ratio > 0 else None
+    if args.pivot_windows:
+        try:
+            overrides["pivot_window_by_timeframe"] = {
+                k.strip(): int(v) for k, v in (item.split("=") for item in _csv_list(args.pivot_windows))}
+        except ValueError:
+            print(f"bad --pivot-windows: {args.pivot_windows!r}", file=sys.stderr)
+            return 2
     cfg = merge_config(overrides)
 
     cache_dir = None if args.no_cache else DEFAULT_CACHE_DIR

@@ -69,10 +69,10 @@ def test_scan_symbols_sorts_and_applies_min_score():
 
 
 def test_merge_config():
-    cfg = merge_config({"pivot_window_by_timeframe": {"4h": 5}, "max_neckline_angle": 20})
-    assert cfg["pivot_window_by_timeframe"] == {"4h": 5, "1d": 3, "1w": 2}
+    cfg = merge_config({"pivot_window_by_timeframe": {"4h": 4}, "max_neckline_angle": 20})
+    assert cfg["pivot_window_by_timeframe"] == {"4h": 4, "1d": 5, "1w": 3}
     assert cfg["max_neckline_angle"] == 20
-    assert DEFAULT_CONFIG["pivot_window_by_timeframe"]["4h"] == 3  # default untouched
+    assert DEFAULT_CONFIG["pivot_window_by_timeframe"]["4h"] == 5  # default untouched
     with pytest.raises(KeyError):
         merge_config({"typo_key": 1})
 

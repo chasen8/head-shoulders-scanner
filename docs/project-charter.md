@@ -13,6 +13,7 @@
 - 下一步：決定部署方式（公開 repo＋Pages 或其他）後啟用排程；Discord webhook 通知。
 - 2026-10-18：推上私有 repo `chasen8/head-shoulders-scanner`（commit 198e05e）；手動觸發 workflow 在 GitHub 上跑通（pytest＋掃描＋上傳 site artifact 全綠）。下一步：Discord 通知。
 
+- 2026-10-18：使用者回饋第 2 輪：(1) 掃描改為幣安全部現貨 USDT 對（約 497 個，排除穩定幣與槓桿代幣，weight 節流）；(2) 網站改 TradingView 淺色乾淨風格（`docs/site-design.md`），scan.json 與單筆 bars 拆檔；(3) 加 balance／symmetry 規則與 pivot 5/5/3（D19）。82 個測試全綠。
 ## 決策記錄
 格式：日期｜決定｜原因｜何時可推翻
 
@@ -33,4 +34,5 @@
 - D15 2026-10-18｜D9 依 timeframe 分開：`max_bars_after_rs` 4h 30／1d 20／1w 8；`max_breakout_age` 4h 6／1d 5／1w 3；去重在狀態篩選之後；分數四捨五入 2 位後排序｜GitHub 無多 timeframe 前例，以「4h 約 5 天、1d 約 4 週、1w 約 2 個月」換算的自訂值｜回測或通知頻率需要調整時
 - D16 2026-10-18｜GitHub repo `chasen8/head-shoulders-scanner` 設為**私有**，暫不部署 Pages；workflow 只留 `workflow_dispatch`：pytest → build_site.py → upload-artifact（site/）；schedule 與 Pages 部署段落保留為註解｜使用者選擇；免費方案私有 repo 不能開 Pages，升級 Pro 要花錢｜使用者改公開 repo、升級 Pro，或改用其他託管
 - D17 2026-10-18｜網站＝靜態頁讀 `site/data/scan.json`；所有數值（分數、頸線端點、`neckline_side`、`next_scan_at`）由 `build_site.py` 算，前端只格式化與繪圖；K 線圖用 Lightweight Charts 5.2.1 釘版；設計準則照 `docs/site-design.md`（frontend-design skill）｜偵測邏輯只有一份（Python），前端不會與掃描器分岔｜需要互動式重算時
-- D18 2026-10-18｜build_site.py 任一 symbol/timeframe 抓取失敗 → 非零退出且不覆寫既有 scan.json；`next_scan_at` 只有 `--scheduled` 或 `GITHUB_EVENT_NAME=schedule` 才填｜寧可顯示舊資料也不發布缺幣種的半套結果；排程停用時不謊報下次掃描｜幣種清單變大、單一下市幣常讓整批失敗時改成部分成功
+- D19 2026-10-18｜加兩條形狀規則（neurotrader888 `check_ihs_pattern`，MIT，原始碼已核對）：balance（LS.low ≤ (RS.low+N2.high)/2 且 RS.low ≤ (LS.low+N1.high)/2）、symmetry（LS→H 與 H→RS 根數比 ≤ 2.5）；預設 pivot 改為規格區間上限 4h 5／1d 5／1w 3；選配（預設關）`min_pattern_bars`、`require_prior_downtrend`（SignalSync 概念）｜使用者指出 BTC 4h（LS→H 112 根、H→RS 7 根）看不出頭肩底，原規格只管價格不管時間形狀；5 個幣實測舊規則 4 筆→新規則 1 筆，BTC 1w（比值 2.91、LS 高於右中點）也被排除｜2.5 門檻未針對 4h/1d/1w 回測；回測顯示太嚴時放寬到 3 或關 balance
+- D18 2026-10-18（同日修訂）｜build_site.py 部分成功：個別 symbol/timeframe 失敗記在 scan.json `failures`，剛上架無已收盤 K 線記在 `skipped`；失敗率 >20% 才非零退出且不覆寫舊 scan.json／bars（bars 先寫 `bars.tmp/` 再整個換上）；`next_scan_at` 只有排程觸發才填｜全幣種（約 500 個 USDT 對）時單一下市幣不該讓整批失敗；舊網站在中止時保持完整｜失敗率門檻需要調整時
