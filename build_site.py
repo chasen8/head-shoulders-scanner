@@ -48,7 +48,7 @@ LIMIT_CAP_BY_TIMEFRAME = {"1w": 500}
 MAX_FAILURE_RATIO = 0.20
 MAX_WORKERS = 4
 ERROR_CHARS = 240
-# Must match .github/workflows/scan-and-deploy.yml: cron "7 */4 * * *"
+# Must match .github/workflows/scan-and-notify.yml: cron "7 */4 * * *"
 SCAN_EVERY_HOURS = 4
 SCAN_MINUTE = 7
 SCHEMA_VERSION = 2

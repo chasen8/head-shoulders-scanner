@@ -65,7 +65,7 @@ bars 先寫到 `bars.tmp/` 再整個換上，舊檔不會殘留。
 速率：klines 每次 weight 2（任何 limit；2026-10 官方文件與回應 header 實測）、exchangeInfo 20；
 遇 429/418 依 `Retry-After` 退避（超過 300 秒視為失敗）。
 
-設計與維護規則：`docs/site-design.md`。GitHub Actions：`.github/workflows/scan-and-deploy.yml`（目前手動觸發，產出 artifact）。
+設計與維護規則：`docs/site-design.md`。GitHub Actions：`.github/workflows/scan-and-notify.yml`（定時掃描＋Discord 通知，見下節）。
 
 ## config 參數（`ihs_scanner/config.py`，可部分覆寫）
 
@@ -111,3 +111,47 @@ ihs_scanner/  config.py  swings.py  neckline.py  scoring.py  detector.py  scanne
 scan.py       CLI
 tests/        pytest（不碰網路；截斷／不 repaint 測試在 test_truncation.py）
 ```
+
+## 定時掃描與 Discord 通知
+
+`.github/workflows/scan-and-notify.yml`：每 4 小時（UTC，`7 */4 * * *`，4h 收盤後 7 分鐘；也涵蓋 1d、1w 收盤）
+跑 pytest → `build_site.py --scheduled` → `notify_discord.py` → 把 `state.json` 與 `site/data/` 推到 `scan-state` 分支
+→ 上傳 `site/` artifact（保留 7 天）。build_site 失敗率 >20% 時整個流程中止，不通知、不改 state。
+
+通知規則（`notify_discord.py`）：「新出現的型態」與「watchlist 變 confirmed」，分數 ≥ 60（`--min-score` 或環境變數 `NOTIFY_MIN_SCORE`）。
+首次沒有 state 時只發一則「開始追蹤，目前 N 個型態」摘要並建立 state（`--notify-all` 才逐筆發）。
+每則訊息最多 10 個 embed，最多詳列 20 筆，其餘只在摘要裡報筆數；遇 429 依 `retry_after` 等待，重試有上限。
+紅色 = 已突破，藍色 = 觀察中，標題連到 TradingView。型態從掃描結果消失超過 14 天才會從 state 清掉。
+
+### 你要做的步驟（一次性）
+
+1. Discord：頻道設定 → 整合 → Webhook → 新增 Webhook → 複製 Webhook 網址。
+2. 在**自己的終端機**執行（它會提示貼上網址；不要貼到對話或任何檔案）：
+   ```
+   gh secret set DISCORD_WEBHOOK_URL --repo chasen8/head-shoulders-scanner
+   ```
+   或 GitHub 網頁：repo → Settings → Secrets and variables → Actions → New repository secret，名稱 `DISCORD_WEBHOOK_URL`。
+3. 沒設 secret 也能跑：只更新 state，log 印「未設定 webhook，略過通知」。
+
+### 手動觸發測試
+
+```
+gh workflow run scan-and-notify.yml --repo chasen8/head-shoulders-scanner -f dry_run=true     # 只印內容，不送、不更新 scan-state
+gh workflow run scan-and-notify.yml --repo chasen8/head-shoulders-scanner                      # 正式（有 secret 才會發）
+gh run list --repo chasen8/head-shoulders-scanner --workflow scan-and-notify.yml --limit 3
+```
+`-f notify_all=true`：沒有 state 時逐筆通知。本機試跑：`python notify_discord.py --dry-run`（讀 `site/data/scan.json` 與 `state.json`）。
+
+### 從 scan-state 分支取最新結果在本機看網站
+
+```
+git fetch origin scan-state
+git checkout origin/scan-state -- site/data      # 覆蓋本機 site/data（scan.json + bars/）
+python -m http.server --directory site 8000      # 開 http://localhost:8000
+```
+（`scan-state` 每次是全新的單一 commit、force push，不累積歷史；只含 `state.json` 與 `site/data/`。）
+
+### Actions 用量估算
+
+私有 repo 免費方案每月 2000 分鐘。每 4 小時一次（每月約 180 次）× 約 4–5 分鐘 ≈ 每月 700–900 分鐘，在額度內。
+實際耗時以 Actions 頁面為準；若接近額度，可改成每 8 小時（同時改 `build_site.py` 的 `SCAN_EVERY_HOURS`）。

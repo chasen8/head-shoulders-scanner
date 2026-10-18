@@ -1,0 +1,127 @@
+# 定時掃描 + Discord 通知。
+# repo 是私有的、不部署 GitHub Pages（charter D16）；網站只在本機看：
+#   - 結果與通知狀態存在獨立的 orphan 分支 `scan-state`（state.json + site/data/）。
+#   - 每次執行的 site/ 也上傳成 artifact（保留 7 天）。
+# 需要的 secret：DISCORD_WEBHOOK_URL（沒設也能跑：只更新 state，印「未設定 webhook」）。
+# 幣安公開端點 data-api.binance.vision 不需要金鑰（charter D3）。
+#
+# 排程：UTC 每 4 小時的第 7 分鐘（00:07, 04:07, ...），4h K 線收盤後 7 分鐘；
+# 也涵蓋 1d（UTC 00:00 收盤）與 1w（週一 UTC 00:00 收盤）。
+# 若改 cron，build_site.py 的 SCAN_EVERY_HOURS / SCAN_MINUTE 也要一起改（網站「下次掃描」用它）。
+name: Scan and notify
+
+on:
+  schedule:
+    - cron: "7 */4 * * *"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "只印出會發送的內容，不送 Discord、不更新 scan-state"
+        type: boolean
+        default: false
+      notify_all:
+        description: "沒有 state 時逐筆通知（預設只發一則摘要）"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write  # 推 scan-state 分支
+  # 啟用 Pages 部署時再打開（私有 repo 免費方案不能用）：
+  # pages: write
+  # id-token: write
+
+# 此 workflow 只由 schedule / workflow_dispatch 觸發；沒有 push 觸發，
+# 所以推 scan-state 分支不會引發任何 workflow 迴圈（且 GITHUB_TOKEN 的 push 本來就不會觸發 workflow）。
+concurrency:
+  group: scan-and-notify
+  cancel-in-progress: false
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      DRY_RUN: ${{ github.event.inputs.dry_run }}
+      NOTIFY_ALL: ${{ github.event.inputs.notify_all }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run tests
+        run: python -m pytest -q
+
+      # build_site.py 失敗率 >20% 會非零退出 -> 後面所有步驟（通知、改 state）都不跑。
+      - name: Scan and write site/data/scan.json
+        id: build
+        run: python build_site.py --scheduled
+
+      - name: Restore previous state from scan-state
+        id: restore
+        run: |
+          if git fetch --depth=1 origin scan-state 2>/dev/null; then
+            git show FETCH_HEAD:state.json > state.json && echo "found=true" >> "$GITHUB_OUTPUT" \
+              || echo "scan-state has no state.json (treated as first run)"
+          else
+            echo "no scan-state branch yet (first run)"
+          fi
+
+      - name: Notify Discord
+        id: notify
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: |
+          args=""
+          [ "$DRY_RUN" = "true" ] && args="$args --dry-run"
+          [ "$NOTIFY_ALL" = "true" ] && args="$args --notify-all"
+          python notify_discord.py $args
+
+      # notify 送失敗時也要存 state（沒送成功的型態不會被記錄，下次重試），所以用 !cancelled()。
+      # dry-run 不更新 scan-state。每次推一個全新的 orphan commit（force），分支不累積歷史、不會越長越大。
+      - name: Publish state + site/data to scan-state
+        if: ${{ !cancelled() && steps.build.outcome == 'success' && github.event.inputs.dry_run != 'true' }}
+        run: |
+          set -e
+          dir="$RUNNER_TEMP/scan-state"
+          git worktree add --detach "$dir"
+          cd "$dir"
+          git checkout --orphan scan-state
+          git rm -rf -q --ignore-unmatch .
+          find . -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
+          mkdir -p site
+          cp "$GITHUB_WORKSPACE/state.json" state.json
+          cp -r "$GITHUB_WORKSPACE/site/data" site/data
+          git add -f state.json site/data
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+            commit -q -m "scan-state: $(date -u +%Y-%m-%dT%H:%MZ) (run ${GITHUB_RUN_ID})"
+          git push --force origin scan-state
+
+      - name: Upload site as artifact
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: site
+          path: site/
+          retention-days: 7
+          if-no-files-found: error
+
+      # ---- GitHub Pages 部署（暫停用；啟用時把上面 upload-artifact 換成這兩段，並打開 permissions）----
+      # - uses: actions/upload-pages-artifact@v5
+      #   with:
+      #     path: site/
+
+  # deploy:
+  #   needs: scan
+  #   runs-on: ubuntu-latest
+  #   environment:
+  #     name: github-pages
+  #     url: ${{ steps.deployment.outputs.page_url }}
+  #   steps:
+  #     - id: deployment
+  #       uses: actions/deploy-pages@v5
