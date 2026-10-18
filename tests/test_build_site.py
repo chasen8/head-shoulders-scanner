@@ -226,7 +226,7 @@ def test_partial_failure_recorded(tmp_path, monkeypatch):
     monkeypatch.setattr(build_site, "fetch_klines", _fetch_failing({"S03USDT"}))  # 10% of series fail
     monkeypatch.setattr(build_site, "list_usdt_symbols", lambda **k: syms)
     out = tmp_path / "scan.json"
-    assert build_site.main(["--timeframes", "4h", "--out", str(out)]) == 0  # default --symbols all
+    assert build_site.main(["--sources", "binance-spot", "--timeframes", "4h", "--out", str(out)]) == 0
     _, data = _read(out)
     assert data["settings"]["symbols_source"] == "all" and data["requested_symbols"] == 10
     assert data["scanned_symbols"] == 9 and data["series_scanned"] == 9
@@ -289,7 +289,7 @@ def test_symbol_list_failure_keeps_old_file(tmp_path, monkeypatch):
         raise BinanceFetchError("exchangeInfo down")
 
     monkeypatch.setattr(build_site, "list_usdt_symbols", boom)
-    assert build_site.main(["--out", str(out)]) == 1
+    assert build_site.main(["--sources", "binance-spot", "--out", str(out)]) == 1
     assert out.read_text(encoding="utf-8") == '{"old": true}'
 
 
@@ -300,7 +300,7 @@ def test_min_quote_volume_filter(tmp_path, monkeypatch):
     monkeypatch.setattr(build_site, "list_usdt_symbols", lambda **k: ["AUSDT", "BUSDT_", "CUSDT"])
     monkeypatch.setattr(build_site, "fetch_quote_volumes", lambda **k: {"AUSDT": 5e6, "CUSDT": 1e5})
     out = tmp_path / "scan.json"
-    assert build_site.main(["--min-quote-volume", "1000000", "--timeframes", "4h", "--out", str(out)]) == 0
+    assert build_site.main(["--sources", "binance-spot", "--min-quote-volume", "1000000", "--timeframes", "4h", "--out", str(out)]) == 0
     assert seen == ["AUSDT"]
     assert _read(out)[1]["settings"]["symbols"] == ["AUSDT"]
 

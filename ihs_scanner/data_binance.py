@@ -226,7 +226,9 @@ def fetch_klines(symbol: str, timeframe: str, limit: int = 1000, *,
                  now_ms: int | None = None,
                  timeout: float = 15.0,
                  bases: Sequence[str] = (PRIMARY_BASE, FALLBACK_BASE),
-                 limiter: WeightLimiter | None = None) -> pd.DataFrame:
+                 limiter: WeightLimiter | None = None,
+                 klines_path: str = KLINES_PATH,
+                 weight_fn: Callable[[int], int] = kline_weight) -> pd.DataFrame:
     """Return the most recent `limit` CLOSED klines, oldest first.
 
     Paginates backwards with endTime when limit > 1000. If cache_dir is given the
@@ -246,8 +248,8 @@ def fetch_klines(symbol: str, timeframe: str, limit: int = 1000, *,
         params = {"symbol": symbol.upper(), "interval": INTERVALS[timeframe], "limit": batch}
         if end_time is not None:
             params["endTime"] = end_time
-        data = _get_json(session, KLINES_PATH, params, bases, timeout, limiter=limiter,
-                         weight=kline_weight(batch))
+        data = _get_json(session, klines_path, params, bases, timeout, limiter=limiter,
+                         weight=weight_fn(batch))
         if not data:
             break
         rows = list(data) + rows

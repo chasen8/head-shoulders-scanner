@@ -2,7 +2,7 @@
 
 純 OHLCV 數學規則的頭肩底（Inverse Head and Shoulders）掃描器，支援多 symbol × 4h/1d/1w。
 規格：`docs/spec.md`；規格詮釋與補充：`docs/project-charter.md` 決策 D3–D12。
-資料來源是幣安**公開** K 線（不需金鑰），只用已收盤 K 線，不 repaint。
+資料來源是各交易所**公開**行情端點（不需金鑰；見下方「資料來源」），只用已收盤 K 線，不 repaint。
 
 ## 怎麼跑
 
@@ -40,18 +40,20 @@ res = detect_inverse_head_shoulders(df, "4h", {"enable_breakout_filter": True}, 
 ## 網站
 
 ```bash
-/c/trading-data/ihs-scanner-v2/venv/Scripts/python.exe build_site.py            # 幣安全部現貨 USDT 對
+/c/trading-data/ihs-scanner-v2/venv/Scripts/python.exe build_site.py            # 預設來源：幣安現貨＋OKX 現貨／永續＋Gate 永續
+/c/trading-data/ihs-scanner-v2/venv/Scripts/python.exe build_site.py --sources binance-spot,okx-perp
 /c/trading-data/ihs-scanner-v2/venv/Scripts/python.exe build_site.py --symbols BTCUSDT,ETHUSDT --include-stale
 cd site && /c/trading-data/ihs-scanner-v2/venv/Scripts/python.exe -m http.server 8000
 ```
 
 | 參數 | 預設 | 說明 |
 |---|---|---|
-| `--symbols` | `all` | `all`＝exchangeInfo 裡 TRADING、quote USDT、可現貨交易的全部交易對，排除穩定幣／法幣基底（`data_binance.EXCLUDED_BASE_ASSETS`）與槓桿代幣；也可給逗號清單 |
+| `--sources` | `default` | 逗號清單，可選 `binance-spot,binance-perp,okx-spot,okx-perp,gate-perp`；`default`＝除 `binance-perp` 外全部，`all`＝全部 |
+| `--symbols` | `all` | `all`＝所選來源的全部 USDT 商品，排除穩定幣／法幣基底（`data_binance.EXCLUDED_BASE_ASSETS`）與槓桿代幣；給逗號清單＝只掃這些幣安現貨代碼（除錯用，忽略 `--sources`） |
 | `--timeframes` | `4h,1d,1w` | |
 | `--limit` | 1000 | 每組已收盤 K 線數；`1w` 上限 500（`LIMIT_CAP_BY_TIMEFRAME`） |
-| `--min-quote-volume` | 0 | >0 時用 24h ticker（weight 80）過濾 24h 成交額（USDT）低於此值的幣 |
-| `--workers` | 4 | 抓取執行緒（最多 4），共用一個 weight 節流器 |
+| `--min-quote-volume` | 0 | >0 時用 24h ticker（weight 80）過濾幣安現貨 24h 成交額（USDT）低於此值的幣；其他來源不過濾（小幣要掃） |
+| `--workers` | 4 | 抓取執行緒（最多 4）；各來源各有自己的節流器（幣安 weight、OKX 12 次/秒、Gate 10 次/秒） |
 | `--weight-threshold` | 4500 | 本分鐘已用 weight（讀 `X-MBX-USED-WEIGHT-1M`）再加下一個請求會超過此值就等到下一分鐘；IP 上限 6000 |
 | `--include-stale` | 關 | 也輸出過期型態（本機預覽用） |
 | `--out` | `site/data/scan.json` | bars 檔寫在同目錄的 `bars/` |
@@ -110,7 +112,8 @@ bars 先寫到 `bars.tmp/` 再整個換上，舊檔不會殘留。
 - `signal_time`：此訊號最早可被「即時」知道的時間＝max(RS_confirm_time, breakout_time)；
   回測進場請用這個，不要用 breakout_time（突破可能發生在 RS 確認前）
 - `average_volume_20`、`bars_since_rs`、`bars_since_breakout`、`as_of_time`（計算基準 K 線）
-- `pattern_id`：`symbol|tf|LS_time|H_time|RS_time`，給通知去重用
+- `pattern_id`：`exchange|market|symbol|tf|LS_time|H_time|RS_time`，給通知去重用（前綴避免跨來源撞號）
+- `exchange`（binance/okx/gate）、`market`（spot/perp）、`tv_symbol`（TradingView 代碼，如 `BINANCE:HMSTRUSDT`、`OKX:TRUSTUSDT.P`、`GATEIO:AZTECUSDT.P`）
 
 時間一律 ISO 8601 UTC（`2026-01-01T00:00:00Z`）；未突破時 `breakout_*`、`volume_ratio` 為空（JSON 為 `null`）。
 排序：pattern_score ↓ → 已突破優先 → distance_to_neckline ↑ → volume_ratio ↓ → 1w > 1d > 4h。
@@ -119,9 +122,30 @@ bars 先寫到 `bars.tmp/` 再整個換上，舊檔不會殘留。
 
 ```
 ihs_scanner/  config.py  swings.py  neckline.py  scoring.py  detector.py  scanner.py  data_binance.py
+              sources.py  data_binance_futures.py  data_okx.py  data_gate.py   （多交易所來源）
 scan.py       CLI
 tests/        pytest（不碰網路；截斷／不 repaint 測試在 test_truncation.py）
 ```
+
+## 資料來源（D22）
+
+全部是公開行情端點、無金鑰、只用已收盤 K 線。2026-10-18 在 GitHub Actions（美國 IP）實測：
+幣安現貨 `data-api.binance.vision` 200；幣安永續 `fapi.binance.com` **451**（被擋）；OKX 200；Gate 永續 200；
+Bybit 403；MEXC、Bitget 200。
+
+| `--sources` 名稱 | 端點 | 節流 | 備註 |
+|---|---|---|---|
+| `binance-spot` | `data-api.binance.vision/api/v3` | 讀 `X-MBX-USED-WEIGHT-1M`，4500/6000 | 主來源，列表失敗＝整批中止 |
+| `binance-perp` | `fapi.binance.com/fapi/v1`（PERPETUAL＋USDT＋TRADING） | weight 2400/min，門檻 1800 | **預設關閉**：美國 IP 被擋，只能在非美國網路用 |
+| `okx-spot` | `/api/v5/market/candles`（`4H`、`1Dutc`、`1Wutc`，每次 ≤300 筆，`after` 往回翻頁） | 12 次/秒；429／錯誤碼 50011 指數退避 | quoteCcy=USDT、state=live |
+| `okx-perp` | 同上，`<BASE>-USDT-SWAP`、linear、live | 同 OKX（共用節流器） | |
+| `gate-perp` | `api.gateio.ws/api/v4/futures/usdt/candlesticks`（一次最多 2000 筆） | 10 次/秒；429 退避 | 補「只有合約」的小幣；成交量單位是合約張數 |
+
+同一個 base 幣只掃一個來源，優先序：`binance-spot` → `binance-perp` → `okx-spot` → `okx-perp` → `gate-perp`
+（`1000PEPE` 與 `PEPE` 視為同一幣）。不用成交量門檻過濾小幣。非主來源列表失敗記在 `scan.json` 的
+`source_errors`、不中止；單一 symbol 抓取失敗記在 `failures`（含 `exchange`／`market`）。
+`scan.json` 的 `source_counts` 列每個來源的 `listed`（去重前）、`symbols`（實際掃描）、`scanned_symbols`、
+`series_scanned`、`failed_series`。
 
 ## 定時掃描與 Discord 通知
 

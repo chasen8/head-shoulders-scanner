@@ -1,4 +1,9 @@
-"""Build the static site's data: fetch Binance public klines, scan, write site/data/.
+"""Build the static site's data: fetch exchange public klines, scan, write site/data/.
+
+Sources (--sources, charter D22): binance-spot, binance-perp (opt-in: fapi answers 451 on US runners),
+okx-spot, okx-perp, gate-perp. A base coin is scanned from ONE source only, by priority
+binance-spot > binance-perp > okx-spot > okx-perp > gate-perp. Every result carries exchange, market,
+tv_symbol; pattern_id is prefixed "<exchange>|<market>|".
 
 Output (front end only draws these values; every number it shows is computed here):
   site/data/scan.json            metadata + one summary row per pattern (no bars)
@@ -10,7 +15,8 @@ Only when more than MAX_FAILURE_RATIO of the series fail does the build exit non
 the previous scan.json and bars/ untouched.
 
 Example (Git Bash, project root):
-    /c/trading-data/ihs-scanner-v2/venv/Scripts/python.exe build_site.py            # all USDT pairs
+    /c/trading-data/ihs-scanner-v2/venv/Scripts/python.exe build_site.py            # all default sources
+    /c/trading-data/ihs-scanner-v2/venv/Scripts/python.exe build_site.py --sources binance-spot,okx-perp
     /c/trading-data/ihs-scanner-v2/venv/Scripts/python.exe build_site.py --symbols BTCUSDT,ETHUSDT
 """
 from __future__ import annotations
@@ -28,16 +34,18 @@ import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any, Callable, Mapping, Sequence
 
 import pandas as pd
 import requests
 
+from ihs_scanner import data_binance_futures, data_gate, data_okx
 from ihs_scanner.config import TIMEFRAMES, merge_config
 from ihs_scanner.data_binance import (BinanceFetchError, WeightLimiter, fetch_klines, fetch_quote_volumes,
                                       list_usdt_symbols)
 from ihs_scanner.neckline import calculate_neckline
 from ihs_scanner.scanner import OUTPUT_FIELDS, _to_jsonable, scan_symbols, sort_results
+from ihs_scanner.sources import SOURCE_PRIORITY, Instrument, SourceFetchError, merge_instruments
 from ihs_scanner.swings import get_timestamps
 
 DEFAULT_OUT = Path(__file__).resolve().parent / "site" / "data" / "scan.json"
@@ -53,6 +61,10 @@ SCAN_EVERY_HOURS = 4
 SCAN_MINUTE = 7
 SCHEMA_VERSION = 2
 POINT_NAMES = ("LS", "N1", "H", "N2", "RS")
+# fapi.binance.com is HTTP 451 from GitHub's US runners, so binance-perp is not in the default set.
+DEFAULT_SOURCES = ("binance-spot", "okx-spot", "okx-perp", "gate-perp")
+ALL_SOURCES = SOURCE_PRIORITY
+FETCH_ERRORS = (BinanceFetchError, SourceFetchError, ValueError, requests.RequestException)
 
 
 def _csv_list(text: str) -> list[str]:
@@ -100,8 +112,9 @@ def chart_file_name(result: Mapping[str, Any]) -> str:
     Symbols can be non-ASCII (e.g. 币安人生USDT), so unsafe characters become "_" and a short
     hash of pattern_id keeps names unique."""
     safe_sym = re.sub(r"[^A-Za-z0-9]", "_", str(result["symbol"])).strip("_") or "SYM"
+    src = f"{result.get('exchange', 'binance')}_{result.get('market', 'spot')}"
     digest = hashlib.sha1(str(result["pattern_id"]).encode("utf-8")).hexdigest()[:10]
-    return f"{safe_sym}_{result['timeframe']}_{_unix(result['LS_time'])}_{digest}.json"
+    return f"{src}_{safe_sym}_{result['timeframe']}_{_unix(result['LS_time'])}_{digest}.json"
 
 
 def chart_for(result: Mapping[str, Any], df: pd.DataFrame, angle_scale: float) -> dict[str, Any]:
@@ -156,18 +169,32 @@ def _neckline_side(r: Mapping[str, Any]) -> str:
     return "above" if close > neck else ("below" if close < neck else "at")
 
 
+def _default_instrument(symbol: str) -> Instrument:
+    base = symbol[:-4] if symbol.endswith("USDT") and len(symbol) > 4 else symbol
+    return Instrument(base=base, symbol=symbol, native=symbol, exchange="binance", market="spot")
+
+
 def build_payload(symbol_data: Mapping[str, Mapping[str, pd.DataFrame]], cfg: Mapping[str, Any], *,
                   symbols: list[str], timeframes: list[str], limit: int,
                   generated_at: datetime | None = None, scheduled: bool = False,
                   failures: list[dict[str, Any]] | None = None,
                   skipped: list[dict[str, Any]] | None = None,
-                  symbols_source: str = "list") -> tuple[dict[str, Any], dict[str, dict[str, Any]]]:
+                  symbols_source: str = "list",
+                  instruments: Mapping[str, Instrument] | None = None,
+                  sources: Sequence[str] | None = None,
+                  source_listed: Mapping[str, int] | None = None,
+                  source_errors: list[dict[str, Any]] | None = None) -> tuple[dict[str, Any], dict[str, dict[str, Any]]]:
     """Returns (scan.json payload, {bars file name: chart data}).
 
     Each symbol/timeframe is scanned on its own; a detector exception is recorded in `failures`
     (stage "scan") instead of aborting the build. scheduled=False -> next_scan_at is null."""
     generated_at = generated_at or datetime.now(timezone.utc)
     failures = list(failures or [])
+    instruments = instruments or {}
+
+    def inst_of(sym: str) -> Instrument:
+        return instruments.get(sym) or _default_instrument(sym)
+
     results: list[dict[str, Any]] = []
     for sym, by_tf in symbol_data.items():
         for tf, df in by_tf.items():
@@ -175,6 +202,10 @@ def build_payload(symbol_data: Mapping[str, Mapping[str, pd.DataFrame]], cfg: Ma
                 results.extend(scan_symbols({sym: {tf: df}}, cfg))
             except Exception as exc:  # one bad series must not sink the whole site
                 failures.append({"symbol": sym, "timeframe": tf, "stage": "scan", "error": _short_error(exc)})
+    for r in results:  # tag the origin; pattern_id gets a prefix so ids never collide across sources
+        inst = inst_of(r["symbol"])
+        r["exchange"], r["market"], r["tv_symbol"] = inst.exchange, inst.market, inst.tv_symbol
+        r["pattern_id"] = f"{inst.exchange}|{inst.market}|{r['pattern_id']}"
     results = sort_results(results)
 
     angle_scale = float(cfg["angle_scale"])
@@ -194,7 +225,8 @@ def build_payload(symbol_data: Mapping[str, Mapping[str, pd.DataFrame]], cfg: Ma
         row["chart_file"] = f"{BARS_DIRNAME}/{name}"
         row["shape"] = shape_for(chart)
         charts[name] = {"schema_version": SCHEMA_VERSION, "pattern_id": row["pattern_id"],
-                        "symbol": row["symbol"], "timeframe": row["timeframe"], **chart}
+                        "symbol": row["symbol"], "exchange": row["exchange"], "market": row["market"],
+                        "timeframe": row["timeframe"], **chart}
         rows.append(row)
 
     last_closed: dict[str, str | None] = {}
@@ -204,6 +236,22 @@ def build_payload(symbol_data: Mapping[str, Mapping[str, pd.DataFrame]], cfg: Ma
         last_closed[tf] = _iso(max(stamps)) if stamps else None
     scanned = sorted(sym for sym, by_tf in symbol_data.items() if by_tf)
     series = sum(len(by_tf) for by_tf in symbol_data.values())
+    for f in failures:
+        inst = inst_of(f["symbol"])
+        f.setdefault("exchange", inst.exchange)
+        f.setdefault("market", inst.market)
+    blank = {"listed": 0, "symbols": 0, "scanned_symbols": 0, "series_scanned": 0, "failed_series": 0}
+    source_counts: dict[str, dict[str, int]] = {}
+    for sym in symbols:
+        source_counts.setdefault(inst_of(sym).source, dict(blank))["symbols"] += 1
+    for sym, by_tf in symbol_data.items():
+        c = source_counts.setdefault(inst_of(sym).source, dict(blank))
+        c["scanned_symbols"] += 1 if by_tf else 0
+        c["series_scanned"] += len(by_tf)
+    for sym, _tf in {(f["symbol"], f["timeframe"]) for f in failures}:
+        source_counts.setdefault(inst_of(sym).source, dict(blank))["failed_series"] += 1
+    for key, n in (source_listed or {}).items():
+        source_counts.setdefault(key, dict(blank))["listed"] = n
     payload = {
         "schema_version": SCHEMA_VERSION,
         "generated_at": generated_at.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
@@ -217,8 +265,11 @@ def build_payload(symbol_data: Mapping[str, Mapping[str, pd.DataFrame]], cfg: Ma
             "volume_filter": bool(cfg["enable_volume_filter"]),
             "min_pattern_score": float(cfg["min_pattern_score"]),
             "bars_per_series": {tf: limit_for(tf, limit) for tf in timeframes},
-            "data_source": "Binance public klines (data-api.binance.vision), closed bars only",
+            "sources": list(sources) if sources else sorted(source_counts),
+            "data_source": "exchange public klines (" + ", ".join(sorted(source_counts)) + "), closed bars only",
         },
+        "source_counts": {k: source_counts[k] for k in sorted(source_counts)},
+        "source_errors": list(source_errors or []),
         "requested_symbols": len(symbols),
         "scanned_symbols": len(scanned),
         "series_total": len(symbols) * len(timeframes),
@@ -282,12 +333,25 @@ def write_payload(payload: Mapping[str, Any], out: Path) -> Path:
     return out
 
 
-def fetch_all(symbols: list[str], timeframes: list[str], limit: int, *, limiter: WeightLimiter,
-              workers: int = MAX_WORKERS, progress_every: int = 150):
-    """Fetch every symbol x timeframe with <= `workers` threads sharing one weight limiter.
+Fetcher = Callable[[Instrument, str, int, Any], pd.DataFrame]
+
+
+def _interleave(tasks_by_source: Mapping[str, list]) -> list:
+    """Round-robin across sources so each source's own rate limiter works in parallel with the others."""
+    out, lists = [], [list(v) for v in tasks_by_source.values()]
+    for i in range(max((len(v) for v in lists), default=0)):
+        out.extend(v[i] for v in lists if i < len(v))
+    return out
+
+
+def fetch_all(instruments: list[Instrument], timeframes: list[str], limit: int, *,
+              fetchers: Mapping[str, Fetcher], workers: int = MAX_WORKERS, progress_every: int = 300,
+              status: Callable[[], str] | None = None):
+    """Fetch every instrument x timeframe with <= `workers` threads; each source has its own fetcher
+    (and therefore its own rate limiter).
 
     Returns (symbol_data, failures, skipped); empty series (e.g. a pair listed this week has no
-    closed weekly bar yet) are `skipped`, not failures."""
+    closed weekly bar yet) are `skipped`, not failures. Failures record exchange and market."""
     local = threading.local()
 
     def session():
@@ -295,52 +359,128 @@ def fetch_all(symbols: list[str], timeframes: list[str], limit: int, *, limiter:
             local.s = requests.Session()
         return local.s
 
-    def job(sym: str, tf: str):
-        return fetch_klines(sym, tf, limit_for(tf, limit), session=session(), limiter=limiter)
+    def job(inst: Instrument, tf: str):
+        return fetchers[inst.source](inst, tf, limit_for(tf, limit), session())
 
-    tasks = [(s, tf) for s in symbols for tf in timeframes]
+    by_source: dict[str, list] = {}
+    for inst in instruments:
+        by_source.setdefault(inst.source, []).extend((inst, tf) for tf in timeframes)
+    tasks = _interleave(by_source)
     symbol_data: dict[str, dict[str, pd.DataFrame]] = {}
     failures: list[dict[str, Any]] = []
     skipped: list[dict[str, Any]] = []
     done = 0
     with ThreadPoolExecutor(max_workers=max(1, min(workers, MAX_WORKERS))) as pool:
-        futs = {pool.submit(job, s, tf): (s, tf) for s, tf in tasks}
+        futs = {pool.submit(job, inst, tf): (inst, tf) for inst, tf in tasks}
         for fut in as_completed(futs):
-            sym, tf = futs[fut]
+            inst, tf = futs[fut]
+            sym = inst.symbol
             done += 1
             try:
                 df = fut.result()
-            except (BinanceFetchError, ValueError, requests.RequestException) as exc:
-                failures.append({"symbol": sym, "timeframe": tf, "stage": "fetch", "error": _short_error(exc)})
-                print(f"[fetch FAIL] {sym} {tf}: {_short_error(exc)}", file=sys.stderr)
+            except FETCH_ERRORS as exc:
+                failures.append({"symbol": sym, "timeframe": tf, "stage": "fetch", "exchange": inst.exchange,
+                                 "market": inst.market, "error": _short_error(exc)})
+                print(f"[fetch FAIL] {inst.source} {sym} {tf}: {_short_error(exc)}", file=sys.stderr)
             else:
                 if df.empty:
-                    skipped.append({"symbol": sym, "timeframe": tf, "reason": "no closed klines yet"})
+                    skipped.append({"symbol": sym, "timeframe": tf, "exchange": inst.exchange,
+                                    "market": inst.market, "reason": "no closed klines yet"})
                 else:
                     symbol_data.setdefault(sym, {})[tf] = df
             if done % progress_every == 0 or done == len(tasks):
-                print(f"[fetch] {done}/{len(tasks)} series, failures={len(failures)}, "
-                      f"max used weight/min={limiter.max_seen}")
+                print(f"[fetch] {done}/{len(tasks)} series, failures={len(failures)}"
+                      + (f", {status()}" if status else ""))
     # deterministic order (as_completed is not)
-    order = {s: i for i, s in enumerate(symbols)}
+    order = {i.symbol: n for n, i in enumerate(instruments)}
     symbol_data = {s: {tf: symbol_data[s][tf] for tf in timeframes if tf in symbol_data[s]}
                    for s in sorted(symbol_data, key=order.get)}
     key = lambda f: (order.get(f["symbol"], 0), timeframes.index(f["timeframe"]))  # noqa: E731
     return symbol_data, sorted(failures, key=key), sorted(skipped, key=key)
 
 
+def spot_instruments(symbols: Sequence[str]) -> list[Instrument]:
+    return [Instrument(base=s[:-4] if s.endswith("USDT") and len(s) > 4 else s, symbol=s, native=s,
+                       exchange="binance", market="spot") for s in symbols]
+
+
+def make_sources(args, spot_limiter: WeightLimiter) -> dict[str, dict[str, Any]]:
+    """key -> {"list": f(session) -> [Instrument], "fetch": f(inst, tf, limit, session) -> DataFrame,
+    "limiter": rate limiter or None}. Looked up through module globals so tests can monkeypatch."""
+    perp_limiter = WeightLimiter(threshold=data_binance_futures.DEFAULT_WEIGHT_THRESHOLD)
+    okx_limiter, gate_limiter = data_okx.new_limiter(), data_gate.new_limiter()
+    use_all = args.symbols.strip().lower() == "all"
+
+    def list_spot(session):
+        symbols = list_usdt_symbols(limiter=spot_limiter) if use_all else \
+            list(dict.fromkeys(s.upper() for s in _csv_list(args.symbols)))
+        if args.min_quote_volume > 0:
+            vols = fetch_quote_volumes(limiter=spot_limiter)
+            before = len(symbols)
+            symbols = [s for s in symbols if vols.get(s, 0.0) >= args.min_quote_volume]
+            print(f"[symbols] {len(symbols)} of {before} have 24h quote volume >= {args.min_quote_volume:,.0f} USDT")
+        return spot_instruments(symbols)
+
+    return {
+        "binance-spot": {
+            "list": list_spot, "limiter": spot_limiter,
+            "fetch": lambda inst, tf, limit, sess: fetch_klines(inst.native, tf, limit, session=sess,
+                                                                limiter=spot_limiter)},
+        "binance-perp": {
+            "list": lambda sess: data_binance_futures.list_instruments(sess, limiter=perp_limiter),
+            "limiter": perp_limiter,
+            "fetch": lambda inst, tf, limit, sess: data_binance_futures.fetch_klines(
+                inst.native, tf, limit, session=sess, limiter=perp_limiter)},
+        "okx-spot": {
+            "list": lambda sess: data_okx.list_instruments(sess, "spot", limiter=okx_limiter),
+            "limiter": okx_limiter,
+            "fetch": lambda inst, tf, limit, sess: data_okx.fetch_klines(inst.native, tf, limit, session=sess,
+                                                                         limiter=okx_limiter)},
+        "okx-perp": {
+            "list": lambda sess: data_okx.list_instruments(sess, "perp", limiter=okx_limiter),
+            "limiter": okx_limiter,
+            "fetch": lambda inst, tf, limit, sess: data_okx.fetch_klines(inst.native, tf, limit, session=sess,
+                                                                         limiter=okx_limiter)},
+        "gate-perp": {
+            "list": lambda sess: data_gate.list_instruments(sess, limiter=gate_limiter),
+            "limiter": gate_limiter,
+            "fetch": lambda inst, tf, limit, sess: data_gate.fetch_klines(inst.native, tf, limit, session=sess,
+                                                                          limiter=gate_limiter)},
+    }
+
+
+def parse_sources(text: str | None) -> list[str]:
+    """None -> DEFAULT_SOURCES; "all" -> every source; else a comma list (priority order is fixed)."""
+    if text is None or text.strip().lower() in ("", "default"):
+        keys = list(DEFAULT_SOURCES)
+    elif text.strip().lower() == "all":
+        keys = list(ALL_SOURCES)
+    else:
+        keys = _csv_list(text.lower())
+    bad = [k for k in keys if k not in ALL_SOURCES]
+    if bad or not keys:
+        raise ValueError(f"unknown sources {bad}; choose from {list(ALL_SOURCES)}, 'default' or 'all'")
+    return [k for k in ALL_SOURCES if k in keys]
+
+
 def parse_args(argv=None) -> argparse.Namespace:
-    p = argparse.ArgumentParser(description="Scan Binance public klines and write site/data/")
+    p = argparse.ArgumentParser(description="Scan exchange public klines and write site/data/")
+    p.add_argument("--sources", default=None,
+                   help="comma list of %s; 'default' = %s, 'all' = every source (binance-perp is blocked "
+                        "from US IPs). One source per base coin, by that priority." %
+                        (",".join(ALL_SOURCES), ",".join(DEFAULT_SOURCES)))
     p.add_argument("--symbols", default="all",
-                   help='"all" = every Binance spot USDT pair trading (default), or comma separated list')
+                   help='"all" = every instrument of the chosen sources (default); a comma list of Binance spot '
+                        'symbols (debug) restricts the scan to those, binance-spot only')
     p.add_argument("--timeframes", default="4h,1d,1w", help="comma separated subset of 4h,1d,1w")
     p.add_argument("--limit", type=int, default=1000,
                    help="closed klines per symbol/timeframe (1w is capped at %d)" % LIMIT_CAP_BY_TIMEFRAME["1w"])
     p.add_argument("--min-quote-volume", type=float, default=0.0,
-                   help="skip symbols whose 24h quote volume (USDT) is below this; 0 = no filter")
+                   help="binance-spot only: skip symbols whose 24h quote volume (USDT) is below this; 0 = no filter")
     p.add_argument("--workers", type=int, default=MAX_WORKERS, help=f"fetch threads (max {MAX_WORKERS})")
     p.add_argument("--weight-threshold", type=int, default=4500,
-                   help="pause until the next minute when used weight/min would exceed this (IP limit 6000)")
+                   help="binance-spot: pause until the next minute when used weight/min would exceed this "
+                        "(IP limit 6000)")
     p.add_argument("--include-stale", action="store_true",
                    help="also include stale patterns (for local preview; production leaves this off)")
     p.add_argument("--out", default=str(DEFAULT_OUT), help="output JSON path (default site/data/scan.json)")
@@ -362,34 +502,53 @@ def main(argv=None) -> int:
     if not timeframes or bad or args.limit < 1:
         print(f"error: need timeframes from {TIMEFRAMES} and limit >= 1; bad timeframes: {bad}", file=sys.stderr)
         return 2
-    limiter = WeightLimiter(threshold=args.weight_threshold)
-
     use_all = args.symbols.strip().lower() == "all"
     try:
-        symbols = list_usdt_symbols(limiter=limiter) if use_all else \
-            list(dict.fromkeys(s.upper() for s in _csv_list(args.symbols)))
-        if args.min_quote_volume > 0:
-            vols = fetch_quote_volumes(limiter=limiter)
-            before = len(symbols)
-            symbols = [s for s in symbols if vols.get(s, 0.0) >= args.min_quote_volume]
-            print(f"[symbols] {len(symbols)} of {before} have 24h quote volume >= {args.min_quote_volume:,.0f} USDT")
-    except (BinanceFetchError, requests.RequestException) as exc:
-        print(f"error: could not get the symbol list: {_short_error(exc)}; {args.out} was NOT updated",
-              file=sys.stderr)
-        return 1
-    if not symbols:
+        source_keys = parse_sources(args.sources) if use_all else ["binance-spot"]
+    except ValueError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
+    spot_limiter = WeightLimiter(threshold=args.weight_threshold)
+    sources = make_sources(args, spot_limiter)
+
+    # 1) list each source's instruments; only binance-spot (the primary source, D3) is fatal.
+    list_session = requests.Session()
+    by_source: dict[str, list[Instrument]] = {}
+    source_errors: list[dict[str, Any]] = []
+    for key in source_keys:
+        try:
+            by_source[key] = sources[key]["list"](list_session)
+        except FETCH_ERRORS as exc:
+            if key == "binance-spot":
+                print(f"error: could not get the symbol list: {_short_error(exc)}; {args.out} was NOT updated",
+                      file=sys.stderr)
+                return 1
+            source_errors.append({"source": key, "stage": "list", "error": _short_error(exc)})
+            print(f"[source FAIL] {key}: could not list instruments: {_short_error(exc)}", file=sys.stderr)
+    merged = merge_instruments(by_source)
+    if not merged:
         print("error: no symbols to scan", file=sys.stderr)
         return 2
+    source_listed = {k: len(v) for k, v in by_source.items()}
+    kept = {k: sum(1 for i in merged if i.source == k) for k in by_source}
+    print("[sources] " + ", ".join(f"{k}: {source_listed[k]} listed -> {kept[k]} scanned" for k in by_source)
+          + f"; {len(merged)} unique coins")
+    symbols = [i.symbol for i in merged]
+    instruments = {i.symbol: i for i in merged}
 
-    symbol_data, failures, skipped = fetch_all(symbols, timeframes, args.limit, limiter=limiter,
-                                               workers=args.workers)
+    fetchers = {k: sources[k]["fetch"] for k in by_source}
+    symbol_data, failures, skipped = fetch_all(
+        merged, timeframes, args.limit, fetchers=fetchers, workers=args.workers,
+        status=lambda: f"binance max weight/min={spot_limiter.max_seen}")
     t_fetch = time.perf_counter() - t0
 
     cfg = merge_config({"include_stale": bool(args.include_stale)})
     scheduled = bool(args.scheduled) or os.environ.get("GITHUB_EVENT_NAME") == "schedule"
     payload, charts = build_payload(symbol_data, cfg, symbols=symbols, timeframes=timeframes, limit=args.limit,
                                     scheduled=scheduled, failures=failures, skipped=skipped,
-                                    symbols_source="all" if use_all else "list")
+                                    symbols_source="all" if use_all else "list", instruments=instruments,
+                                    sources=source_keys, source_listed=source_listed,
+                                    source_errors=source_errors)
     total = payload["series_total"]
     failed_series = {(f["symbol"], f["timeframe"]) for f in payload["failures"]}
     ratio = len(failed_series) / total if total else 1.0
@@ -406,8 +565,11 @@ def main(argv=None) -> int:
     print(f"\nscanned {payload['scanned_symbols']} symbols / {payload['series_scanned']} of {total} series "
           f"in {elapsed:.1f}s (fetch {t_fetch:.1f}s); failures={len(payload['failures'])} "
           f"skipped={len(payload['skipped'])}")
-    print(f"max X-MBX-USED-WEIGHT-1M seen: {limiter.max_seen}; throttle waits: {limiter.throttle_waits} "
-          f"({limiter.slept:.1f}s)")
+    for key, c in payload["source_counts"].items():
+        print(f"  {key}: {c['symbols']} symbols, {c['series_scanned']} series scanned, "
+              f"{c['failed_series']} failed series")
+    print(f"max X-MBX-USED-WEIGHT-1M seen: {spot_limiter.max_seen}; throttle waits: {spot_limiter.throttle_waits} "
+          f"({spot_limiter.slept:.1f}s)")
     print(f"wrote {args.out} ({sizes['scan_json'] / 1024:.0f} KB) + {sizes['bars_files']} bars files "
           f"({sizes['bars'] / 1024:.0f} KB): {len(payload['results'])} patterns {counts}; "
           f"next scan ~{payload['next_scan_at'] or 'not scheduled'}")

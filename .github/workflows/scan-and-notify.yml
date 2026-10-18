@@ -3,7 +3,8 @@
 #   - 結果與通知狀態存在獨立的 orphan 分支 `scan-state`（state.json + site/data/）。
 #   - 每次執行的 site/ 也上傳成 artifact（保留 7 天）。
 # 需要的 secret：DISCORD_WEBHOOK_URL（沒設也能跑：只更新 state，印「未設定 webhook」）。
-# 幣安公開端點 data-api.binance.vision 不需要金鑰（charter D3）。
+# 資料來源：幣安現貨 data-api.binance.vision、OKX 現貨/永續、Gate 永續，全是公開端點不需金鑰（charter D3、D22）；
+# 幣安永續 fapi 在美國 runner 回 451，預設不掃。
 #
 # 排程：UTC 每 4 小時的第 7 分鐘（00:07, 04:07, ...），4h K 線收盤後 7 分鐘；
 # 也涵蓋 1d（UTC 00:00 收盤）與 1w（週一 UTC 00:00 收盤）。
@@ -39,7 +40,7 @@ concurrency:
 jobs:
   scan:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30  # 本機實測全部來源約 10 分鐘（D22）；上限 30
     env:
       DRY_RUN: ${{ github.event.inputs.dry_run }}
       NOTIFY_ALL: ${{ github.event.inputs.notify_all }}
