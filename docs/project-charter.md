@@ -17,6 +17,7 @@
 - 2026-10-18：定時掃描＋Discord 通知上線（D16、D20），GitHub 上手動執行 3 次全綠；等使用者自己設定 `DISCORD_WEBHOOK_URL` secret。型態規則研究完成（`docs/pattern-rules-research.md`），下一步實作前 5 條推薦規則（D21）。
 - 2026-10-18：D21 五條規則上線，127 個測試全綠；全幣種快照結果 42→12 筆。
 - 2026-10-19：多交易所（1378 幣，D22）＋ template 規則（D23）完成，189 個測試全綠、5 個範例全過；下一步整合網站與 Discord（forming 狀態、TP、tv_symbol）。
+- 2026-10-19：網站＋Discord 整合 forming／TP1／TP2／交易所標籤（D24），208 個測試全綠，GitHub dry-run 成功；全來源 1378 幣本機掃描 195 筆（forming 113／watchlist 76／confirmed 6）。待辦：使用者重建 webhook 並自行 `gh secret set`；已知 1MBABYDOGE（幣安）與 MBABYDOGE（Gate）未被去重。
 ## 決策記錄
 格式：日期｜決定｜原因｜何時可推翻
 
@@ -43,3 +44,4 @@
 - D21 2026-10-18｜再加 5 條形狀規則（預設全開，可個別關，`scan.py --rules-off`）：R1 頭比兩肩低 ≥1 ATR(14, Wilder)；R11 型態起點（LS 前價格曾高於頸線左延伸，比較用 **high**）；R3 頸線總傾斜 ≤15%；R2 肩差 ≤0.5×頭高；R21 肩深/頭高 ≥0.25｜使用者說型態還要修；來源 SignalSync、neurotrader888（MIT）、Savin et al.，見 `docs/pattern-rules-research.md`；全幣種快照 42→12 筆，主要由 R1/R11/R3 刷掉；R11 原始碼用 close，但本專案頸線用 high（D5），用 close 會誤擋 NEAR 1w 這種標準型態｜回測後；R2/R21 目前幾乎沒作用，可考慮收緊或移除
 - D22 2026-10-19｜資料來源擴大為多交易所，一個 base 幣只掃一個來源，優先序 binance-spot → binance-perp → okx-spot → okx-perp → gate-perp；預設不含 binance-perp（fapi 對 GitHub runner 美國 IP 回 451，本機可用 `--sources all`）；結果加 exchange/market/tv_symbol，pattern_id 前綴來源；不設成交量門檻；workflow timeout 30 分｜使用者要全幣種含小幣，範例含幣安永續與 OKX；runner probe：OKX、Gate、MEXC、Bitget 可達，Bybit 403｜換執行環境（非美國 IP）時把 binance-perp 加回預設
 - D23 2026-10-19｜偵測預設改為 `profile="template"`（依使用者 5 個 TradingView 範例校準，`tests/test_golden_examples.py` 鎖住）：肩膀比「各自頸線高點往下的跌幅%」對稱（取代規格第三步的低點差異率，後者改選配）、頭到頸線漲幅與突出度門檻、寬型態（最大 4h 1000／1d 600／1w 200 根）、新狀態 `forming`（右肩形成中，N2 確認後以至今最低點暫定 RS）、T1–T10 形狀規則；關閉 D19 時間對稱／balance 與 D21 R3／R11，R1 降為 0.5 ATR；`classic` 保留舊行為；輸出 tp1＝突破價＋頭高、tp2＝突破價×(1＋頭到頸線%)（使用者算法）、invalidation_price＝H.low｜使用者範例優先於原始規格文字；原規則把 5 個範例全擋掉｜T7–T10、寬度、突出度等門檻是校準值不是原理推導，1w 沒有範例；回測或使用者回饋後調整
+- D24 2026-10-19｜Discord 通知修訂（取代 D20 的事件與門檻）：通知「新 forming」「新 watchlist」「任何→confirmed」，forming→watchlist 不通知；去重鍵不含 RS（`exchange|market|symbol|tf|LS_time|H_time`），state `version: 2`（舊版視為首次只發摘要）；門檻 50（`NOTIFY_MIN_SCORE`）；低於門檻者之後過門檻會補發一次｜使用者要在右肩區就收到提醒；forming 的 RS 會移動，含 RS 的鍵會重複通知；template 分數普遍 50–70｜每日通知量過多時提高門檻；已知限制：forming 期間即使收盤突破仍標 forming，突破通知最多延後 pivot N 根（4h/1d 5 根）
