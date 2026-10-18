@@ -6,7 +6,7 @@ yanivil/SignalSync (MIT). All tests use the default pivot window (4h N=5).
 """
 import pytest
 
-from ihs_scanner.config import DEFAULT_CONFIG
+from ihs_scanner.config import DEFAULT_CONFIG, RULE_OFF_OVERRIDES, rules_off_overrides
 from ihs_scanner.detector import detect_inverse_head_shoulders
 
 from .synth import IHS_WATCH, make_df
@@ -20,8 +20,13 @@ OFF = {"enable_balance_rule": False, "max_time_symmetry_ratio": None}
 LOPSIDED = [(0, 115), (10, 100), (40, 110), (110, 90), (116, 100), (122, 97), (140, 98)]
 
 
+# The D19 rules are tested in isolation: the D21 rules (tests/test_rules_r2.py) are switched off here,
+# otherwise R11 / R3 would also reject the LOPSIDED and balance fixtures.
+D21_OFF = rules_off_overrides(RULE_OFF_OVERRIDES)
+
+
 def _detect(df, **overrides):
-    cfg = {"include_stale": True}
+    cfg = {"include_stale": True, **D21_OFF}
     cfg.update(overrides)
     return detect_inverse_head_shoulders(df, "4h", cfg, symbol="T")
 

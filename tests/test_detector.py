@@ -55,7 +55,8 @@ def test_shoulder_diff_limits(tf, diff, head, expected):
 def test_neckline_angle_limit(rise, expected):
     n2_low = 111 * (1 + rise) - 1  # N2.high = N1.high * (1 + rise)
     wp = [(0, 115), (20, 100), (35, 110), (50, 90), (65, n2_low), (80, 100), (99, 106)]
-    res = _detect(make_df(wp))
+    # D21 R3 (total neckline tilt 0.245 > 0.15) would also reject rise=0.10; off so the angle decides
+    res = _detect(make_df(wp), max_neckline_total_slope=None)
     assert len(res) == expected
     if expected:
         exp_angle = math.degrees(math.atan(rise / 30 * 100))

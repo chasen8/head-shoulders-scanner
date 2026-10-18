@@ -15,6 +15,7 @@
 
 - 2026-10-18：使用者回饋第 2 輪：(1) 掃描改為幣安全部現貨 USDT 對（約 497 個，排除穩定幣與槓桿代幣，weight 節流）；(2) 網站改 TradingView 淺色乾淨風格（`docs/site-design.md`），scan.json 與單筆 bars 拆檔；(3) 加 balance／symmetry 規則與 pivot 5/5/3（D19）。82 個測試全綠。
 - 2026-10-18：定時掃描＋Discord 通知上線（D16、D20），GitHub 上手動執行 3 次全綠；等使用者自己設定 `DISCORD_WEBHOOK_URL` secret。型態規則研究完成（`docs/pattern-rules-research.md`），下一步實作前 5 條推薦規則（D21）。
+- 2026-10-18：D21 五條規則上線，127 個測試全綠；全幣種快照結果 42→12 筆。
 ## 決策記錄
 格式：日期｜決定｜原因｜何時可推翻
 
@@ -38,3 +39,4 @@
 - D19 2026-10-18｜加兩條形狀規則（neurotrader888 `check_ihs_pattern`，MIT，原始碼已核對）：balance（LS.low ≤ (RS.low+N2.high)/2 且 RS.low ≤ (LS.low+N1.high)/2）、symmetry（LS→H 與 H→RS 根數比 ≤ 2.5）；預設 pivot 改為規格區間上限 4h 5／1d 5／1w 3；選配（預設關）`min_pattern_bars`、`require_prior_downtrend`（SignalSync 概念）｜使用者指出 BTC 4h（LS→H 112 根、H→RS 7 根）看不出頭肩底，原規格只管價格不管時間形狀；5 個幣實測舊規則 4 筆→新規則 1 筆，BTC 1w（比值 2.91、LS 高於右中點）也被排除｜2.5 門檻未針對 4h/1d/1w 回測；回測顯示太嚴時放寬到 3 或關 balance
 - D18 2026-10-18（同日修訂）｜build_site.py 部分成功：個別 symbol/timeframe 失敗記在 scan.json `failures`，剛上架無已收盤 K 線記在 `skipped`；失敗率 >20% 才非零退出且不覆寫舊 scan.json／bars（bars 先寫 `bars.tmp/` 再整個換上）；`next_scan_at` 只有排程觸發才填｜全幣種（約 500 個 USDT 對）時單一下市幣不該讓整批失敗；舊網站在中止時保持完整｜失敗率門檻需要調整時
 - D20 2026-10-18｜Discord 通知：只發「新型態」與「watchlist→confirmed」，分數 ≥60（`NOTIFY_MIN_SCORE`）；首次只發摘要；沒設 webhook 時事件仍記為已通知（之後設定不補發）；送失敗的不記入 state、下次重試；消失型態保留 14 天｜避免首次與日後轟炸、避免重複通知｜使用者想要補發或不同門檻
+- D21 2026-10-18｜再加 5 條形狀規則（預設全開，可個別關，`scan.py --rules-off`）：R1 頭比兩肩低 ≥1 ATR(14, Wilder)；R11 型態起點（LS 前價格曾高於頸線左延伸，比較用 **high**）；R3 頸線總傾斜 ≤15%；R2 肩差 ≤0.5×頭高；R21 肩深/頭高 ≥0.25｜使用者說型態還要修；來源 SignalSync、neurotrader888（MIT）、Savin et al.，見 `docs/pattern-rules-research.md`；全幣種快照 42→12 筆，主要由 R1/R11/R3 刷掉；R11 原始碼用 close，但本專案頸線用 high（D5），用 close 會誤擋 NEAR 1w 這種標準型態｜回測後；R2/R21 目前幾乎沒作用，可考慮收緊或移除

@@ -42,6 +42,31 @@ def _prior_average(volume: np.ndarray, window: int) -> np.ndarray:
     return avg
 
 
+def wilder_atr(df: pd.DataFrame, length: int = 14) -> np.ndarray:
+    """D21 R1: Wilder ATR. TR[0] = high-low; TR[i] = max(high-low, |high-close[i-1]|, |low-close[i-1]|);
+    ATR[length-1] = mean(TR[0:length]); ATR[i] = (ATR[i-1]*(length-1) + TR[i]) / length; earlier = NaN.
+
+    ATR[i] depends only on bars <= i, so it never looks ahead (truncation test locks this in)."""
+    if length < 1:
+        raise ValueError("atr_length must be >= 1")
+    high = df["high"].to_numpy(dtype=float)
+    low = df["low"].to_numpy(dtype=float)
+    close = df["close"].to_numpy(dtype=float)
+    n = high.shape[0]
+    out = np.full(n, np.nan)
+    if n < length:
+        return out
+    prev_close = np.concatenate([[np.nan], close[:-1]])
+    tr = np.fmax(high - low, np.fmax(np.abs(high - prev_close), np.abs(low - prev_close)))
+    tr[0] = high[0] - low[0]
+    atr = float(np.mean(tr[:length]))
+    out[length - 1] = atr
+    for i in range(length, n):
+        atr = (atr * (length - 1) + tr[i]) / length
+        out[i] = atr
+    return out
+
+
 def _highest_between(high_idx: np.ndarray, high_px: np.ndarray, left: int, right: int) -> int | None:
     """Position (into the swing-high list) of the highest swing high with left < index < right (D5).
 
@@ -124,11 +149,28 @@ def find_pattern_candidates(df: pd.DataFrame, timeframe: str,
     min_bars = None if min_bars is None else int(min_bars)
     prior_downtrend = bool(cfg["require_prior_downtrend"])
     prior_bars = int(tf_value(cfg, "prior_trend_bars", timeframe))
+    # D21 rules (formulas and sources: config.py); None / False = off
+    def _opt_float(key: str) -> float | None:
+        v = cfg[key]
+        return None if v is None else float(v)
+    min_head_atr = _opt_float("min_head_atr")
+    start_rule = bool(cfg["enable_pattern_start_rule"])
+    start_lookback = cfg["pattern_start_lookback"]
+    start_lookback = None if start_lookback is None else int(start_lookback)
+    start_price_key = str(cfg["pattern_start_price"])
+    if start_price_key not in ("close", "high"):
+        raise ValueError(f"pattern_start_price must be 'close' or 'high', got {start_price_key!r}")
+    max_total_slope = _opt_float("max_neckline_total_slope")
+    max_sd_of_head = _opt_float("max_shoulder_diff_of_head")
+    min_depth_ratio = _opt_float("min_shoulder_depth_ratio")
+    max_depth_ratio = _opt_float("max_shoulder_depth_ratio")
 
     times = get_timestamps(df)
     low = df["low"].to_numpy(dtype=float)
     close = df["close"].to_numpy(dtype=float)
     volume = df["volume"].to_numpy(dtype=float)
+    start_px = df[start_price_key].to_numpy(dtype=float)
+    atr_all = wilder_atr(df, int(cfg["atr_length"]))
 
     swings = find_swing_points(df, N)
     lows: list[SwingPoint] = swings["lows"]
@@ -165,6 +207,8 @@ def find_pattern_candidates(df: pd.DataFrame, timeframe: str,
         if not ls_list or not rs_list:
             continue
 
+        atr_h = float(atr_all[hi])  # D21 R1: ATR at the head bar (bars <= H.index only)
+        atr_ok = math.isfinite(atr_h) and atr_h > 0
         n2_cache: dict[int, int | None] = {}
         for LS in ls_list:
             n1_pos = _highest_between(high_idx, high_px, LS.index, hi)  # D5
@@ -192,6 +236,11 @@ def find_pattern_candidates(df: pd.DataFrame, timeframe: str,
                 head_depth = (shoulder_avg - h_low) / shoulder_avg
                 if head_depth <= 0 or head_depth < min_depth:
                     continue
+                # D21 R1 (SignalSync L1436): head at least k ATR below BOTH shoulders:
+                # H.low <= min(LS.low, RS.low) - k * ATR[H]. Skipped when ATR[H] is NaN.
+                head_gap = min(LS.price, RS.price) - h_low
+                if min_head_atr is not None and atr_ok and head_gap < min_head_atr * atr_h:
+                    continue
                 if RS.index not in n2_cache:
                     n2_cache[RS.index] = _highest_between(high_idx, high_px, hi, RS.index)
                 n2_pos = n2_cache[RS.index]
@@ -212,13 +261,42 @@ def find_pattern_candidates(df: pd.DataFrame, timeframe: str,
                     continue
                 # D19 optional prior downtrend (concept: yanivil/SignalSync): the highest close
                 # in the prior_bars bars before LS must be >= LS.low + head height
+                head_height = float(neck.price_at(hi)) - h_low
                 if prior_downtrend:
                     p0 = max(0, LS.index - prior_bars)
                     if p0 >= LS.index:
                         continue
-                    head_height = float(neck.price_at(hi)) - h_low
                     if float(np.max(close[p0:LS.index])) - LS.price < head_height:
                         continue
+                if head_height <= 0:  # cannot happen (N1/N2 highs > H.low); guards the ratios below
+                    continue
+                # D21 R3 (SignalSync L1450-1456): total neckline rise/fall over LS->RS, fraction of close[H]
+                slope_px = (N2.price - N1.price) / (N2.index - N1.index)
+                total_slope = float(abs(slope_px * (RS.index - LS.index)) / close[hi])
+                if max_total_slope is not None and total_slope > max_total_slope:
+                    continue
+                # D21 R2 (SignalSync L1457-1459): shoulder difference in head heights
+                sd_of_head = abs(LS.price - RS.price) / head_height
+                if max_sd_of_head is not None and sd_of_head > max_sd_of_head:
+                    continue
+                # D21 R21 (Savin et al. R6/R7, report definition): mean shoulder depth / head height
+                depth_ratio = 0.5 * ((N1.price - LS.price) + (N2.price - RS.price)) / head_height
+                if min_depth_ratio is not None and depth_ratio < min_depth_ratio:
+                    continue
+                if max_depth_ratio is not None and depth_ratio > max_depth_ratio:
+                    continue
+                # D21 R11 (neurotrader888 L227-244): walking left from LS, the first bar whose price is
+                # above the extended neckline marks the pattern start; none within the lookback -> reject
+                look = start_lookback if start_lookback is not None else (N2.index - N1.index) - 1
+                j0 = max(0, LS.index - look)
+                pat_start_gap = None
+                if look > 0 and LS.index > 0:
+                    js = np.arange(LS.index - 1, j0 - 1, -1)
+                    above = np.flatnonzero(start_px[js] > neck.price_at(js))
+                    if above.size:
+                        pat_start_gap = int(above[0]) + 1  # bars before LS
+                if start_rule and pat_start_gap is None:
+                    continue
 
                 # D7 invalidation + D8 breakout, scanning bars after RS
                 breakout_i: int | None = None
@@ -295,6 +373,13 @@ def find_pattern_candidates(df: pd.DataFrame, timeframe: str,
                     "neckline_angle": angle,
                     "neckline_slope_pct_per_bar": neck.slope_pct_per_bar,
                     "time_symmetry_ratio": max(l_to_h, r_to_h) / min(l_to_h, r_to_h),
+                    # D21 rule values (computed whether or not the rule is on)
+                    "atr_at_head": atr_h if atr_ok else None,
+                    "head_atr_multiple": head_gap / atr_h if atr_ok else None,
+                    "neckline_total_slope": total_slope,
+                    "shoulder_diff_of_head": sd_of_head,
+                    "shoulder_depth_ratio": depth_ratio,
+                    "pattern_start_bars_before_ls": pat_start_gap,
                     "current_close": current_close,
                     "current_neckline_price": current_neck,
                     "distance_to_neckline": distance,

@@ -26,6 +26,7 @@ CLI 參數：
 | `--include-stale` | 關 | 也輸出過期型態（回測用） |
 | `--output` | `C:\trading-data\ihs-scanner-v2\output\results_<UTC>.csv` | `.csv` 或 `.json` |
 | `--no-cache` | 關 | 不寫 K 線快取（預設寫到 `C:\trading-data\ihs-scanner-v2\data`） |
+| `--rules-off` | 無 | 關掉 D21 規則做比較，例如 `R1,R3`；`all`＝五條全關（R1、R11、R3、R2、R21） |
 
 程式內使用：
 
@@ -86,6 +87,13 @@ bars 先寫到 `bars.tmp/` 再整個換上，舊檔不會殘留。
 | `include_stale` | False | 是否輸出 stale |
 | `ideal_head_depth` | 0.10 | 頭深分數滿分點 |
 | `breakout_distance_range` | 0.10 | 距頸線分數歸零距離 |
+| `min_head_atr` / `atr_length` | 1.0 / 14 | D21 R1：`H.low ≤ min(LS.low, RS.low) − k·ATR[H]`，Wilder ATR，只用 ≤ H 的 K 線；ATR 尚無值時略過；None＝關 |
+| `enable_pattern_start_rule` | True | D21 R11：LS 前 L 根內須有一根價格 > 頸線向左延伸值（neurotrader888），找不到或資料不足 → 拒絕 |
+| `pattern_start_lookback` | None | R11 回看根數 L；None＝`N2.index − N1.index − 1`（原始碼 `range(1, head_width)`） |
+| `pattern_start_price` | `close` | R11 比較用的價格：`close`（同原始碼）或 `high` |
+| `max_neckline_total_slope` | 0.15 | D21 R3：`\|頸線每根斜率 × (RS.index − LS.index)\| / close[H] ≤ 值`；與角度規則並存；None＝關 |
+| `max_shoulder_diff_of_head` | 0.5 | D21 R2：`\|LS.low − RS.low\| ≤ 值 × head_height`（SignalSync 原值 0.30）；與 % 肩差並存；None＝關 |
+| `min_shoulder_depth_ratio` / `max_shoulder_depth_ratio` | 0.25 / None | D21 R21：`mean(N1.high − LS.low, N2.high − RS.low) / head_height` 的下限／上限；None＝關 |
 
 `max_bars_after_rs`、`max_breakout_age` 也可給 `{"4h": .., "1d": .., "1w": ..}`。
 
@@ -96,6 +104,9 @@ bars 先寫到 `bars.tmp/` 再整個換上，舊檔不會殘留。
 - `status`：`watchlist`（未突破）／`confirmed`（已突破且夠新）／`stale`
 - `shoulder_score`、`head_depth_score`、`neckline_score`、`breakout_score`：四項分數
 - `RS_confirm_time`：右肩 pivot 被確認的 K 線時間（= RS_time + N 根）
+- D21 規則數值（規則關掉時也照算）：`atr_at_head`、`head_atr_multiple`（(min(LS,RS) − H)/ATR）、
+  `neckline_total_slope`、`shoulder_diff_of_head`、`shoulder_depth_ratio`、
+  `pattern_start_bars_before_ls`（R11 型態起點在 LS 前幾根；找不到為空）
 - `signal_time`：此訊號最早可被「即時」知道的時間＝max(RS_confirm_time, breakout_time)；
   回測進場請用這個，不要用 breakout_time（突破可能發生在 RS 確認前）
 - `average_volume_20`、`bars_since_rs`、`bars_since_breakout`、`as_of_time`（計算基準 K 線）

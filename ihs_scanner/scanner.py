@@ -20,6 +20,9 @@ OUTPUT_FIELDS = [
     "LS_time", "LS_price", "N1_time", "N1_price", "H_time", "H_price",
     "N2_time", "N2_price", "RS_time", "RS_price", "RS_confirm_time",
     "shoulder_diff", "head_depth", "neckline_angle", "neckline_slope_pct_per_bar", "time_symmetry_ratio",
+    # D21 rule values
+    "atr_at_head", "head_atr_multiple", "neckline_total_slope", "shoulder_diff_of_head",
+    "shoulder_depth_ratio", "pattern_start_bars_before_ls",
     "current_close", "current_neckline_price", "distance_to_neckline",
     "breakout_detected", "breakout_time", "breakout_price", "volume_ratio",
     "average_volume_20", "bars_since_rs", "bars_since_breakout", "signal_time", "as_of_time",

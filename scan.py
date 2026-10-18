@@ -11,7 +11,7 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 
-from ihs_scanner.config import TIMEFRAMES, merge_config
+from ihs_scanner.config import RULE_OFF_OVERRIDES, TIMEFRAMES, merge_config, rules_off_overrides
 from ihs_scanner.data_binance import DEFAULT_CACHE_DIR, BinanceFetchError, fetch_klines
 from ihs_scanner.scanner import export_results, scan_symbols
 
@@ -41,6 +41,9 @@ def parse_args(argv=None) -> argparse.Namespace:
     p.add_argument("--symmetry-ratio", type=float, default=None,
                    help="override max_time_symmetry_ratio; <= 0 disables the rule (D19)")
     p.add_argument("--pivot-windows", default=None, help="e.g. 4h=3,1d=3,1w=2 (default 5/5/3)")
+    p.add_argument("--rules-off", default="",
+                   help="comma separated D21 rule ids to disable, from " + ",".join(RULE_OFF_OVERRIDES)
+                   + " (e.g. R1,R3); 'all' disables all five")
     return p.parse_args(argv)
 
 
@@ -74,6 +77,13 @@ def main(argv=None) -> int:
                 k.strip(): int(v) for k, v in (item.split("=") for item in _csv_list(args.pivot_windows))}
         except ValueError:
             print(f"bad --pivot-windows: {args.pivot_windows!r}", file=sys.stderr)
+            return 2
+    if args.rules_off:
+        ids = list(RULE_OFF_OVERRIDES) if args.rules_off.strip().lower() == "all" else _csv_list(args.rules_off)
+        try:
+            overrides.update(rules_off_overrides(ids))
+        except KeyError as exc:
+            print(f"bad --rules-off: {exc}", file=sys.stderr)
             return 2
     cfg = merge_config(overrides)
 
