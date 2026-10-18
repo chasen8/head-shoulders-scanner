@@ -11,6 +11,7 @@
   設計說明 `docs/site-design.md`；`.github/workflows/scan-and-deploy.yml` 目前只手動觸發、上傳 artifact（D17）。
   44 個 pytest 全綠。正式資料（不含 stale）4 筆。
 - 下一步：決定部署方式（公開 repo＋Pages 或其他）後啟用排程；Discord webhook 通知。
+- 2026-10-18：推上私有 repo `chasen8/head-shoulders-scanner`（commit 198e05e）；手動觸發 workflow 在 GitHub 上跑通（pytest＋掃描＋上傳 site artifact 全綠）。下一步：Discord 通知。
 
 ## 決策記錄
 格式：日期｜決定｜原因｜何時可推翻
