@@ -1,0 +1,9 @@
+[project]
+name = "ihs-scanner"
+version = "0.1.0"
+description = "Inverse Head and Shoulders scanner (pure OHLCV rules)"
+requires-python = ">=3.13"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]

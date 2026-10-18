@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>頭肩底掃描</title>
+  <meta name="description" content="幣安 USDT 交易對 4 小時、日線、週線的頭肩底型態掃描結果。型態偵測工具，不是投資建議。">
+  <meta name="theme-color" content="#EDF2EA">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23EDF2EA'/%3E%3Cpolyline points='2,12 8,18 12,10 16,26 20,10 24,18 30,8' fill='none' stroke='%232F45C8' stroke-width='2.5' stroke-linejoin='round'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@400;500;600&family=LXGW+WenKai+TC:wght@400;700&display=swap">
+  <link rel="stylesheet" href="css/site.css">
+</head>
+<body>
+  <a class="skip" href="#detail">跳到圖表</a>
+
+  <header class="masthead">
+    <div class="masthead__title">
+      <h1>頭肩底掃描</h1>
+      <svg class="masthead__mark" viewBox="0 0 320 64" aria-hidden="true" focusable="false">
+        <line class="mark__neck" x1="0" y1="18" x2="320" y2="12"/>
+        <polyline class="mark__shape" points="0,30 34,40 62,17 104,58 142,15 178,42 212,14 244,4 320,0"/>
+      </svg>
+    </div>
+    <div class="masthead__text">
+      <p class="lede" id="lede">檢查幣安 USDT 交易對的 4 小時、日線、週線 K 線，列出正在成形或剛突破頸線的頭肩底，分數高的排前面。</p>
+      <p class="disclaimer">這是型態偵測工具，不是投資建議。</p>
+      <p class="meta" id="meta" aria-live="polite">正在讀取掃描資料…</p>
+    </div>
+  </header>
+
+  <nav class="filters" aria-label="篩選">
+    <div class="filters__group" role="group" aria-labelledby="f-tf">
+      <span class="filters__name" id="f-tf">週期</span>
+      <div class="chips" id="filter-tf"></div>
+    </div>
+    <div class="filters__group" role="group" aria-labelledby="f-st">
+      <span class="filters__name" id="f-st">狀態</span>
+      <div class="chips" id="filter-status"></div>
+    </div>
+  </nav>
+
+  <main class="board">
+    <section class="detail" id="detail" tabindex="-1" aria-label="選取的型態">
+      <div class="detail__head" id="detail-head"></div>
+      <div class="chart-frame">
+        <div class="chart" id="chart" role="img" aria-label="K 線圖"></div>
+        <p class="chart-legend" id="chart-legend" hidden>
+          <span class="lg lg--shape">型態五點</span>
+          <span class="lg lg--neck">頸線（延伸到最新一根）</span>
+          <span class="lg lg--brk">突破</span>
+        </p>
+      </div>
+      <div class="detail__body" id="detail-body"></div>
+    </section>
+
+    <section class="ledger" aria-labelledby="ledger-title">
+      <h2 class="ledger__title" id="ledger-title">型態清單</h2>
+      <ol class="ledger__list" id="list"></ol>
+      <div class="notice" id="notice" hidden></div>
+    </section>
+  </main>
+
+  <footer class="colophon">
+    <section class="howto" aria-labelledby="howto-title">
+      <h2 id="howto-title">怎麼讀這張圖</h2>
+      <p>頭肩底由五個點組成：左肩 LS、頸線點 N1、頭 H、頸線點 N2、右肩 RS。頭是整段最低的低點，左右肩高度接近；N1 和 N2 連成的線就是頸線。</p>
+      <p>收盤價站上頸線（再加一點緩衝）才算突破。還沒突破的叫「觀察中」，剛突破的叫「已突破」，放太久沒動靜或突破已久的叫「已過期」。</p>
+      <p>分數滿分 100：左右肩對稱 30、頭部深度 25、頸線平緩 25、突破或接近頸線 20。只用已收盤的 K 線計算，結果不會事後改寫。</p>
+    </section>
+    <section class="fineprint">
+      <p><strong>這是型態偵測工具，不是投資建議。</strong>型態成立不代表價格會上漲，請自行判斷風險。</p>
+      <p>K 線資料來自幣安公開行情。圖表由 <a href="https://www.tradingview.com/" rel="noopener">TradingView</a> 的 Lightweight Charts 繪製（Apache-2.0）。</p>
+    </section>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/lightweight-charts@5.2.1/dist/lightweight-charts.standalone.production.js" crossorigin="anonymous"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
