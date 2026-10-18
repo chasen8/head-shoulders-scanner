@@ -41,6 +41,53 @@ def calculate_pattern_score(shoulder_diff: float,
     }
 
 
+def calculate_template_score(shoulder_drop_diff: float,
+                             max_shoulder_drop_diff: float | None,
+                             head_prominence: float,
+                             head_rise: float,
+                             neckline_tilt_of_head: float,
+                             max_neckline_tilt_of_head: float | None,
+                             breakout_detected: bool,
+                             distance_to_neckline: float | None,
+                             ideal_head_prominence: float = 1.5,
+                             ideal_head_rise: float = 0.40,
+                             distance_range: float = 0.30) -> dict[str, float]:
+    """D22 template score (0-100), same four component names as the spec score:
+
+    shoulder_score   (30) = 30 * max(0, 1 - |drop_L - drop_R| / max_shoulder_drop_diff)
+                            (max None -> 0.05)
+    head_depth_score (25) = 12.5 * clip((head_prominence - 1) / (ideal_head_prominence - 1), 0, 1)
+                          + 12.5 * clip(head_rise / ideal_head_rise, 0, 1)
+    neckline_score   (25) = 25 * max(0, 1 - neckline_tilt_of_head / max_neckline_tilt_of_head)
+                            (max None -> 1.0)
+    breakout_score   (20) = 20 if broken out, else 20 * max(0, 1 - distance_to_neckline / distance_range)
+    """
+    def clip01(x: float) -> float:
+        return min(1.0, max(0.0, x))
+
+    sd_max = 0.05 if max_shoulder_drop_diff is None else float(max_shoulder_drop_diff)
+    tilt_max = 1.0 if max_neckline_tilt_of_head is None else float(max_neckline_tilt_of_head)
+    shoulder_score = 30.0 * max(0.0, 1.0 - shoulder_drop_diff / sd_max) if sd_max > 0 else 0.0
+    prom_span = ideal_head_prominence - 1.0
+    head_depth_score = (12.5 * (clip01((head_prominence - 1.0) / prom_span) if prom_span > 0 else 1.0)
+                        + 12.5 * clip01(head_rise / ideal_head_rise if ideal_head_rise > 0 else 1.0))
+    neckline_score = 25.0 * max(0.0, 1.0 - neckline_tilt_of_head / tilt_max) if tilt_max > 0 else 0.0
+    if breakout_detected:
+        breakout_score = 20.0
+    elif distance_to_neckline is None or not math.isfinite(distance_to_neckline):
+        breakout_score = 0.0
+    else:
+        breakout_score = max(0.0, 1.0 - distance_to_neckline / distance_range) * 20.0
+    total = shoulder_score + head_depth_score + neckline_score + breakout_score
+    return {
+        "shoulder_score": shoulder_score,
+        "head_depth_score": head_depth_score,
+        "neckline_score": neckline_score,
+        "breakout_score": breakout_score,
+        "pattern_score": total,
+    }
+
+
 def result_sort_key(r: Mapping[str, Any]):
     """score desc -> breakout first -> distance asc -> volume_ratio desc -> 1w>1d>4h.
 

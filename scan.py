@@ -11,7 +11,7 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 
-from ihs_scanner.config import RULE_OFF_OVERRIDES, TIMEFRAMES, merge_config, rules_off_overrides
+from ihs_scanner.config import DEFAULT_PROFILE, PROFILES, RULE_OFF_OVERRIDES, TIMEFRAMES, merge_config, rules_off_overrides
 from ihs_scanner.data_binance import DEFAULT_CACHE_DIR, BinanceFetchError, fetch_klines
 from ihs_scanner.scanner import export_results, scan_symbols
 
@@ -30,6 +30,9 @@ def parse_args(argv=None) -> argparse.Namespace:
     p = argparse.ArgumentParser(description="Inverse Head and Shoulders scanner (Binance public klines)")
     p.add_argument("--symbols", default=",".join(DEFAULT_SYMBOLS), help="comma separated, e.g. BTCUSDT,ETHUSDT")
     p.add_argument("--timeframes", default="4h,1d,1w", help="comma separated subset of 4h,1d,1w")
+    p.add_argument("--profile", choices=list(PROFILES), default=DEFAULT_PROFILE,
+                   help="rule set (D22): template = calibrated on the user's examples, with forming right "
+                        "shoulders and TP1/TP2; classic = D19/D21 rules")
     p.add_argument("--mode", choices=["candidate", "breakout"], default="candidate")
     p.add_argument("--volume-filter", action="store_true", help="breakout requires volume_ratio >= min_volume_ratio")
     p.add_argument("--limit", type=int, default=1000, help="closed klines per symbol/timeframe")
@@ -61,6 +64,7 @@ def main(argv=None) -> int:
         return 2
 
     overrides = {
+        "profile": args.profile,
         "enable_breakout_filter": args.mode == "breakout",
         "enable_volume_filter": bool(args.volume_filter),
         "include_stale": bool(args.include_stale),
@@ -115,13 +119,16 @@ def main(argv=None) -> int:
         out_path = DEFAULT_OUTPUT_DIR / f"results_{stamp}.csv"
     export_results(results, out_path)
 
-    print(f"\nmode={args.mode} volume_filter={args.volume_filter} patterns={len(results)} -> {out_path}")
-    header = f"{'#':>2} {'symbol':<10} {'tf':<3} {'score':>6} {'status':<9} {'brk':<5} {'dist':>7} {'vol_r':>6}  RS_time"
+    print(f"\nprofile={args.profile} mode={args.mode} volume_filter={args.volume_filter} "
+          f"patterns={len(results)} -> {out_path}")
+    header = (f"{'#':>2} {'symbol':<10} {'tf':<3} {'score':>6} {'status':<9} {'brk':<5} {'dist':>7} {'vol_r':>6}"
+              f" {'tp1':>10} {'tp2':>10}  RS_time")
     print(header)
     for i, r in enumerate(results[:20], 1):
         vr = "" if r["volume_ratio"] is None else f"{r['volume_ratio']:.2f}"
         print(f"{i:>2} {r['symbol']:<10} {r['timeframe']:<3} {r['pattern_score']:>6.2f} {r['status']:<9} "
-              f"{str(r['breakout_detected']):<5} {r['distance_to_neckline']:>7.4f} {vr:>6}  {r['RS_time']}")
+              f"{str(r['breakout_detected']):<5} {r['distance_to_neckline']:>7.4f} {vr:>6}"
+              f" {r['tp1']:>10.4g} {r['tp2']:>10.4g}  {r['RS_time']}")
     if failures:
         print(f"\n{len(failures)} fetch failures (see stderr)")
         return 1 if not symbol_data else 0

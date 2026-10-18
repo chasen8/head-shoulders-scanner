@@ -2,6 +2,12 @@
 
 Keys follow docs/spec.md step 12, plus the charter additions (D6, D9, ...).
 Per-timeframe values are dicts keyed by "4h" / "1d" / "1w".
+
+D22: two rule-set profiles share one key set.
+  "classic"  = the D19/D21 behaviour (CLASSIC_CONFIG below), kept switchable.
+  "template" = calibrated on the user's five hand-marked examples (tests/golden_examples.py);
+               TEMPLATE_OVERRIDES lists every value that differs from classic. New default.
+merge_config({"profile": "classic"}) selects the classic base; other overrides apply on top.
 """
 from __future__ import annotations
 
@@ -9,8 +15,11 @@ from copy import deepcopy
 from typing import Any, Mapping
 
 TIMEFRAMES = ("4h", "1d", "1w")
+PROFILES = ("template", "classic")
+DEFAULT_PROFILE = "template"  # D22
 
-DEFAULT_CONFIG: dict[str, Any] = {
+CLASSIC_CONFIG: dict[str, Any] = {
+    "profile": "classic",  # D22: "template" or "classic"
     # --- spec step 12 ---
     # D19: upper end of the spec's suggested range (4h/1d 3-5, 1w 2-3) to cut noisy pivots
     "pivot_window_by_timeframe": {"4h": 5, "1d": 5, "1w": 3},
@@ -39,7 +48,7 @@ DEFAULT_CONFIG: dict[str, Any] = {
     # symmetry: reject if one side (LS->H or H->RS, in bars) is > ratio x the other; None = off
     "max_time_symmetry_ratio": 2.5,
     # --- D19 optional, off by default (for later backtest comparison) ---
-    "min_pattern_bars": None,  # minimum LS->RS length in bars; None = off
+    "min_pattern_bars": None,  # minimum LS->RS length in bars (int or per-timeframe dict); None = off
     # prior downtrend (concept from yanivil/SignalSync, MIT): highest close in the
     # prior_trend_bars bars before LS must be >= LS.low + head height, where
     # head height = neckline_price_at(H.index) - H.low
@@ -89,7 +98,105 @@ DEFAULT_CONFIG: dict[str, Any] = {
     #   in the paper; the inequality direction was lost in the PDF text, so the upper bound is off).
     "min_shoulder_depth_ratio": 0.25,
     "max_shoulder_depth_ratio": None,
+    # --- D22 template rules (off in classic; values of the template profile in TEMPLATE_OVERRIDES) ---
+    # Notation: drop_L = (N1.high - LS.low) / N1.high, drop_R = (N2.high - RS.low) / N2.high
+    #   (each shoulder's fall from its own neckline high -- how the user measures shoulders);
+    #   neck(i) as above; head_rise = neck(H.index) / H.low - 1 (head to neckline, the user's "+45%");
+    #   rise_L = N1.high / LS.low - 1, rise_R = N2.high / RS.low - 1 (shoulder rebounds, same units).
+    # T1 both shoulder drops >= this (per timeframe); None = off
+    "min_shoulder_drop_by_timeframe": None,
+    # T2 shoulder symmetry by drop: |drop_L - drop_R| <= max_shoulder_drop_diff (absolute, 0.05 = 5 points)
+    #   and |drop_L - drop_R| / max(drop_L, drop_R) <= max_shoulder_drop_rel_diff; None = off
+    "max_shoulder_drop_diff": None,
+    "max_shoulder_drop_rel_diff": None,
+    # T3 head depth: head_rise >= min_head_rise (per timeframe) and
+    #   head_prominence = head_rise / max(rise_L, rise_R) >= min_head_prominence; None = off
+    "min_head_rise_by_timeframe": None,
+    "min_head_prominence": None,
+    # T4 clean neckline: every bar strictly between N1 and RS except N2 has high <= neck(i) * (1 + value)
+    #   (neck extended past N2); None = off
+    "max_neckline_violation": None,
+    # T5 neckline tilt in head heights: |N2.high - N1.high| <= value * head_height; None = off
+    "max_neckline_tilt_of_head": None,
+    # T6 forming right shoulder: once N2 is a confirmed swing high, the lowest low after N2 is a
+    #   provisional RS while it is still inside its pivot confirmation window (index > last - N);
+    #   such a pattern is reported with status "forming" (it changes with every new bar)
+    "enable_forming_rs": False,
+    # T7 left shoulder starts the rally to N1: N1 must be the FIRST swing high after LS (no lower swing
+    #   high in between) and LS.low = min(low[LS.index : N1.index]), i.e. LS is the bottom of the leg
+    #   the neckline peak rose from (all five examples: LS->N1 4-7 bars). Without it an older low far
+    #   left of N1 (AZTEC 04-29) or a higher low before the real bottom (PENDLE 11-14) becomes the
+    #   "shoulder" just because its drop matches the right side better
+    "require_n1_first_high_after_ls": False,
+    # T8 head lowest including a lead-in: no low below H.low in the
+    #   ceil(head_lead_in * (H.index - LS.index)) bars before LS (D6 already covers LS..RS).
+    #   Rejects "patterns" sitting on top of a prior up-leg (price was below the head shortly before LS).
+    #   Data running out (new listing) is not a rejection. None = off.
+    "head_lead_in": None,
+    # T9 rising neckline cap: N2.high / N1.high - 1 <= value (falling necklines are limited by T5). None = off.
+    "max_neckline_rise": None,
+    # T10 neckline highs must not be lone wick spikes: for N in (N1, N2),
+    #   (N.high - max(open, close) over bars N.index-w .. N.index+w) / head_height <= value, w = pivot
+    #   window (bars <= N.index + w, which exist because N is a confirmed pivot). None = off.
+    "max_neckline_wick_of_head": None,
+    # score: "spec" (spec step 9) or "template" (scoring.calculate_template_score)
+    "score_method": "spec",
+    "ideal_head_prominence": 1.5,  # template score: head_prominence giving full marks
+    "ideal_head_rise": 0.40,  # template score: head_rise giving full marks
 }
+
+# D22 template profile: calibrated on the five golden examples (per-example values:
+# pytest -s tests/test_golden_examples.py; README). Every key here also exists in CLASSIC_CONFIG.
+TEMPLATE_OVERRIDES: dict[str, Any] = {
+    "profile": "template",
+    # spec step 3 percentage shoulder difference: rejects TRUST (17.6%) and AZTEC (30.6%) -> optional, off
+    "shoulder_diff_limit_by_timeframe": None,
+    # wide patterns: TRUST 4h LS->RS ~830 bars, PENDLE 1d ~320 bars
+    "max_pattern_bars_by_timeframe": {"4h": 1000, "1d": 600, "1w": 200},
+    # ... and not a single-event V: the narrowest example is 100 bars (GRAM 1d), 4h examples >= 200
+    "min_pattern_bars": {"4h": 60, "1d": 40, "1w": 16},
+    # D19 balance rejects TRUST / AZTEC, time symmetry 2.5 rejects TRUST (6.5) / GRAM (3.5)
+    "enable_balance_rule": False,
+    "max_time_symmetry_ratio": None,
+    # D21 R11 rejects TRUST / GRAM (no bar above the extended neckline in the available data);
+    # R3 rejects TRUST (0.23) / AZTEC (0.68) -> replaced by T5
+    "enable_pattern_start_rule": False,
+    "max_neckline_total_slope": None,
+    # D21 R1 at 1.0 is borderline for GRAM (1.00 ATR); 0.5 keeps the "not noise-level" intent
+    "min_head_atr": 0.5,
+    # distances to the neckline are 19-30% in the examples (price sits at the forming RS)
+    "breakout_distance_range": 0.30,
+    "min_shoulder_drop_by_timeframe": {"4h": 0.06, "1d": 0.08, "1w": 0.10},
+    "max_shoulder_drop_diff": 0.05,
+    "max_shoulder_drop_rel_diff": 0.25,
+    "min_head_rise_by_timeframe": {"4h": 0.12, "1d": 0.15, "1w": 0.20},
+    "min_head_prominence": 1.1,
+    "max_neckline_violation": 0.01,
+    "max_neckline_tilt_of_head": 0.75,
+    "enable_forming_rs": True,
+    "require_n1_first_high_after_ls": True,
+    # HMSTR's closest earlier low below H is 84 bars before LS with H - LS = 118 (ratio 0.71)
+    "head_lead_in": 0.5,
+    # every example's neckline falls (-3% .. -25%); a strongly rising neckline puts RS far above LS
+    "max_neckline_rise": 0.10,
+    # examples: N1/N2 wick 0.05-0.21 head heights
+    "max_neckline_wick_of_head": 0.32,
+    "score_method": "template",
+}
+
+
+def _build_template() -> dict[str, Any]:
+    cfg = deepcopy(CLASSIC_CONFIG)
+    for key, value in TEMPLATE_OVERRIDES.items():
+        if key not in cfg:
+            raise KeyError(f"TEMPLATE_OVERRIDES has unknown key {key!r}")
+        cfg[key] = deepcopy(value)
+    return cfg
+
+
+TEMPLATE_CONFIG: dict[str, Any] = _build_template()
+PROFILE_CONFIGS: dict[str, dict[str, Any]] = {"template": TEMPLATE_CONFIG, "classic": CLASSIC_CONFIG}
+DEFAULT_CONFIG: dict[str, Any] = PROFILE_CONFIGS[DEFAULT_PROFILE]
 
 # D21: rule id -> config overrides that switch the rule off (scan.py --rules-off).
 RULE_OFF_OVERRIDES: dict[str, dict[str, Any]] = {
@@ -116,12 +223,20 @@ def rules_off_overrides(rule_ids) -> dict[str, Any]:
 
 def merge_config(overrides: Mapping[str, Any] | None = None,
                  base: Mapping[str, Any] | None = None) -> dict[str, Any]:
-    """Return a new config = base (default DEFAULT_CONFIG) updated with overrides.
+    """Return a new config = base updated with overrides.
 
+    base defaults to the profile's full config (D22): overrides["profile"] if given, else
+    DEFAULT_PROFILE ("template"). An explicit base is used as is. Merging a full config again is
+    a no-op, so detector / scanner can re-merge safely.
     Dict-valued keys are merged one level deep, so {"pivot_window_by_timeframe": {"4h": 5}}
     only changes 4h. Unknown keys raise KeyError (catches typos).
     """
-    cfg = deepcopy(dict(base) if base is not None else DEFAULT_CONFIG)
+    if base is None:
+        profile = (overrides or {}).get("profile", DEFAULT_PROFILE)
+        if profile not in PROFILE_CONFIGS:
+            raise ValueError(f"unknown profile {profile!r}; expected one of {PROFILES}")
+        base = PROFILE_CONFIGS[profile]
+    cfg = deepcopy(dict(base))
     if not overrides:
         return cfg
     for key, value in overrides.items():
@@ -137,7 +252,7 @@ def merge_config(overrides: Mapping[str, Any] | None = None,
 
 
 def tf_value(config: Mapping[str, Any], key: str, timeframe: str) -> Any:
-    """Read a value that may be a scalar or a per-timeframe dict."""
+    """Read a value that may be a scalar, None (rule off) or a per-timeframe dict."""
     value = config[key]
     if isinstance(value, Mapping):
         if timeframe not in value:

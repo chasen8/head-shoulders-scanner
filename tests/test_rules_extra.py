@@ -6,7 +6,7 @@ yanivil/SignalSync (MIT). All tests use the default pivot window (4h N=5).
 """
 import pytest
 
-from ihs_scanner.config import DEFAULT_CONFIG, RULE_OFF_OVERRIDES, rules_off_overrides
+from ihs_scanner.config import CLASSIC_CONFIG, RULE_OFF_OVERRIDES, rules_off_overrides
 from ihs_scanner.detector import detect_inverse_head_shoulders
 
 from .synth import IHS_WATCH, make_df
@@ -26,18 +26,18 @@ D21_OFF = rules_off_overrides(RULE_OFF_OVERRIDES)
 
 
 def _detect(df, **overrides):
-    cfg = {"include_stale": True, **D21_OFF}
+    cfg = {"profile": "classic", "include_stale": True, **D21_OFF}  # D22: classic rule set
     cfg.update(overrides)
     return detect_inverse_head_shoulders(df, "4h", cfg, symbol="T")
 
 
-def test_new_defaults():
-    assert DEFAULT_CONFIG["pivot_window_by_timeframe"] == {"4h": 5, "1d": 5, "1w": 3}
-    assert DEFAULT_CONFIG["enable_balance_rule"] is True
-    assert DEFAULT_CONFIG["max_time_symmetry_ratio"] == 2.5
-    assert DEFAULT_CONFIG["min_pattern_bars"] is None
-    assert DEFAULT_CONFIG["require_prior_downtrend"] is False
-    assert DEFAULT_CONFIG["prior_trend_bars"] == {"4h": 60, "1d": 50, "1w": 20}
+def test_new_defaults():  # classic profile values (D19); the template profile is in test_template.py
+    assert CLASSIC_CONFIG["pivot_window_by_timeframe"] == {"4h": 5, "1d": 5, "1w": 3}
+    assert CLASSIC_CONFIG["enable_balance_rule"] is True
+    assert CLASSIC_CONFIG["max_time_symmetry_ratio"] == 2.5
+    assert CLASSIC_CONFIG["min_pattern_bars"] is None
+    assert CLASSIC_CONFIG["require_prior_downtrend"] is False
+    assert CLASSIC_CONFIG["prior_trend_bars"] == {"4h": 60, "1d": 50, "1w": 20}
 
 
 # ---------- lopsided falling channel (the BTC 4h case) ----------

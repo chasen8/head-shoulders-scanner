@@ -6,7 +6,7 @@ plus boundary values. R1's ATR must not look ahead. No network.
 import numpy as np
 import pytest
 
-from ihs_scanner.config import DEFAULT_CONFIG, RULE_OFF_OVERRIDES, merge_config, rules_off_overrides
+from ihs_scanner.config import CLASSIC_CONFIG, RULE_OFF_OVERRIDES, merge_config, rules_off_overrides
 from ihs_scanner.detector import detect_inverse_head_shoulders, wilder_atr
 from ihs_scanner.scanner import OUTPUT_FIELDS
 
@@ -17,7 +17,7 @@ D21_FIELDS = ("atr_at_head", "head_atr_multiple", "neckline_total_slope", "shoul
 
 
 def _detect(df, **overrides):
-    cfg = {"include_stale": True}
+    cfg = {"profile": "classic", "include_stale": True}  # D22: classic rule set
     cfg.update(overrides)
     return detect_inverse_head_shoulders(df, "4h", cfg, symbol="T")
 
@@ -27,17 +27,17 @@ def _off(rule):
 
 
 def test_defaults_and_off_switches():
-    assert DEFAULT_CONFIG["min_head_atr"] == 1.0
-    assert DEFAULT_CONFIG["atr_length"] == 14
-    assert DEFAULT_CONFIG["enable_pattern_start_rule"] is True
-    assert DEFAULT_CONFIG["pattern_start_lookback"] is None
-    assert DEFAULT_CONFIG["pattern_start_price"] == "high"
-    assert DEFAULT_CONFIG["max_neckline_total_slope"] == 0.15
-    assert DEFAULT_CONFIG["max_shoulder_diff_of_head"] == 0.5
-    assert DEFAULT_CONFIG["min_shoulder_depth_ratio"] == 0.25
-    assert DEFAULT_CONFIG["max_shoulder_depth_ratio"] is None
+    assert CLASSIC_CONFIG["min_head_atr"] == 1.0
+    assert CLASSIC_CONFIG["atr_length"] == 14
+    assert CLASSIC_CONFIG["enable_pattern_start_rule"] is True
+    assert CLASSIC_CONFIG["pattern_start_lookback"] is None
+    assert CLASSIC_CONFIG["pattern_start_price"] == "high"
+    assert CLASSIC_CONFIG["max_neckline_total_slope"] == 0.15
+    assert CLASSIC_CONFIG["max_shoulder_diff_of_head"] == 0.5
+    assert CLASSIC_CONFIG["min_shoulder_depth_ratio"] == 0.25
+    assert CLASSIC_CONFIG["max_shoulder_depth_ratio"] is None
     off = rules_off_overrides(["r1", "R11", " R3", "R2", "R21", ""])
-    cfg = merge_config(off)  # every override key exists
+    cfg = merge_config({"profile": "classic", **off})  # every override key exists
     assert cfg["min_head_atr"] is None and cfg["enable_pattern_start_rule"] is False
     assert cfg["max_neckline_total_slope"] is None and cfg["max_shoulder_diff_of_head"] is None
     assert cfg["min_shoulder_depth_ratio"] is None and cfg["max_shoulder_depth_ratio"] is None

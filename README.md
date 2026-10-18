@@ -19,6 +19,7 @@ CLI 參數：
 |---|---|---|
 | `--symbols` | 10 個主流 USDT 對 | 逗號分隔 |
 | `--timeframes` | `4h,1d,1w` | |
+| `--profile` | `template` | 規則組（D22）：`template`＝依使用者 5 個範例校準（含右肩形成中、TP1/TP2），`classic`＝D19/D21 規則 |
 | `--mode` | `candidate` | `candidate`＝watchlist＋confirmed；`breakout`＝只要已突破 |
 | `--volume-filter` | 關 | 突破需 volume_ratio ≥ `min_volume_ratio` |
 | `--limit` | 1000 | 每個 symbol/timeframe 的已收盤 K 線數（>1000 自動分頁） |
@@ -72,10 +73,15 @@ bars 先寫到 `bars.tmp/` 再整個換上，舊檔不會殘留。
 
 ## config 參數（`ihs_scanner/config.py`，可部分覆寫）
 
+兩個規則組（D22）共用同一組 key：`profile="template"`（預設，`TEMPLATE_CONFIG`）與 `profile="classic"`
+（D19/D21 行為，`CLASSIC_CONFIG`）。`merge_config({"profile": "classic", ...})` 先選規則組再套覆寫；
+template 與 classic 不同的值全列在 `TEMPLATE_OVERRIDES`。下表「預設」欄是 classic 值，template 不同時寫在「template」括號裡。
+
 | key | 預設 | 說明 |
 |---|---|---|
-| `pivot_window_by_timeframe` | 4h 3、1d 3、1w 2 | swing 左右各 N 根，嚴格不等式；確認延遲 N 根 |
-| `shoulder_diff_limit_by_timeframe` | 4h 0.05、1d/1w 0.10 | 左右肩差異率上限 |
+| `profile` | `template` | `template` 或 `classic` |
+| `pivot_window_by_timeframe` | 4h 5、1d 5、1w 3 | swing 左右各 N 根，嚴格不等式；確認延遲 N 根 |
+| `shoulder_diff_limit_by_timeframe` | 4h 0.05、1d/1w 0.10（template：None＝關） | 左右肩低點價格差異率上限（規格第三步）；None＝關 |
 | `min_head_depth_by_timeframe` | 4h 0.03、1d/1w 0.05 | 最小頭部深度 |
 | `max_neckline_angle` / `angle_scale` | 30 / 100 | `atan(slope_pct_per_bar × scale)` 度數上限 |
 | `breakout_buffer_by_timeframe` | 4h 0.005、1d/1w 0.01 | 突破 = close > 頸線 × (1+buffer) |
@@ -83,19 +89,45 @@ bars 先寫到 `bars.tmp/` 再整個換上，舊檔不會殘留。
 | `enable_volume_filter` / `min_volume_ratio` | False / 1.2 | 突破量比門檻 |
 | `volume_avg_window` | 20 | 均量＝突破 K **之前** 20 根（不含自身） |
 | `min_pattern_score` | 0 | 低於此分數不輸出（scan_symbols 套用） |
-| `max_pattern_bars_by_timeframe` | 4h 150、1d 120、1w 80 | LS→RS 最大根數 |
+| `max_pattern_bars_by_timeframe` | 4h 150、1d 120、1w 80（template：1000／600／200） | LS→RS 最大根數 |
+| `min_pattern_bars` | None（template：4h 60、1d 40、1w 16） | LS→RS 最小根數；int 或分 timeframe dict |
+| `enable_balance_rule` / `max_time_symmetry_ratio` | True / 2.5（template：False / None） | D19 balance、時間對稱 |
 | `max_bars_after_rs` | 30 | 未突破時 RS 後超過此根數 → stale |
 | `max_breakout_age` | 5 | 突破後超過此根數 → stale |
 | `include_stale` | False | 是否輸出 stale |
 | `ideal_head_depth` | 0.10 | 頭深分數滿分點 |
-| `breakout_distance_range` | 0.10 | 距頸線分數歸零距離 |
-| `min_head_atr` / `atr_length` | 1.0 / 14 | D21 R1：`H.low ≤ min(LS.low, RS.low) − k·ATR[H]`，Wilder ATR，只用 ≤ H 的 K 線；ATR 尚無值時略過；None＝關 |
-| `enable_pattern_start_rule` | True | D21 R11：LS 前 L 根內須有一根價格 > 頸線向左延伸值（neurotrader888），找不到或資料不足 → 拒絕 |
+| `breakout_distance_range` | 0.10（template：0.30） | 距頸線分數歸零距離 |
+| `min_head_atr` / `atr_length` | 1.0 / 14（template：0.5） | D21 R1：`H.low ≤ min(LS.low, RS.low) − k·ATR[H]`，Wilder ATR，只用 ≤ H 的 K 線；ATR 尚無值時略過；None＝關 |
+| `enable_pattern_start_rule` | True（template：False） | D21 R11：LS 前 L 根內須有一根價格 > 頸線向左延伸值（neurotrader888），找不到或資料不足 → 拒絕 |
 | `pattern_start_lookback` | None | R11 回看根數 L；None＝`N2.index − N1.index − 1`（原始碼 `range(1, head_width)`） |
-| `pattern_start_price` | `close` | R11 比較用的價格：`close`（同原始碼）或 `high` |
-| `max_neckline_total_slope` | 0.15 | D21 R3：`\|頸線每根斜率 × (RS.index − LS.index)\| / close[H] ≤ 值`；與角度規則並存；None＝關 |
+| `pattern_start_price` | `high` | R11 比較用的價格：`close`（同原始碼）或 `high` |
+| `max_neckline_total_slope` | 0.15（template：None） | D21 R3：`\|頸線每根斜率 × (RS.index − LS.index)\| / close[H] ≤ 值`；與角度規則並存；None＝關 |
 | `max_shoulder_diff_of_head` | 0.5 | D21 R2：`\|LS.low − RS.low\| ≤ 值 × head_height`（SignalSync 原值 0.30）；與 % 肩差並存；None＝關 |
 | `min_shoulder_depth_ratio` / `max_shoulder_depth_ratio` | 0.25 / None | D21 R21：`mean(N1.high − LS.low, N2.high − RS.low) / head_height` 的下限／上限；None＝關 |
+
+D22 template 規則（classic 全關；符號：`drop_L=(N1.high−LS.low)/N1.high`、`drop_R=(N2.high−RS.low)/N2.high`、
+`head_rise=neck(H)/H.low−1`、`rise_L=N1.high/LS.low−1`、`rise_R=N2.high/RS.low−1`、`head_height=neck(H)−H.low`）：
+
+| key | template | 說明 |
+|---|---|---|
+| `min_shoulder_drop_by_timeframe` | 4h 0.06、1d 0.08、1w 0.10 | T1 兩肩從各自頸線高點的跌幅下限 |
+| `max_shoulder_drop_diff` / `max_shoulder_drop_rel_diff` | 0.05 / 0.25 | T2 肩膀對稱：`\|drop_L−drop_R\|` ≤ 0.05，且 ≤ 0.25×max(drop_L, drop_R) |
+| `min_head_rise_by_timeframe` | 4h 0.12、1d 0.15、1w 0.20 | T3 頭到頸線漲幅下限 |
+| `min_head_prominence` | 1.1 | T3 `head_rise / max(rise_L, rise_R)` 下限（頭要比肩明顯深） |
+| `max_neckline_violation` | 0.01 | T4 N1 與 RS 之間（N2 除外）每根 high ≤ 頸線×1.01 |
+| `max_neckline_tilt_of_head` | 0.75 | T5 `\|N2.high−N1.high\|` ≤ 0.75×head_height（取代 R3） |
+| `enable_forming_rs` | True | T6 右肩形成中：N2 已確認後，N2 之後至今最低 low 若仍在 pivot 確認窗內（index > last−N），以 `status="forming"` 輸出 |
+| `require_n1_first_high_after_ls` | True | T7 N1 是 LS 之後第一個 swing high，且 LS 是 [LS, N1] 最低 low（LS＝衝向 N1 那段的起漲底） |
+| `head_lead_in` | 0.5 | T8 LS 前 ceil(0.5×(H−LS)) 根內不得有低於 H 的 low（資料不足不算失敗） |
+| `max_neckline_rise` | 0.10 | T9 上升頸線上限 `N2.high/N1.high−1` |
+| `max_neckline_wick_of_head` | 0.32 | T10 N1/N2 不可是孤立長上影：(high − ±N 根內實體最高) / head_height |
+| `score_method` | `template` | `spec`（規格第九步）或 `template`（見下） |
+| `ideal_head_prominence` / `ideal_head_rise` | 1.5 / 0.40 | template 分數滿分點 |
+
+template 分數（0–100，分項欄位名同規格）：`shoulder_score = 30×max(0, 1−|drop_L−drop_R|/0.05)`；
+`head_depth_score = 12.5×clip((prominence−1)/(1.5−1)) + 12.5×clip(head_rise/0.40)`；
+`neckline_score = 25×max(0, 1−tilt_of_head/0.75)`；`breakout_score` 已突破 20，否則 `20×max(0, 1−距頸線/0.30)`。
+右肩形成中時價格多在頸線下 20–30%，breakout_score 通常很低，所以 template 分數普遍比 classic 低（範例 53–71 分）。
 
 `max_bars_after_rs`、`max_breakout_age` 也可給 `{"4h": .., "1d": .., "1w": ..}`。
 
@@ -103,13 +135,20 @@ bars 先寫到 `bars.tmp/` 再整個換上，舊檔不會殘留。
 
 規格第十步全部欄位，外加：
 
-- `status`：`watchlist`（未突破）／`confirmed`（已突破且夠新）／`stale`
+- `profile`：`template` 或 `classic`
+- `status`：`forming`（template：右肩形成中，RS＝N2 之後至今最低點，尚未被 pivot 確認，**每根新 K 線都可能改變或消失**；
+  任何 low 跌破 H 即作廢）／`watchlist`（未突破）／`confirmed`（已突破且夠新）／`stale`
+- D22 欄位（比例皆為小數，0.244＝24.4%）：`drop_left_pct`、`drop_right_pct`、`shoulder_drop_diff`、`head_rise_pct`、
+  `head_prominence`、`neckline_tilt_of_head`、`neckline_max_violation`、`neckline_change`、`neckline_wick_of_head`、`head_height`
+- 目標價（只是顯示資訊）：`breakout_level`＝已突破時突破那根的頸線價，否則目前這根的頸線價（預估）；
+  `tp1 = breakout_level + head_height`（傳統價差量測）；`tp2 = breakout_level × (1 + head_rise_pct)`（使用者圖上算法）；
+  `invalidation_price = H.low`
 - `shoulder_score`、`head_depth_score`、`neckline_score`、`breakout_score`：四項分數
-- `RS_confirm_time`：右肩 pivot 被確認的 K 線時間（= RS_time + N 根）
+- `RS_confirm_time`：右肩 pivot 被確認的 K 線時間（= RS_time + N 根）；`forming` 為空
 - D21 規則數值（規則關掉時也照算）：`atr_at_head`、`head_atr_multiple`（(min(LS,RS) − H)/ATR）、
   `neckline_total_slope`、`shoulder_diff_of_head`、`shoulder_depth_ratio`、
   `pattern_start_bars_before_ls`（R11 型態起點在 LS 前幾根；找不到為空）
-- `signal_time`：此訊號最早可被「即時」知道的時間＝max(RS_confirm_time, breakout_time)；
+- `signal_time`：此訊號最早可被「即時」知道的時間＝max(RS_confirm_time, breakout_time)（`forming`：max(RS_time, N2 確認時間)）；
   回測進場請用這個，不要用 breakout_time（突破可能發生在 RS 確認前）
 - `average_volume_20`、`bars_since_rs`、`bars_since_breakout`、`as_of_time`（計算基準 K 線）
 - `pattern_id`：`exchange|market|symbol|tf|LS_time|H_time|RS_time`，給通知去重用（前綴避免跨來源撞號）
@@ -124,8 +163,13 @@ bars 先寫到 `bars.tmp/` 再整個換上，舊檔不會殘留。
 ihs_scanner/  config.py  swings.py  neckline.py  scoring.py  detector.py  scanner.py  data_binance.py
               sources.py  data_binance_futures.py  data_okx.py  data_gate.py   （多交易所來源）
 scan.py       CLI
-tests/        pytest（不碰網路；截斷／不 repaint 測試在 test_truncation.py）
+scripts/fetch_golden_fixtures.py   下載黃金範例 K 線到 tests/fixtures/（公開端點：幣安現貨／USDT-M、OKX）
+tests/        pytest（不碰網路；截斷／不 repaint 測試在 test_truncation.py、test_template.py、test_golden_examples.py）
 ```
+
+黃金測試（D22）：`tests/golden_examples.py` 是使用者 5 個範例（時間已換成 UTC），`tests/test_golden_examples.py`
+把 K 線截到截圖當下最後一根已收盤 K 線，用預設 template 偵測並核對點位；`pytest -s tests/test_golden_examples.py`
+會印出偵測點位、drop／head_rise、TP 與使用者標註對照。
 
 ## 資料來源（D22）
 

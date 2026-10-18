@@ -9,8 +9,11 @@ from ihs_scanner.neckline import calculate_neckline
 from .synth import IHS_BREAK, IHS_WATCH, make_df, random_walk_df, rs_low_for_diff
 
 
+CLASSIC = {"profile": "classic"}  # D22: these tests pin the classic (D19/D21) rule set
+
+
 def _detect(df, tf="4h", **overrides):
-    return detect_inverse_head_shoulders(df, tf, overrides, symbol="TEST")
+    return detect_inverse_head_shoulders(df, tf, {**CLASSIC, **overrides}, symbol="TEST")
 
 
 # ---------- 2. clean synthetic pattern ----------
@@ -148,7 +151,7 @@ def test_right_shoulder_broken_before_breakout_invalidates():
     wp = [(0, 115), (20, 100), (35, 110), (50, 90), (65, 110), (80, 100),
           (86, 104), (90, 98), (99, 106)]
     df = make_df(wp)
-    cands = find_pattern_candidates(df, "4h", None, "TEST")
+    cands = find_pattern_candidates(df, "4h", CLASSIC, "TEST")
     rs_times = {c["RS_time"] for c in cands}
     assert df["timestamp"][80] not in rs_times  # broken RS
     assert df["timestamp"][90] in rs_times  # the new right shoulder forms a new pattern
@@ -159,7 +162,7 @@ def test_dedup_keeps_single_best_pattern():
     wp = [(0, 115), (10, 101), (15, 104), (20, 100), (35, 110), (50, 90),
           (65, 110), (80, 100), (99, 106)]
     df = make_df(wp)
-    raw = find_pattern_candidates(df, "4h", None, "TEST")
+    raw = find_pattern_candidates(df, "4h", CLASSIC, "TEST")
     assert len(raw) == 2  # LS at 10 and LS at 20
     res = _detect(df)
     assert len(res) == 1
@@ -171,7 +174,7 @@ def test_dedup_keeps_single_best_pattern():
 def test_detection_speed_2000_bars():
     df = random_walk_df(2000)
     t0 = time.perf_counter()
-    res = detect_inverse_head_shoulders(df, "4h", {"include_stale": True}, symbol="RW")
+    res = detect_inverse_head_shoulders(df, "4h", {**CLASSIC, "include_stale": True}, symbol="RW")
     dt = time.perf_counter() - t0
-    print(f"\n2000-bar random walk: {len(res)} patterns (incl. stale) in {dt * 1000:.1f} ms")
+    print(f"\n2000-bar random walk (classic): {len(res)} patterns (incl. stale) in {dt * 1000:.1f} ms")
     assert dt < 2.0
