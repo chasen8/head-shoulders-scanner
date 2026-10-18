@@ -1,5 +1,6 @@
 # 定時掃描 + Discord 通知。
-# repo 是私有的、不部署 GitHub Pages（charter D16）；網站只在本機看：
+# repo 是私有的（charter D16）；網站推到公開 repo chasen8/head-shoulders-site 由 Pages 提供（D25）：
+#   https://chasen8.github.io/head-shoulders-site/
 #   - 結果與通知狀態存在獨立的 orphan 分支 `scan-state`（state.json + site/data/）。
 #   - 每次執行的 site/ 也上傳成 artifact（保留 7 天）。
 # 需要的 secret：DISCORD_WEBHOOK_URL（沒設也能跑：只更新 state，印「未設定 webhook」）。
@@ -102,6 +103,32 @@ jobs:
           git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
             commit -q -m "scan-state: $(date -u +%Y-%m-%dT%H:%MZ) (run ${GITHUB_RUN_ID})"
           git push --force origin scan-state
+
+      # D25：網站公開在另一個公開 repo chasen8/head-shoulders-site（GitHub Pages，main 根目錄），
+      # 本 repo 保持私有。用只對該 repo 有寫入權的 deploy key（secret SITE_DEPLOY_KEY）推送；
+      # 每次 force push 一個全新的單一 commit，不累積歷史。dry-run 不發布。
+      - name: Publish site to public repo
+        if: ${{ !cancelled() && steps.build.outcome == 'success' && github.event.inputs.dry_run != 'true' }}
+        env:
+          SITE_DEPLOY_KEY: ${{ secrets.SITE_DEPLOY_KEY }}
+        run: |
+          set -e
+          if [ -z "$SITE_DEPLOY_KEY" ]; then echo "SITE_DEPLOY_KEY 未設定，略過網站發布"; exit 0; fi
+          key="$RUNNER_TEMP/site_key"
+          printf '%s\n' "$SITE_DEPLOY_KEY" > "$key" && chmod 600 "$key"
+          out="$RUNNER_TEMP/public-site"
+          rm -rf "$out" && mkdir -p "$out"
+          cp -r site/. "$out/"
+          touch "$out/.nojekyll"
+          cd "$out"
+          git init -q -b main
+          git add -A
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+            commit -q -m "site: $(date -u +%Y-%m-%dT%H:%MZ) (run ${GITHUB_RUN_ID})"
+          GIT_SSH_COMMAND="ssh -i $key -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new" \
+            git push --force -q git@github.com:chasen8/head-shoulders-site.git main
+          rm -f "$key"
+          echo "網站已發布：https://chasen8.github.io/head-shoulders-site/"
 
       - name: Upload site as artifact
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
