@@ -9,7 +9,7 @@ from ihs_scanner.neckline import calculate_neckline
 from .synth import IHS_BREAK, IHS_WATCH, make_df, random_walk_df, rs_low_for_diff
 
 
-CLASSIC = {"profile": "classic"}  # D22: these tests pin the classic (D19/D21) rule set
+CLASSIC = {"profile": "classic"}  # D23: these tests pin the classic (D19/D21) rule set
 
 
 def _detect(df, tf="4h", **overrides):

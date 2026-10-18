@@ -21,7 +21,7 @@ STABLE_FIELDS = ("LS_time", "LS_price", "N1_time", "N1_price", "H_time", "H_pric
                  "N2_time", "N2_price", "RS_time", "RS_price", "RS_confirm_time",
                  "shoulder_diff", "head_depth", "neckline_angle", "pattern_id")
 N = 3  # 4h pivot window, pinned explicitly (default changed to 5 in D19)
-CFG = {"profile": "classic", "include_stale": True, "pivot_window_by_timeframe": {"4h": N}}  # D22: classic
+CFG = {"profile": "classic", "include_stale": True, "pivot_window_by_timeframe": {"4h": N}}  # D23: classic
 
 
 def _check_times(res, df, t):

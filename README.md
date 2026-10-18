@@ -19,7 +19,7 @@ CLI 參數：
 |---|---|---|
 | `--symbols` | 10 個主流 USDT 對 | 逗號分隔 |
 | `--timeframes` | `4h,1d,1w` | |
-| `--profile` | `template` | 規則組（D22）：`template`＝依使用者 5 個範例校準（含右肩形成中、TP1/TP2），`classic`＝D19/D21 規則 |
+| `--profile` | `template` | 規則組（D23）：`template`＝依使用者 5 個範例校準（含右肩形成中、TP1/TP2），`classic`＝D19/D21 規則 |
 | `--mode` | `candidate` | `candidate`＝watchlist＋confirmed；`breakout`＝只要已突破 |
 | `--volume-filter` | 關 | 突破需 volume_ratio ≥ `min_volume_ratio` |
 | `--limit` | 1000 | 每個 symbol/timeframe 的已收盤 K 線數（>1000 自動分頁） |
@@ -73,7 +73,7 @@ bars 先寫到 `bars.tmp/` 再整個換上，舊檔不會殘留。
 
 ## config 參數（`ihs_scanner/config.py`，可部分覆寫）
 
-兩個規則組（D22）共用同一組 key：`profile="template"`（預設，`TEMPLATE_CONFIG`）與 `profile="classic"`
+兩個規則組（D23）共用同一組 key：`profile="template"`（預設，`TEMPLATE_CONFIG`）與 `profile="classic"`
 （D19/D21 行為，`CLASSIC_CONFIG`）。`merge_config({"profile": "classic", ...})` 先選規則組再套覆寫；
 template 與 classic 不同的值全列在 `TEMPLATE_OVERRIDES`。下表「預設」欄是 classic 值，template 不同時寫在「template」括號裡。
 
@@ -105,7 +105,7 @@ template 與 classic 不同的值全列在 `TEMPLATE_OVERRIDES`。下表「預�
 | `max_shoulder_diff_of_head` | 0.5 | D21 R2：`\|LS.low − RS.low\| ≤ 值 × head_height`（SignalSync 原值 0.30）；與 % 肩差並存；None＝關 |
 | `min_shoulder_depth_ratio` / `max_shoulder_depth_ratio` | 0.25 / None | D21 R21：`mean(N1.high − LS.low, N2.high − RS.low) / head_height` 的下限／上限；None＝關 |
 
-D22 template 規則（classic 全關；符號：`drop_L=(N1.high−LS.low)/N1.high`、`drop_R=(N2.high−RS.low)/N2.high`、
+D23 template 規則（classic 全關；符號：`drop_L=(N1.high−LS.low)/N1.high`、`drop_R=(N2.high−RS.low)/N2.high`、
 `head_rise=neck(H)/H.low−1`、`rise_L=N1.high/LS.low−1`、`rise_R=N2.high/RS.low−1`、`head_height=neck(H)−H.low`）：
 
 | key | template | 說明 |
@@ -138,7 +138,7 @@ template 分數（0–100，分項欄位名同規格）：`shoulder_score = 30×
 - `profile`：`template` 或 `classic`
 - `status`：`forming`（template：右肩形成中，RS＝N2 之後至今最低點，尚未被 pivot 確認，**每根新 K 線都可能改變或消失**；
   任何 low 跌破 H 即作廢）／`watchlist`（未突破）／`confirmed`（已突破且夠新）／`stale`
-- D22 欄位（比例皆為小數，0.244＝24.4%）：`drop_left_pct`、`drop_right_pct`、`shoulder_drop_diff`、`head_rise_pct`、
+- D23 欄位（比例皆為小數，0.244＝24.4%）：`drop_left_pct`、`drop_right_pct`、`shoulder_drop_diff`、`head_rise_pct`、
   `head_prominence`、`neckline_tilt_of_head`、`neckline_max_violation`、`neckline_change`、`neckline_wick_of_head`、`head_height`
 - 目標價（只是顯示資訊）：`breakout_level`＝已突破時突破那根的頸線價，否則目前這根的頸線價（預估）；
   `tp1 = breakout_level + head_height`（傳統價差量測）；`tp2 = breakout_level × (1 + head_rise_pct)`（使用者圖上算法）；
@@ -167,7 +167,7 @@ scripts/fetch_golden_fixtures.py   下載黃金範例 K 線到 tests/fixtures/�
 tests/        pytest（不碰網路；截斷／不 repaint 測試在 test_truncation.py、test_template.py、test_golden_examples.py）
 ```
 
-黃金測試（D22）：`tests/golden_examples.py` 是使用者 5 個範例（時間已換成 UTC），`tests/test_golden_examples.py`
+黃金測試（D23）：`tests/golden_examples.py` 是使用者 5 個範例（時間已換成 UTC），`tests/test_golden_examples.py`
 把 K 線截到截圖當下最後一根已收盤 K 線，用預設 template 偵測並核對點位；`pytest -s tests/test_golden_examples.py`
 會印出偵測點位、drop／head_rise、TP 與使用者標註對照。
 
@@ -197,10 +197,16 @@ Bybit 403；MEXC、Bitget 200。
 跑 pytest → `build_site.py --scheduled` → `notify_discord.py` → 把 `state.json` 與 `site/data/` 推到 `scan-state` 分支
 → 上傳 `site/` artifact（保留 7 天）。build_site 失敗率 >20% 時整個流程中止，不通知、不改 state。
 
-通知規則（`notify_discord.py`）：「新出現的型態」與「watchlist 變 confirmed」，分數 ≥ 60（`--min-score` 或環境變數 `NOTIFY_MIN_SCORE`）。
-首次沒有 state 時只發一則「開始追蹤，目前 N 個型態」摘要並建立 state（`--notify-all` 才逐筆發）。
-每則訊息最多 10 個 embed，最多詳列 20 筆，其餘只在摘要裡報筆數；遇 429 依 `retry_after` 等待，重試有上限。
-紅色 = 已突破，藍色 = 觀察中，標題連到 TradingView。型態從掃描結果消失超過 14 天才會從 state 清掉。
+通知規則（`notify_discord.py`）：分數 ≥ 50（`--min-score` 或環境變數 `NOTIFY_MIN_SCORE`；template 形成中範例 53–71 分）時通知
+(1) 新出現的「右肩形成中」(2) 新出現、直接以已確認右肩出現的「觀察中」(3) 任何狀態變成「已突破」。
+「右肩形成中 → 觀察中」（右肩被確認）不通知。去重鍵是**不含 RS** 的 `exchange|market|symbol|tf|LS_time|H_time`
+（形成中的 RS 會隨新低移動，用含 RS 的 pattern_id 會一直重發）；state（`version: 2`）存每個鍵的最後狀態、
+最後通知時間與 `notified_status`（最後通知過的狀態）。低於門檻時只記錄不通知，之後分數過門檻會補發一次。
+首次執行（沒有 state，或讀到舊版／沒有 version 的 state）只發一則「開始追蹤，目前 N 個型態（各狀態筆數）」摘要並建立基準
+（`--notify-all` 才逐筆發）。每則訊息最多 10 個 embed，最多詳列 20 筆，其餘只在摘要裡報筆數；遇 429 依 `retry_after` 等待，重試有上限；
+送失敗的下次重試。embed：標題「GRAMUSDT 日線 右肩形成中／已突破」、交易所與市場、分數、目前價、頸線價（距頸線%）、TP1、TP2
+（未突破標「預估」）、失效價（頭部低點）、左右肩跌幅、頭到頸線漲幅；顏色 形成中橘、觀察中藍、已突破紅；標題連到 TradingView
+（用 `tv_symbol`）。價格依數量級顯示位數（0.0001750）。型態從掃描結果消失超過 14 天才會從 state 清掉。
 
 ### 你要做的步驟（一次性）
 

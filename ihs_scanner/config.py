@@ -3,7 +3,7 @@
 Keys follow docs/spec.md step 12, plus the charter additions (D6, D9, ...).
 Per-timeframe values are dicts keyed by "4h" / "1d" / "1w".
 
-D22: two rule-set profiles share one key set.
+D23: two rule-set profiles share one key set.
   "classic"  = the D19/D21 behaviour (CLASSIC_CONFIG below), kept switchable.
   "template" = calibrated on the user's five hand-marked examples (tests/golden_examples.py);
                TEMPLATE_OVERRIDES lists every value that differs from classic. New default.
@@ -16,10 +16,10 @@ from typing import Any, Mapping
 
 TIMEFRAMES = ("4h", "1d", "1w")
 PROFILES = ("template", "classic")
-DEFAULT_PROFILE = "template"  # D22
+DEFAULT_PROFILE = "template"  # D23
 
 CLASSIC_CONFIG: dict[str, Any] = {
-    "profile": "classic",  # D22: "template" or "classic"
+    "profile": "classic",  # D23: "template" or "classic"
     # --- spec step 12 ---
     # D19: upper end of the spec's suggested range (4h/1d 3-5, 1w 2-3) to cut noisy pivots
     "pivot_window_by_timeframe": {"4h": 5, "1d": 5, "1w": 3},
@@ -98,7 +98,7 @@ CLASSIC_CONFIG: dict[str, Any] = {
     #   in the paper; the inequality direction was lost in the PDF text, so the upper bound is off).
     "min_shoulder_depth_ratio": 0.25,
     "max_shoulder_depth_ratio": None,
-    # --- D22 template rules (off in classic; values of the template profile in TEMPLATE_OVERRIDES) ---
+    # --- D23 template rules (off in classic; values of the template profile in TEMPLATE_OVERRIDES) ---
     # Notation: drop_L = (N1.high - LS.low) / N1.high, drop_R = (N2.high - RS.low) / N2.high
     #   (each shoulder's fall from its own neckline high -- how the user measures shoulders);
     #   neck(i) as above; head_rise = neck(H.index) / H.low - 1 (head to neckline, the user's "+45%");
@@ -145,7 +145,7 @@ CLASSIC_CONFIG: dict[str, Any] = {
     "ideal_head_rise": 0.40,  # template score: head_rise giving full marks
 }
 
-# D22 template profile: calibrated on the five golden examples (per-example values:
+# D23 template profile: calibrated on the five golden examples (per-example values:
 # pytest -s tests/test_golden_examples.py; README). Every key here also exists in CLASSIC_CONFIG.
 TEMPLATE_OVERRIDES: dict[str, Any] = {
     "profile": "template",
@@ -225,7 +225,7 @@ def merge_config(overrides: Mapping[str, Any] | None = None,
                  base: Mapping[str, Any] | None = None) -> dict[str, Any]:
     """Return a new config = base updated with overrides.
 
-    base defaults to the profile's full config (D22): overrides["profile"] if given, else
+    base defaults to the profile's full config (D23): overrides["profile"] if given, else
     DEFAULT_PROFILE ("template"). An explicit base is used as is. Merging a full config again is
     a no-op, so detector / scanner can re-merge safely.
     Dict-valued keys are merged one level deep, so {"pivot_window_by_timeframe": {"4h": 5}}

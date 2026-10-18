@@ -14,6 +14,13 @@
   --down: #F23645;         /* breakout marker */
   --down-text: #CC2F3C;    /* red used as text (5.2:1) */
   --down-wash: rgba(242, 54, 69, 0.09);
+  --forming: #FF9800;      /* right shoulder forming (non-text marks) */
+  --forming-text: #B54708; /* "右肩形成中" label text (5.4:1) */
+  --forming-wash: rgba(255, 152, 0, 0.12);
+  --tp: #089981;           /* TP1 line */
+  --tp2: #22AB94;          /* TP2 line */
+  --stop: #787B86;         /* invalidation line (head low) */
+  --accent-soft: rgba(41, 98, 255, 0.5); /* provisional RS marker and leg */
 
   --font: "Inter", "Noto Sans TC", -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang TC",
     "Microsoft JhengHei", sans-serif;
@@ -168,12 +175,16 @@ select {
 .glyph .g-tail { fill: none; stroke: var(--faint); stroke-width: 1; stroke-dasharray: 2 2; }
 .glyph .g-neck { stroke: var(--accent); stroke-width: 1; stroke-dasharray: 3 2; }
 .glyph .g-brk { fill: var(--down); }
+.glyph .g-prov { stroke: var(--text); stroke-width: 1.1; stroke-dasharray: 2 1.6; stroke-linecap: round; }
+.glyph .g-rs { fill: var(--bg); stroke: var(--forming); stroke-width: 1.2; }
+.row[aria-current="true"] .g-prov { stroke: var(--accent); }
 .row[aria-current="true"] .g-shape { stroke: var(--accent); }
 
 .row__name { grid-column: 2; grid-row: 1; display: flex; align-items: baseline; gap: 8px; min-width: 0; }
 .sym { font-size: 14px; font-weight: 600; line-height: 1.4; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sym small { font-size: 12px; font-weight: 400; color: var(--muted); }
 .tf { font-size: 12px; color: var(--muted); white-space: nowrap; }
+.mkt { font-size: 11px; color: var(--muted); white-space: nowrap; padding: 0 5px; border: 1px solid var(--line); border-radius: 3px; line-height: 16px; }
 
 .row__score { grid-column: 3; grid-row: 1 / span 2; align-self: center; text-align: right; font-size: 15px; font-weight: 600; line-height: 1.2; }
 .row__score small { display: block; font-size: 11px; font-weight: 400; color: var(--muted); }
@@ -182,6 +193,7 @@ select {
 .dist { color: var(--muted); }
 
 .status { display: inline-block; padding: 0 6px; border-radius: 3px; font-size: 12px; font-weight: 500; line-height: 18px; white-space: nowrap; }
+.status--forming { color: var(--forming-text); background: var(--forming-wash); }
 .status--watchlist { color: var(--accent); background: var(--accent-wash); }
 .status--confirmed { color: var(--down-text); background: var(--down-wash); }
 .status--stale { color: var(--muted); background: var(--grid); font-weight: 400; }
@@ -224,6 +236,8 @@ select {
 .detail__title .status { font-size: 13px; line-height: 20px; }
 .detail__title .score { font-size: 14px; color: var(--muted); }
 .detail__title .score b { color: var(--text); font-weight: 600; }
+.detail__title .mkt--lg { font-size: 12px; line-height: 20px; color: var(--text); }
+.tvlink { font-size: 13px; margin-left: auto; white-space: nowrap; }
 .summary { max-width: 52em; color: var(--muted); }
 
 .chart-frame { position: relative; border: 1px solid var(--line); border-radius: 4px; overflow: hidden; }
@@ -243,6 +257,10 @@ select {
 .lg--shape::before { border-top: 1.5px solid rgba(41, 98, 255, 0.6); }
 .lg--neck::before { border-top: 2px dashed var(--accent); }
 .lg--brk::before { width: 8px; height: 8px; border-radius: 50%; background: var(--down); }
+.lg--prov::before { border-top: 1.5px dashed var(--accent-soft); }
+.lg--tp::before { border-top: 1.5px dashed var(--tp); }
+.lg--stop::before { border-top: 1.5px dashed var(--stop); }
+.chart-note { margin-top: 6px; font-size: 13px; color: var(--forming-text); }
 .lg--vol::before { width: 10px; height: 10px; background: linear-gradient(90deg, rgba(8, 153, 129, 0.45) 50%, rgba(242, 54, 69, 0.45) 50%); }
 
 .detail__body {
@@ -265,12 +283,19 @@ select {
 .facts { display: grid; grid-template-columns: auto 1fr; gap: 6px 16px; margin: 0; font-size: 13px; }
 .facts dt { color: var(--muted); }
 .facts dd { margin: 0; text-align: right; }
+.key { display: inline-block; width: 14px; height: 0; margin-right: 6px; vertical-align: middle; border-top: 1.5px dashed; }
+.key--tp { border-color: var(--tp); }
+.key--tp2 { border-color: var(--tp2); }
+.key--stop { border-color: var(--stop); }
+.note { margin-top: 8px; font-size: 12px; color: var(--muted); line-height: 1.55; }
 
 .points { width: 100%; border-collapse: collapse; font-size: 13px; }
 .points th, .points td { padding: 4px 0; text-align: right; font-weight: 400; border-bottom: 1px solid var(--grid); }
 .points th:first-child, .points td:first-child { text-align: left; }
 .points thead th { color: var(--muted); border-bottom-color: var(--line); }
 .points td:first-child { color: var(--accent); font-weight: 600; }
+.points .is-prov td:first-child { color: var(--forming-text); }
+.points .is-prov small { margin-left: 4px; font-size: 11px; font-weight: 500; }
 
 /* ---------- footer ---------- */
 .colophon {

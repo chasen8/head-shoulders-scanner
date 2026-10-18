@@ -1,4 +1,4 @@
-"""D22 golden test: the user's five hand-marked inverse head-and-shoulders must be found by the
+"""D23 golden test: the user's five hand-marked inverse head-and-shoulders must be found by the
 default (template) profile, using real K lines cut at the screenshot time.
 
 Fixtures: tests/fixtures/<name>.csv (scripts/fetch_golden_fixtures.py). Points and annotations:

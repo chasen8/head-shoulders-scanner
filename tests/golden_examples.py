@@ -1,4 +1,4 @@
-"""D22 golden examples: the user's five hand-marked inverse head-and-shoulders (TradingView screenshots).
+"""D23 golden examples: the user's five hand-marked inverse head-and-shoulders (TradingView screenshots).
 
 The user's chart times are UTC+8; every time below is already converted to UTC (minus 8 hours).
 Daily bars are UTC-aligned (Binance 1d, OKX "1Dutc"), labelled by their UTC open date.

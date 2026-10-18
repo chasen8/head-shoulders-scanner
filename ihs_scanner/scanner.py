@@ -23,7 +23,7 @@ OUTPUT_FIELDS = [
     # D21 rule values
     "atr_at_head", "head_atr_multiple", "neckline_total_slope", "shoulder_diff_of_head",
     "shoulder_depth_ratio", "pattern_start_bars_before_ls",
-    # D22 template values and display-only targets
+    # D23 template values and display-only targets
     "drop_left_pct", "drop_right_pct", "shoulder_drop_diff", "head_rise_pct", "head_prominence",
     "neckline_tilt_of_head", "neckline_max_violation", "neckline_change", "neckline_wick_of_head",
     "head_height", "breakout_level", "tp1", "tp2", "invalidation_price",

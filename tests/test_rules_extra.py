@@ -26,7 +26,7 @@ D21_OFF = rules_off_overrides(RULE_OFF_OVERRIDES)
 
 
 def _detect(df, **overrides):
-    cfg = {"profile": "classic", "include_stale": True, **D21_OFF}  # D22: classic rule set
+    cfg = {"profile": "classic", "include_stale": True, **D21_OFF}  # D23: classic rule set
     cfg.update(overrides)
     return detect_inverse_head_shoulders(df, "4h", cfg, symbol="T")
 

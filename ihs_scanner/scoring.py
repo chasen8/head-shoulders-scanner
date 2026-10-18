@@ -52,7 +52,7 @@ def calculate_template_score(shoulder_drop_diff: float,
                              ideal_head_prominence: float = 1.5,
                              ideal_head_rise: float = 0.40,
                              distance_range: float = 0.30) -> dict[str, float]:
-    """D22 template score (0-100), same four component names as the spec score:
+    """D23 template score (0-100), same four component names as the spec score:
 
     shoulder_score   (30) = 30 * max(0, 1 - |drop_L - drop_R| / max_shoulder_drop_diff)
                             (max None -> 0.05)

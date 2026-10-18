@@ -7,8 +7,8 @@ tv_symbol; pattern_id is prefixed "<exchange>|<market>|".
 
 Output (front end only draws these values; every number it shows is computed here):
   site/data/scan.json            metadata + one summary row per pattern (no bars)
-  site/data/bars/<file>.json     chart data for one pattern (bars, five points, neckline, breakout),
-                                 loaded by the page only when that pattern is opened
+  site/data/bars/<file>.json     chart data for one pattern (bars, five points, neckline, breakout,
+                                 TP1/TP2/invalidation levels), loaded by the page only when opened
 
 Partial success: a symbol/timeframe that fails to fetch or scan is listed in scan.json `failures`.
 Only when more than MAX_FAILURE_RATIO of the series fail does the build exit non-zero and leave
@@ -59,8 +59,10 @@ ERROR_CHARS = 240
 # Must match .github/workflows/scan-and-notify.yml: cron "7 */4 * * *"
 SCAN_EVERY_HOURS = 4
 SCAN_MINUTE = 7
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3  # 3: bars files carry `levels`, `levels_estimated`, `rs_provisional`
 POINT_NAMES = ("LS", "N1", "H", "N2", "RS")
+# Horizontal levels drawn on the chart (values come straight from the detector's output fields).
+LEVELS = (("tp1", "TP1"), ("tp2", "TP2"), ("invalidation_price", "失效"))
 # fapi.binance.com is HTTP 451 from GitHub's US runners, so binance-perp is not in the default set.
 DEFAULT_SOURCES = ("binance-spot", "okx-spot", "okx-perp", "gate-perp")
 ALL_SOURCES = SOURCE_PRIORITY
@@ -123,6 +125,9 @@ def chart_for(result: Mapping[str, Any], df: pd.DataFrame, angle_scale: float) -
     bars: [[time, open, high, low, close, volume], ...] from BARS_BEFORE_LS bars before LS
     through the last closed bar. neckline: the N1-N2 line evaluated (neckline_price_at) at
     the first bar of the LS and at the last bar, so the front end draws a straight segment.
+    levels: TP1 / TP2 / invalidation (H.low) as horizontal lines; levels_estimated = not broken out yet
+    (targets then use the current neckline price). rs_provisional: the right shoulder is still forming
+    (no RS_confirm_time), so the RS point moves with new bars; the RS point carries "provisional".
     """
     ts = get_timestamps(df)
     pos = {name: int(ts.get_loc(pd.Timestamp(result[f"{name}_time"]))) for name in POINT_NAMES}
@@ -136,8 +141,13 @@ def chart_for(result: Mapping[str, Any], df: pd.DataFrame, angle_scale: float) -
         for t, o, h, lo, c, v in zip(ts[start:last + 1], seg["open"], seg["high"], seg["low"],
                                      seg["close"], seg["volume"])
     ]
+    provisional = rs_provisional(result)
     points = [{"label": name, "time": _unix(result[f"{name}_time"]), "price": _num(result[f"{name}_price"])}
               for name in POINT_NAMES]
+    if provisional:
+        points[-1]["provisional"] = True
+    levels = [{"key": key, "label": label, "price": _num(result[key])}
+              for key, label in LEVELS if result.get(key) is not None and _num(result[key]) is not None]
     breakout = None
     if result.get("breakout_detected"):
         breakout = {"time": _unix(result["breakout_time"]), "price": _num(result["breakout_price"])}
@@ -149,7 +159,15 @@ def chart_for(result: Mapping[str, Any], df: pd.DataFrame, angle_scale: float) -
             {"time": _unix(ts[last]), "price": _num(neck.neckline_price_at(last))},
         ],
         "breakout": breakout,
+        "levels": levels,
+        "levels_estimated": not result.get("breakout_detected"),
+        "rs_provisional": provisional,
     }
+
+
+def rs_provisional(result: Mapping[str, Any]) -> bool:
+    """True while the right shoulder is still forming (D23 status "forming": no RS_confirm_time)."""
+    return result.get("RS_confirm_time") is None
 
 
 def shape_for(chart: Mapping[str, Any]) -> dict[str, Any]:
@@ -221,6 +239,7 @@ def build_payload(symbol_data: Mapping[str, Mapping[str, pd.DataFrame]], cfg: Ma
         row = {k: _to_jsonable(r.get(k)) for k in keys}
         row["rank"] = len(rows) + 1
         row["neckline_side"] = _neckline_side(r)
+        row["rs_provisional"] = rs_provisional(r)
         name = chart_file_name(r)
         row["chart_file"] = f"{BARS_DIRNAME}/{name}"
         row["shape"] = shape_for(chart)

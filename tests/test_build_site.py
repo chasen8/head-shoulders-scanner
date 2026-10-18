@@ -172,6 +172,30 @@ def test_neckline_endpoints_match_neckline_price_at(built):
         assert end["price"] == pytest.approx(r["current_neckline_price"])
 
 
+def test_target_levels_and_rs_provisional(built):
+    """TP1 / TP2 / invalidation lines are the detector's own fields, copied unchanged (D17)."""
+    _, _, data, charts = built
+    for r in data["results"]:
+        c = charts[r["pattern_id"]]
+        assert [lv["key"] for lv in c["levels"]] == ["tp1", "tp2", "invalidation_price"]
+        assert [lv["label"] for lv in c["levels"]] == ["TP1", "TP2", "失效"]
+        for lv in c["levels"]:
+            assert lv["price"] == pytest.approx(r[lv["key"]])
+        assert c["levels_estimated"] is (not r["breakout_detected"])
+        assert r["rs_provisional"] is c["rs_provisional"] is (r["RS_confirm_time"] is None)
+        assert ("provisional" in c["points"][-1]) is r["rs_provisional"]
+
+
+def test_forming_rs_is_marked_provisional():
+    df = FRAMES[("AAAUSDT", "4h")]()
+    res = build_site.scan_symbols({"AAAUSDT": {"4h": df}}, build_site.merge_config())
+    assert res
+    r = dict(res[0], RS_confirm_time=None, status="forming")
+    c = build_site.chart_for(r, df, 100.0)
+    assert c["rs_provisional"] is True and c["points"][-1] == {**c["points"][-1], "provisional": True}
+    assert all("provisional" not in p for p in c["points"][:-1])
+
+
 def test_old_bars_files_are_removed(tmp_path, monkeypatch):
     monkeypatch.setattr(build_site, "fetch_klines", _fake_fetch)
     out = tmp_path / "scan.json"

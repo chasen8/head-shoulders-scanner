@@ -9,13 +9,20 @@
   var DATA_URL = DATA_DIR + "scan.json";
   var PAGE = 150; // rows rendered per "show more"
   var TF_LABEL = { "4h": "4 小時", "1d": "日線", "1w": "週線" };
-  var STATUS_LABEL = { watchlist: "觀察中", confirmed: "已突破", stale: "已過期" };
-  var STATUS_ORDER = ["watchlist", "confirmed", "stale"];
+  var STATUS_LABEL = { forming: "右肩形成中", watchlist: "觀察中", confirmed: "已突破", stale: "已過期" };
+  var STATUS_ORDER = ["forming", "watchlist", "confirmed", "stale"];
+  var EX_LABEL = { binance: "幣安", okx: "OKX", gate: "Gate" };
+  var MKT_LABEL = { spot: "現貨", perp: "永續" };
+  var SOURCE_LABEL = { "binance-spot": "幣安現貨", "binance-perp": "幣安永續", "okx-spot": "OKX 現貨",
+    "okx-perp": "OKX 永續", "gate-perp": "Gate 永續" };
+  var TV_INTERVAL = { "4h": "240", "1d": "1D", "1w": "1W" };
+  var PROVISIONAL_NOTE = "右肩尚未確認，會隨新 K 線變動。";
   var POINT_NAME = { LS: "左肩", N1: "頸線點", H: "頭", N2: "頸線點", RS: "右肩" };
   var POINTS = ["LS", "N1", "H", "N2", "RS"];
   var C = {
     bg: "#FFFFFF", text: "#131722", muted: "#6A6D78", faint: "#787B86", line: "#E0E3EB", grid: "#F0F3FA",
-    accent: "#2962FF", up: "#089981", down: "#F23645"
+    accent: "#2962FF", up: "#089981", down: "#F23645", forming: "#FF9800",
+    tp: "#089981", tp2: "#22AB94", stop: "#787B86", accentSoft: "rgba(41,98,255,0.5)"
   };
 
   var state = { data: null, q: "", tf: "all", status: "all", sort: "score", shown: PAGE, selected: null };
@@ -50,13 +57,14 @@
     var x = toDate(a), y = toDate(b);
     return x.getFullYear() === y.getFullYear() && x.getMonth() === y.getMonth() && x.getDate() === y.getDate();
   }
+  // Small coins keep ~4 significant digits (0.0001750); notify_discord.py uses the same rule.
   function decimalsFor(p) {
     var a = Math.abs(p);
     if (a >= 1000) return 2;
     if (a >= 1) return 3;
     if (a >= 0.01) return 4;
-    if (a >= 0.0001) return 6;
-    return 8;
+    if (!(a > 0)) return 2;
+    return Math.min(12, Math.ceil(-Math.log10(a)) + 3);
   }
   function fmtPrice(p, ref) {
     if (p === null || p === undefined) return "—";
@@ -68,6 +76,15 @@
     return /USDT$/.test(sym) ? { base: sym.slice(0, -4), quote: "/USDT" } : { base: sym, quote: "" };
   }
   function tfName(tf) { return TF_LABEL[tf] || tf; }
+  function marketText(r) {
+    var ex = r.exchange || "binance", mk = r.market || "spot";
+    return (EX_LABEL[ex] || ex) + " " + (MKT_LABEL[mk] || mk);
+  }
+  function tvUrl(r) {
+    var sym = r.tv_symbol || ("BINANCE:" + r.symbol);
+    return "https://www.tradingview.com/chart/?symbol=" + encodeURIComponent(sym) +
+      "&interval=" + (TV_INTERVAL[r.timeframe] || r.timeframe);
+  }
   function distText(r) {
     if (!(r.current_neckline_price > 0)) return "頸線已延伸到 0 以下";
     if (r.neckline_side === "above") return "高於頸線 " + pct(r.distance_to_neckline);
@@ -85,8 +102,9 @@
     else if (new Date(next).getTime() < Date.now()) nextText = "預定的下次掃描（" + fmtStamp(next) + "）已經過了，這份資料可能不是最新的。";
     else nextText = "每 4 小時掃描一次，下次約在 " + (sameDay(next, new Date().toISOString()) ? fmtClock(next) : fmtStamp(next)) + "。";
     var fails = (d.failures || []).length;
-    $("scope").textContent = (s.symbols_source === "all" ? "幣安全部現貨 USDT 交易對" : "幣安現貨 USDT 交易對") +
-      "，" + tfs;
+    var srcs = (s.sources || []).map(function (k) { return SOURCE_LABEL[k] || k; });
+    $("scope").textContent = (srcs.length ? srcs.join("、") : "幣安現貨") +
+      (s.symbols_source === "all" ? " 全部 USDT 交易對" : " USDT 交易對") + "，" + tfs;
     $("meta").innerHTML =
       "資料更新於 <time datetime=\"" + esc(d.generated_at) + "\">" + fmtStamp(d.generated_at) + "</time>（" +
       tzLabel() + "），掃描了 " + scanned + " 個幣種。" +
@@ -151,10 +169,15 @@
     var lo = Math.min.apply(null, prices), hi = Math.max.apply(null, prices);
     var x = function (t) { return (P + (t - tStart) / ((tEnd - tStart) || 1) * (W - 2 * P)).toFixed(1); };
     var y = function (p) { return (H - P - (p - lo) / ((hi - lo) || 1) * (H - 2 * P)).toFixed(1); };
-    var n0 = sh.neckline[0], n1 = sh.neckline[1];
+    var n0 = sh.neckline[0], n1 = sh.neckline[1], prov = !!r.rs_provisional;
+    var drawn = prov ? pts.slice(0, 4) : pts;
     var svg = "<svg class=\"glyph\" viewBox=\"0 0 " + W + " " + H + "\" aria-hidden=\"true\" focusable=\"false\">" +
       "<line class=\"g-neck\" x1=\"" + x(n0[0]) + "\" y1=\"" + y(n0[1]) + "\" x2=\"" + x(n1[0]) + "\" y2=\"" + y(n1[1]) + "\"/>" +
-      "<polyline class=\"g-shape\" points=\"" + pts.map(function (p) { return x(p[0]) + "," + y(p[1]); }).join(" ") + "\"/>";
+      "<polyline class=\"g-shape\" points=\"" + drawn.map(function (p) { return x(p[0]) + "," + y(p[1]); }).join(" ") + "\"/>";
+    if (prov) { // provisional right shoulder: dashed last leg + hollow RS
+      svg += "<line class=\"g-prov\" x1=\"" + x(pts[3][0]) + "\" y1=\"" + y(pts[3][1]) + "\" x2=\"" + x(pts[4][0]) +
+        "\" y2=\"" + y(pts[4][1]) + "\"/><circle class=\"g-rs\" r=\"2.2\" cx=\"" + x(pts[4][0]) + "\" cy=\"" + y(pts[4][1]) + "\"/>";
+    }
     if (showTail) {
       svg += "<polyline class=\"g-tail\" points=\"" + x(pts[4][0]) + "," + y(pts[4][1]) + " " + x(last[0]) + "," + y(last[1]) + "\"/>";
     }
@@ -169,10 +192,11 @@
     var sp = symParts(r.symbol);
     return "<li><button type=\"button\" class=\"row\" data-id=\"" + esc(r.pattern_id) + "\" aria-current=\"" +
       (state.selected === r.pattern_id) + "\" aria-label=\"" + esc(sp.base + sp.quote + " " + tfName(r.timeframe) + "，" +
-      STATUS_LABEL[r.status] + "，" + distText(r) + "，分數 " + r.pattern_score.toFixed(1)) + "\">" +
+      marketText(r) + "，" + STATUS_LABEL[r.status] + "，" + distText(r) + "，分數 " + r.pattern_score.toFixed(1)) + "\">" +
       glyph(r) +
       "<span class=\"row__name\"><span class=\"sym\">" + esc(sp.base) + "<small>" + esc(sp.quote) + "</small></span>" +
-      "<span class=\"tf\">" + esc(tfName(r.timeframe)) + "</span></span>" +
+      "<span class=\"tf\">" + esc(tfName(r.timeframe)) + "</span>" +
+      "<span class=\"mkt\">" + esc(marketText(r)) + "</span></span>" +
       "<span class=\"row__score\">" + r.pattern_score.toFixed(1) + "<small>分</small></span>" +
       "<span class=\"row__sub\"><span class=\"status status--" + esc(r.status) + "\">" + STATUS_LABEL[r.status] +
       "</span><span class=\"dist\">" + esc(distText(r)) + "</span></span>" +
@@ -237,6 +261,11 @@
     if (r.status === "confirmed") {
       return fmtBar(r.breakout_time, tf) + " 那根 K 線收盤突破頸線，到現在過了 " + r.bars_since_breakout + " 根。" + close;
     }
+    if (r.status === "forming") {
+      return "右肩形成中：N2 之後的最低點（" + fmtBar(r.RS_time, tf) + "）暫定為右肩。" + PROVISIONAL_NOTE +
+        (r.breakout_detected ? "已有 K 線收盤站上頸線（" + fmtBar(r.breakout_time, tf) + "），右肩確認後才算已突破。" : "") +
+        close;
+    }
     if (r.status === "watchlist") {
       return "右肩在 " + fmtBar(r.RS_time, tf) + " 成形，" + fmtBar(r.RS_confirm_time, tf) + " 確認；之後 " +
         r.bars_since_rs + " 根 K 線還沒有突破頸線。" + close;
@@ -252,14 +281,20 @@
       Math.max(0, Math.min(100, v / max * 100)).toFixed(1) + "%\"></div></div></div>";
   }
 
+  function pctOr(x) { return x === null || x === undefined ? "—" : pct(x, 1); }
+
   function renderDetail(r) {
     var sp = symParts(r.symbol), tf = r.timeframe;
+    var px = function (p) { return fmtPrice(p, r.current_close); };
+    var est = r.breakout_detected ? "" : "（預估）";
     $("detail").hidden = false;
     $("detail-head").innerHTML =
       "<div class=\"detail__title\"><h2>" + esc(sp.base) + "<small>" + esc(sp.quote) + "</small></h2>" +
       "<span class=\"tf\">" + esc(tfName(tf)) + "</span>" +
+      "<span class=\"mkt mkt--lg\">" + esc(marketText(r)) + "</span>" +
       "<span class=\"status status--" + esc(r.status) + "\">" + STATUS_LABEL[r.status] + "</span>" +
-      "<span class=\"score\">分數 <b>" + r.pattern_score.toFixed(1) + "</b></span></div>" +
+      "<span class=\"score\">分數 <b>" + r.pattern_score.toFixed(1) + "</b></span>" +
+      "<a class=\"tvlink\" href=\"" + esc(tvUrl(r)) + "\" target=\"_blank\" rel=\"noopener\">在 TradingView 開啟</a></div>" +
       "<p class=\"summary\">" + esc(summary(r)) + "</p>";
 
     $("detail-body").innerHTML =
@@ -267,17 +302,29 @@
       scoreBar("左右肩對稱", r.shoulder_score, 30) + scoreBar("頭部深度", r.head_depth_score, 25) +
       scoreBar("頸線平緩", r.neckline_score, 25) + scoreBar("突破／接近頸線", r.breakout_score, 20) +
       "</div></section>" +
+      "<section><h3>目標與失效</h3><dl class=\"facts\">" +
+      "<dt>" + (r.breakout_detected ? "突破時頸線價" : "預估突破價（目前頸線）") + "</dt><dd>" + px(r.breakout_level) + "</dd>" +
+      "<dt><span class=\"key key--tp\" aria-hidden=\"true\"></span>TP1" + est + "</dt><dd>" + px(r.tp1) + "</dd>" +
+      "<dt><span class=\"key key--tp2\" aria-hidden=\"true\"></span>TP2" + est + "</dt><dd>" + px(r.tp2) + "</dd>" +
+      "<dt><span class=\"key key--stop\" aria-hidden=\"true\"></span>失效價（頭部低點）</dt><dd>" + px(r.invalidation_price) + "</dd>" +
+      "</dl><p class=\"note\">TP1＝突破價＋頭高，TP2＝突破價 ×（1＋頭到頸線漲幅）。" +
+      (r.breakout_detected ? "" : "還沒突破，突破價先用目前頸線價，所以 TP 是預估、會隨頸線移動。") +
+      "收盤跌破失效價，型態就不成立。</p></section>" +
       "<section><h3>量測</h3><dl class=\"facts\">" +
-      "<dt>左右肩差</dt><dd>" + pct(r.shoulder_diff, 2) + "</dd>" +
-      "<dt>頭部深度</dt><dd>" + pct(r.head_depth, 1) + "</dd>" +
+      "<dt>左肩跌幅</dt><dd>" + pctOr(r.drop_left_pct) + "</dd>" +
+      "<dt>右肩跌幅" + (r.rs_provisional ? "（暫定）" : "") + "</dt><dd>" + pctOr(r.drop_right_pct) + "</dd>" +
+      "<dt>頭到頸線漲幅</dt><dd>" + pctOr(r.head_rise_pct) + "</dd>" +
       "<dt>頸線角度</dt><dd>" + r.neckline_angle.toFixed(1) + "°</dd>" +
-      "<dt>目前頸線價</dt><dd>" + fmtPrice(r.current_neckline_price, r.current_close) + "</dd>" +
+      "<dt>目前價</dt><dd>" + px(r.current_close) + "</dd>" +
+      "<dt>目前頸線價</dt><dd>" + px(r.current_neckline_price) + "</dd>" +
       "<dt>突破量比</dt><dd>" + (r.volume_ratio === null ? (r.breakout_detected ? "—" : "未突破") : r.volume_ratio.toFixed(2) + " 倍") + "</dd>" +
       "<dt>最後一根 K 線</dt><dd>" + fmtBar(r.as_of_time, tf) + (tf === "1w" ? " 當週" : "") + "</dd>" +
       "</dl></section>" +
       "<section><h3>五個點</h3><table class=\"points\"><thead><tr><th scope=\"col\">點</th><th scope=\"col\">K 線</th><th scope=\"col\">價格</th></tr></thead><tbody>" +
       POINTS.map(function (k) {
-        return "<tr><td title=\"" + POINT_NAME[k] + "\">" + k + "</td><td>" + fmtBar(r[k + "_time"], tf) +
+        var prov = k === "RS" && r.rs_provisional;
+        return "<tr" + (prov ? " class=\"is-prov\"" : "") + "><td title=\"" + POINT_NAME[k] + "\">" + k +
+          (prov ? "<small>暫定</small>" : "") + "</td><td>" + fmtBar(r[k + "_time"], tf) +
           "</td><td>" + fmtPrice(r[k + "_price"], r.current_close) + "</td></tr>";
       }).join("") + "</tbody></table></section>";
 
@@ -370,8 +417,14 @@
       color: C.accent, lineWidth: 2, lineStyle: LW.LineStyle.Dashed, priceLineVisible: false,
       lastValueVisible: false, crosshairMarkerVisible: false, autoscaleInfoProvider: noScale
     });
+    // N2 -> RS leg while the right shoulder is still provisional (forming): dashed, lighter.
+    var shapeProv = chart.addSeries(LW.LineSeries, {
+      color: C.accentSoft, lineWidth: 1, lineStyle: LW.LineStyle.Dashed, priceLineVisible: false,
+      lastValueVisible: false, crosshairMarkerVisible: false, autoscaleInfoProvider: noScale
+    });
     var markers = LW.createSeriesMarkers(candles, []);
-    chartApi = { chart: chart, candles: candles, volume: volume, shape: shape, neck: neck, markers: markers };
+    chartApi = { chart: chart, candles: candles, volume: volume, shape: shape, shapeProv: shapeProv, neck: neck,
+      markers: markers, levelLines: [], LW: LW };
     return chartApi;
   }
 
@@ -390,12 +443,44 @@
     api.volume.setData(c.bars.map(function (b) {
       return { time: b[0], value: b[5], color: b[4] >= b[1] ? "rgba(8,153,129,0.32)" : "rgba(242,54,69,0.32)" };
     }));
-    api.shape.setData(c.points.map(function (p) { return { time: p.time, value: p.price }; }));
-    api.neck.setData(c.neckline.map(function (p) { return { time: p.time, value: p.price }; }));
+    var prov = !!c.rs_provisional;
+    var line = function (p) { return { time: p.time, value: p.price }; };
+    api.shape.setData((prov ? c.points.slice(0, 4) : c.points).map(line));
+    api.shapeProv.setData(prov ? c.points.slice(3).map(line) : []);
+    api.neck.setData(c.neckline.map(line));
+    // TP1 / TP2 / invalidation: horizontal dashed lines at the JSON values (bars file `levels`).
+    api.levelLines.forEach(function (pl) { api.candles.removePriceLine(pl); });
+    var LS_ = api.LW.LineStyle;
+    var levels = Array.isArray(c.levels) ? c.levels : [];
+    var LEVEL_STYLE = {
+      tp1: { color: C.tp, style: LS_.Dashed }, tp2: { color: C.tp2, style: LS_.LargeDashed },
+      invalidation_price: { color: C.stop, style: LS_.Dashed }
+    };
+    api.levelLines = levels.map(function (lv) {
+      var st = LEVEL_STYLE[lv.key] || { color: C.faint, style: LS_.Dotted };
+      var isTp = lv.key === "tp1" || lv.key === "tp2";
+      return api.candles.createPriceLine({
+        price: lv.price, color: st.color, lineWidth: 1, lineStyle: st.style, axisLabelVisible: true,
+        title: lv.label + (isTp && c.levels_estimated ? " 預估" : "")
+      });
+    });
+    // keep the target / invalidation lines inside the visible price range
+    var lvPrices = levels.map(function (lv) { return lv.price; });
+    api.candles.applyOptions({
+      autoscaleInfoProvider: function (orig) {
+        var res = orig();
+        if (!res || !res.priceRange || !lvPrices.length) return res;
+        return { priceRange: {
+          minValue: Math.min.apply(null, lvPrices.concat([res.priceRange.minValue])),
+          maxValue: Math.max.apply(null, lvPrices.concat([res.priceRange.maxValue]))
+        }, margins: res.margins };
+      }
+    });
     var ms = c.points.map(function (p) {
       var low = p.label === "LS" || p.label === "H" || p.label === "RS";
+      var tentative = p.provisional === true;
       return { time: p.time, position: low ? "belowBar" : "aboveBar", shape: low ? "arrowUp" : "arrowDown",
-        color: C.accent, text: p.label, size: 1 };
+        color: tentative ? C.accentSoft : C.accent, text: tentative ? "RS 暫定" : p.label, size: 1 };
     });
     if (c.breakout) {
       ms.push({ time: c.breakout.time, position: "aboveBar", shape: "circle", color: C.down, text: "突破", size: 1 });
@@ -411,13 +496,22 @@
     }
     var to = Math.min(lastIdx, rsIdx + Math.max(20, Math.round((rsIdx - lsIdx) * 0.8)));
     if (c.breakout && r.status !== "stale") to = lastIdx;
+    // a provisional RS sits on the last bars: leave room for its "RS 暫定" label
+    api.chart.timeScale().applyOptions({ rightOffset: prov ? 12 : 6 });
     if (to >= lastIdx) api.chart.timeScale().fitContent();
     else api.chart.timeScale().setVisibleLogicalRange({ from: -2, to: to + 6 });
     $("chart").setAttribute("aria-label", symParts(r.symbol).base + " " + tfName(r.timeframe) +
-      " K 線圖，標出 LS、N1、H、N2、RS 五個點與頸線" + (c.breakout ? "，以及突破點" : ""));
+      " K 線圖，標出 LS、N1、H、N2、RS 五個點與頸線" + (prov ? "（右肩暫定）" : "") +
+      (c.breakout ? "，以及突破點" : "") + (levels.length ? "，TP1、TP2 與失效價水平線" : ""));
     $("chart-legend").hidden = false;
-    var brk = document.querySelector(".lg--brk");
-    if (brk) brk.hidden = !c.breakout;
+    var toggle = function (sel, show) { var el = document.querySelector(sel); if (el) el.hidden = !show; };
+    toggle(".lg--brk", !!c.breakout);
+    toggle(".lg--prov", prov);
+    toggle(".lg--tp", levels.length > 0);
+    toggle(".lg--stop", levels.length > 0);
+    var note = $("chart-note");
+    note.textContent = prov ? "RS 是暫定點：" + PROVISIONAL_NOTE : "";
+    note.hidden = !prov;
   }
 
   /* ---------- wiring ---------- */
@@ -514,6 +608,14 @@
       .then(function (data) {
         if (!data || !Array.isArray(data.results) || !data.settings) throw new Error("檔案格式不對");
         state.data = data;
+        // optional deep-link filters: ?status=forming&tf=1d&sort=dist&q=BTC
+        try {
+          var qs = new URLSearchParams(location.search);
+          if (STATUS_LABEL[qs.get("status")]) state.status = qs.get("status");
+          if (TF_LABEL[qs.get("tf")]) state.tf = qs.get("tf");
+          if (SORTS[qs.get("sort")]) { state.sort = qs.get("sort"); $("sort").value = state.sort; }
+          if (qs.get("q")) { state.q = qs.get("q").trim().toUpperCase().replace(/\s+/g, ""); $("q").value = qs.get("q"); }
+        } catch (e) { /* old browsers: ignore */ }
         var hash = decodeURIComponent(location.hash.slice(1));
         if (hash && data.results.some(function (r) { return r.pattern_id === hash; })) state.selected = hash;
         renderMeta();

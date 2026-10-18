@@ -31,7 +31,7 @@ def parse_args(argv=None) -> argparse.Namespace:
     p.add_argument("--symbols", default=",".join(DEFAULT_SYMBOLS), help="comma separated, e.g. BTCUSDT,ETHUSDT")
     p.add_argument("--timeframes", default="4h,1d,1w", help="comma separated subset of 4h,1d,1w")
     p.add_argument("--profile", choices=list(PROFILES), default=DEFAULT_PROFILE,
-                   help="rule set (D22): template = calibrated on the user's examples, with forming right "
+                   help="rule set (D23): template = calibrated on the user's examples, with forming right "
                         "shoulders and TP1/TP2; classic = D19/D21 rules")
     p.add_argument("--mode", choices=["candidate", "breakout"], default="candidate")
     p.add_argument("--volume-filter", action="store_true", help="breakout requires volume_ratio >= min_volume_ratio")

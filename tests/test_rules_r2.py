@@ -17,7 +17,7 @@ D21_FIELDS = ("atr_at_head", "head_atr_multiple", "neckline_total_slope", "shoul
 
 
 def _detect(df, **overrides):
-    cfg = {"profile": "classic", "include_stale": True}  # D22: classic rule set
+    cfg = {"profile": "classic", "include_stale": True}  # D23: classic rule set
     cfg.update(overrides)
     return detect_inverse_head_shoulders(df, "4h", cfg, symbol="T")
 

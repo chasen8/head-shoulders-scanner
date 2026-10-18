@@ -1,4 +1,4 @@
-"""Inverse head-and-shoulders detection (spec steps 2-10, charter D5-D12, D19, D21, D22).
+"""Inverse head-and-shoulders detection (spec steps 2-10, charter D5-D12, D19, D21, D23).
 
 Everything is computed "as of" the last bar of df: the caller passes only
 closed bars, and results depend only on df (truncation tests lock this in).
@@ -123,9 +123,9 @@ def find_pattern_candidates(df: pd.DataFrame, timeframe: str,
     BEFORE de-duplication. Exposed for tests / research; normal callers use
     detect_inverse_head_shoulders().
 
-    Both profiles (D22) run through this one loop; every rule is a config switch. Per head H the
+    Both profiles (D23) run through this one loop; every rule is a config switch. Per head H the
     LS x RS candidate pairs are first filtered with vectorised rules (length, time symmetry, spec
-    shoulder diff / head depth, D22 T1-T3), then the remaining pairs get the scalar rules."""
+    shoulder diff / head depth, D23 T1-T3), then the remaining pairs get the scalar rules."""
     cfg = merge_config(config)
     _validate(df, timeframe)
     n = len(df)
@@ -133,7 +133,7 @@ def find_pattern_candidates(df: pd.DataFrame, timeframe: str,
     if n < 2 * N + 1:
         return []
 
-    # spec step 3 shoulder diff: None = off (D22 template); the spec score then uses the classic limit
+    # spec step 3 shoulder diff: None = off (D23 template); the spec score then uses the classic limit
     shoulder_limit = _opt_float(tf_value(cfg, "shoulder_diff_limit_by_timeframe", timeframe))
     min_depth = float(tf_value(cfg, "min_head_depth_by_timeframe", timeframe))
     max_angle = float(cfg["max_neckline_angle"])
@@ -159,7 +159,7 @@ def find_pattern_candidates(df: pd.DataFrame, timeframe: str,
     # D19 extra shape rules
     balance_rule = bool(cfg["enable_balance_rule"])
     sym_ratio = _opt_float(cfg["max_time_symmetry_ratio"])
-    min_bars = tf_value(cfg, "min_pattern_bars", timeframe)  # int, per-timeframe dict (D22) or None
+    min_bars = tf_value(cfg, "min_pattern_bars", timeframe)  # int, per-timeframe dict (D23) or None
     min_bars = None if min_bars is None else int(min_bars)
     prior_downtrend = bool(cfg["require_prior_downtrend"])
     prior_bars = int(tf_value(cfg, "prior_trend_bars", timeframe))
@@ -175,7 +175,7 @@ def find_pattern_candidates(df: pd.DataFrame, timeframe: str,
     max_sd_of_head = _opt_float(cfg["max_shoulder_diff_of_head"])
     min_depth_ratio = _opt_float(cfg["min_shoulder_depth_ratio"])
     max_depth_ratio = _opt_float(cfg["max_shoulder_depth_ratio"])
-    # D22 template rules T1-T6 (formulas: config.py); None / False = off
+    # D23 template rules T1-T6 (formulas: config.py); None / False = off
     min_drop = _opt_float(tf_value(cfg, "min_shoulder_drop_by_timeframe", timeframe))
     max_drop_diff = _opt_float(cfg["max_shoulder_drop_diff"])
     max_drop_rel = _opt_float(cfg["max_shoulder_drop_rel_diff"])
@@ -235,7 +235,7 @@ def find_pattern_candidates(df: pd.DataFrame, timeframe: str,
             continue
         rs_pts = [p for p in lows[k + 1:b] if p.price > h_low]  # H.low < RS.low (strict)
         rs_forming = [False] * len(rs_pts)
-        # D22 T6 forming RS: no low below H.low since H (else the pattern is void), N2 = highest
+        # D23 T6 forming RS: no low below H.low since H (else the pattern is void), N2 = highest
         # confirmed swing high after H, RS = lowest low after N2 while it cannot be a confirmed
         # pivot yet (index > last - N). Ties: the earliest lowest bar.
         if forming_on and right_limit == last and not below_r.size:
@@ -250,7 +250,7 @@ def find_pattern_candidates(df: pd.DataFrame, timeframe: str,
         if not rs_pts:
             continue
 
-        # D22 T8: last bar before H (anywhere, not only within max_bars) whose low is below H.low
+        # D23 T8: last bar before H (anywhere, not only within max_bars) whose low is below H.low
         prev_lower = None
         if lead_in is not None:
             lower = np.flatnonzero(low[:hi] < h_low)
@@ -261,7 +261,7 @@ def find_pattern_candidates(df: pd.DataFrame, timeframe: str,
             if prev_lower is not None and prev_lower >= p.index - math.ceil(lead_in * (hi - p.index)):
                 continue  # T8: price was below the head within the lead-in window before LS
             pos = _highest_between(high_idx, high_px, p.index, hi)
-            # D22 T7: N1 must be the first swing high after LS, and LS the lowest low of [LS, N1]
+            # D23 T7: N1 must be the first swing high after LS, and LS the lowest low of [LS, N1]
             if pos is not None and n1_first and (
                     pos != int(np.searchsorted(high_idx, p.index, side="right"))
                     or float(np.min(low[p.index:highs[pos].index])) < p.price):
@@ -303,7 +303,7 @@ def find_pattern_candidates(df: pd.DataFrame, timeframe: str,
         depth_m = (sh_avg_m - h_low) / sh_avg_m  # spec step 4
         ok &= (depth_m > 0) & (depth_m >= min_depth)
         with np.errstate(invalid="ignore", divide="ignore"):
-            drop_l = (n1_p - ls_p) / n1_p  # D22: left shoulder fall from N1
+            drop_l = (n1_p - ls_p) / n1_p  # D23: left shoulder fall from N1
             drop_r = (n2_p - rs_p) / n2_p
             drop_diff_m = np.abs(drop_l - drop_r)
             neck_h_m = n1_p + (n2_p - n1_p) * ((hi - n1_i) / (n2_i - n1_i))
@@ -375,20 +375,20 @@ def find_pattern_candidates(df: pd.DataFrame, timeframe: str,
                 continue
             if max_depth_ratio is not None and depth_ratio > max_depth_ratio:
                 continue
-            # D22 T5: neckline tilt in head heights
+            # D23 T5: neckline tilt in head heights
             tilt_of_head = abs(N2.price - N1.price) / head_height
             if max_tilt is not None and tilt_of_head > max_tilt:
                 continue
-            # D22 T9: rising neckline cap
+            # D23 T9: rising neckline cap
             neck_change = N2.price / N1.price - 1.0
             if max_neck_rise is not None and neck_change > max_neck_rise:
                 continue
-            # D22 T10: neckline highs are not lone wick spikes (body tops within +-N bars)
+            # D23 T10: neckline highs are not lone wick spikes (body tops within +-N bars)
             wick_of_head = max((P.price - float(np.max(body_top[max(0, P.index - N):P.index + N + 1])))
                                for P in (N1, N2)) / head_height
             if max_wick is not None and wick_of_head > max_wick:
                 continue
-            # D22 T4: no bar strictly between N1 and RS (N2 itself excluded) pokes above the neckline
+            # D23 T4: no bar strictly between N1 and RS (N2 itself excluded) pokes above the neckline
             # (extended past N2) by more than the tolerance
             seg = np.concatenate([np.arange(N1.index + 1, N2.index), np.arange(N2.index + 1, RS.index)])
             violation = float(np.max(high[seg] / neck.price_at(seg) - 1.0)) if seg.size else None
@@ -431,7 +431,7 @@ def find_pattern_candidates(df: pd.DataFrame, timeframe: str,
             breakout = breakout_i is not None
             # D9 status. D14: age runs from the first price cross and is not reset by a
             # later volume-confirmed re-break (SignalSync: resetting raised false positives).
-            # D22: a provisional (unconfirmed) RS is always "forming", breakout or not.
+            # D23: a provisional (unconfirmed) RS is always "forming", breakout or not.
             if forming:
                 status = "forming"
             elif breakout:
@@ -448,7 +448,7 @@ def find_pattern_candidates(df: pd.DataFrame, timeframe: str,
 
             current_neck = float(neck.price_at(last))  # D12
             distance = abs(current_close - current_neck) / current_neck
-            # D22 shape values (computed in both profiles)
+            # D23 shape values (computed in both profiles)
             drop_left = (N1.price - LS.price) / N1.price
             drop_right = (N2.price - RS.price) / N2.price
             drop_diff = abs(drop_left - drop_right)
@@ -463,7 +463,7 @@ def find_pattern_candidates(df: pd.DataFrame, timeframe: str,
                 scores = calculate_pattern_score(
                     shoulder_diff, score_shoulder_limit, head_depth, angle, max_angle,
                     breakout, distance, ideal_depth, dist_range)
-            # D22 targets (display only): breakout level = neckline at the breakout bar, else at the
+            # D23 targets (display only): breakout level = neckline at the breakout bar, else at the
             # last bar (estimate); TP1 = level + head height, TP2 = level * (1 + head_rise)
             breakout_level = float(neck.price_at(breakout_i)) if breakout else current_neck
 
@@ -479,7 +479,7 @@ def find_pattern_candidates(df: pd.DataFrame, timeframe: str,
 
             # earliest bar at which this signal is knowable live. Confirmed RS: a breakout can happen
             # inside the RS confirmation window (RS.index < b < RS.index+N), but it can only be
-            # reported once RS is confirmed. Forming RS (D22): knowable once both the RS bar has
+            # reported once RS is confirmed. Forming RS (D23): knowable once both the RS bar has
             # closed and N2 is confirmed.
             known = max(RS.index, N2.confirm_index) if forming else RS.confirm_index
             signal_i = max(known, breakout_i) if breakout else known
@@ -515,7 +515,7 @@ def find_pattern_candidates(df: pd.DataFrame, timeframe: str,
                 "shoulder_diff_of_head": sd_of_head,
                 "shoulder_depth_ratio": depth_ratio,
                 "pattern_start_bars_before_ls": pat_start_gap,
-                # D22 template values (fractions: 0.244 = 24.4%) and display-only targets
+                # D23 template values (fractions: 0.244 = 24.4%) and display-only targets
                 "drop_left_pct": drop_left,
                 "drop_right_pct": drop_right,
                 "shoulder_drop_diff": drop_diff,
@@ -553,7 +553,7 @@ def detect_inverse_head_shoulders(df: pd.DataFrame, timeframe: str,
                                   symbol: str | None = None) -> list[dict[str, Any]]:
     """Detect IHS patterns as of the last bar of df.
 
-    config: partial overrides are fine, merged onto the profile's config (D22: {"profile": "classic"}
+    config: partial overrides are fine, merged onto the profile's config (D23: {"profile": "classic"}
             selects the D19/D21 rule set; default "template").
     mode: enable_breakout_filter=False -> "candidate" (forming + watchlist + confirmed),
           True -> "breakout" (only patterns with a detected breakout).

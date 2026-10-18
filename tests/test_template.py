@@ -1,4 +1,4 @@
-"""D22 template profile: config / profile switching, forming right shoulder (status + no repaint),
+"""D23 template profile: config / profile switching, forming right shoulder (status + no repaint),
 rules T1-T10, TP fields and the template score. No network (golden examples: test_golden_examples.py).
 """
 import math
@@ -20,7 +20,7 @@ N = 5  # template 4h pivot window
 WIDE = [(0, 125), (20, 100), (40, 110), (60, 90), (80, 110), (100, 100), (119, 106)]
 # same, the RS still falling at the last bar (index 100): RS forming
 WIDE_FORMING = WIDE[:-1]
-D22_FIELDS = ("drop_left_pct", "drop_right_pct", "shoulder_drop_diff", "head_rise_pct", "head_prominence",
+D23_FIELDS = ("drop_left_pct", "drop_right_pct", "shoulder_drop_diff", "head_rise_pct", "head_prominence",
               "neckline_tilt_of_head", "neckline_max_violation", "neckline_change", "neckline_wick_of_head",
               "head_height", "breakout_level", "tp1", "tp2", "invalidation_price", "profile")
 
@@ -61,7 +61,7 @@ def test_template_values():
     assert t["min_pattern_bars"] == {"4h": 60, "1d": 40, "1w": 16}
     assert t["enable_forming_rs"] is True and t["score_method"] == "template"
     assert CLASSIC_CONFIG["enable_forming_rs"] is False and CLASSIC_CONFIG["score_method"] == "spec"
-    for f in D22_FIELDS:
+    for f in D23_FIELDS:
         assert f in OUTPUT_FIELDS
 
 
@@ -178,7 +178,7 @@ def test_random_walk_template_invariants():
             assert (rs_i > t - N) == (r["status"] == "forming")
 
 
-# ---------- rules: boundary of every D22 threshold ----------
+# ---------- rules: boundary of every D23 threshold ----------
 # neckline 113 -> 109 (falling), H 90, shoulders 100 / 98.5
 SLOPED = [(0, 125), (20, 100), (40, 112), (60, 90), (80, 108), (100, 98.5), (119, 104)]
 
