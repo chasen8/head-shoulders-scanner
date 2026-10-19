@@ -529,12 +529,18 @@
       var x = ev.clientX - rect.left, y = ev.clientY - rect.top;
       if (x < rect.width - axisW || y > paneH) return; // not over the main price axis
       var range = scale.getVisibleRange();
-      var p = api.candles.coordinateToPrice(y);
-      if (!range || p === null) return;
+      if (!range) return;
       ev.preventDefault();
       ev.stopPropagation();
-      var k = ev.deltaY < 0 ? 1 / 1.12 : 1.12; // wheel up = taller candles
-      scale.setVisibleRange({ from: p - (p - range.from) * k, to: p + (range.to - p) * k });
+      // Same maths as Lightweight Charts' own price-axis drag (scale around the centre of the
+      // visible range, k = (start + 0.2*(h-1)) / (now + 0.2*(h-1))): one wheel notch acts like
+      // dragging the axis ~30 px from its middle. Wheel up = drag up = taller candles.
+      var dy = ev.deltaY * (ev.deltaMode === 1 ? 16 : ev.deltaMode === 2 ? paneH : 1);
+      var c = 0.2 * (paneH - 1), start = paneH / 2;
+      var now = Math.max(0, start - dy * 0.3);
+      var k = Math.max((start + c) / (now + c), 0.1);
+      var mid = (range.from + range.to) / 2, half = (range.to - range.from) / 2 * k;
+      scale.setVisibleRange({ from: mid - half, to: mid + half });
       syncBtn();
     }, { passive: false, capture: true });
     // dragging the axis also turns auto-scale off: keep the button state in sync
