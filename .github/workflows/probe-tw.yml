@@ -12,35 +12,33 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - name: Single requests
+      - name: Yahoo with cookie + crumb
         run: |
-          UA="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36"
+          UA="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36"
+          curl -s -o /dev/null -c jar.txt -A "$UA" -w "fc.yahoo.com %{http_code}\n" https://fc.yahoo.com || true
+          curl -s -o /dev/null -c jar.txt -b jar.txt -A "$UA" -w "finance.yahoo.com %{http_code}\n" -L https://finance.yahoo.com/ || true
+          crumb=$(curl -s -b jar.txt -A "$UA" https://query1.finance.yahoo.com/v1/test/getcrumb)
+          echo "crumb length ${#crumb}: $(echo "$crumb" | head -c 30)"
           for u in \
-            "https://openapi.twse.com.tw/v1/exchangeReport/STOCK_DAY_ALL" \
-            "https://openapi.twse.com.tw/v1/opendata/t187ap03_L" \
-            "https://www.tpex.org.tw/openapi/v1/tpex_mainboard_quotes" \
-            "https://www.tpex.org.tw/openapi/v1/mopsfin_t187ap03_O" \
             "https://query1.finance.yahoo.com/v8/finance/chart/2330.TW?interval=1d&range=10y" \
-            "https://query1.finance.yahoo.com/v8/finance/chart/2330.TW?interval=60m&range=730d" \
-            "https://query1.finance.yahoo.com/v8/finance/chart/6488.TWO?interval=1d&range=10y" \
-            "https://query1.finance.yahoo.com/v8/finance/chart/6488.TWO?interval=60m&range=730d" \
-            "https://query2.finance.yahoo.com/v8/finance/chart/2330.TW?interval=1d&range=5y" ; do
-            r=$(curl -s -o body.bin -A "$UA" -w "%{http_code} %{size_download}B %{time_total}s" --max-time 90 "$u" || echo "curl-failed")
-            echo "$r  $u  head=$(head -c 80 body.bin | tr -d '\n')"
+            "https://query2.finance.yahoo.com/v8/finance/chart/2330.TW?interval=60m&range=730d" \
+            "https://query1.finance.yahoo.com/v7/finance/spark?symbols=2330.TW,6488.TWO&range=5d&interval=1d" ; do
+            r=$(curl -s -o body.bin -b jar.txt -A "$UA" -w "%{http_code} %{size_download}B" --max-time 60 "$u&crumb=$crumb" || echo "curl-failed")
+            echo "$r  $u  head=$(head -c 60 body.bin | tr -d '\n')"
           done
-      - name: Yahoo burst (200 requests, about 5 per second)
+          for ua in "python-requests/2.32" "curl/8.5.0" ""; do
+            r=$(curl -s -o body.bin -A "$ua" -w "%{http_code}" --max-time 30 "https://query1.finance.yahoo.com/v8/finance/chart/2330.TW?interval=1d&range=1mo")
+            echo "UA='$ua' -> $r"
+          done
+      - name: TWSE / TPEx historical (per date, all stocks; per stock month)
         run: |
-          UA="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36"
-          start=$(date +%s)
-          : > codes.txt
-          for i in $(seq 1 100); do
-            code=$((1100 + i * 37 % 8000))
-            for iv in "1d&range=10y" "60m&range=730d"; do
-              curl -s -o /dev/null -A "$UA" -w "%{http_code}\n" --max-time 30 \
-                "https://query1.finance.yahoo.com/v8/finance/chart/${code}.TW?interval=${iv}" >> codes.txt &
-              sleep 0.2
-            done
+          UA="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36"
+          for u in \
+            "https://www.twse.com.tw/exchangeReport/MI_INDEX?response=json&date=20261016&type=ALLBUT0999" \
+            "https://www.twse.com.tw/rwd/zh/afterTrading/MI_INDEX?response=json&date=20261016&type=ALLBUT0999" \
+            "https://www.twse.com.tw/exchangeReport/STOCK_DAY?response=json&date=20261001&stockNo=2330" \
+            "https://www.tpex.org.tw/www/zh-tw/afterTrading/dailyQuotes?date=2026%2F10%2F16&response=json" \
+            "https://www.tpex.org.tw/web/stock/aftertrading/daily_close_quotes/stk_quote_result.php?l=zh-tw&d=115/10/16&o=json" ; do
+            r=$(curl -s -o body.bin -A "$UA" -w "%{http_code} %{size_download}B %{time_total}s" --max-time 90 "$u" || echo "curl-failed")
+            echo "$r  $u  head=$(head -c 100 body.bin | tr -d '\n')"
           done
-          wait
-          echo "elapsed $(( $(date +%s) - start ))s"
-          sort codes.txt | uniq -c
