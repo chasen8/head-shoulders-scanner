@@ -20,6 +20,7 @@
 - 2026-10-19：網站＋Discord 整合 forming／TP1／TP2／交易所標籤（D24），208 個測試全綠，GitHub dry-run 成功；全來源 1378 幣本機掃描 195 筆（forming 113／watchlist 76／confirmed 6）。待辦：使用者重建 webhook 並自行 `gh secret set`；已知 1MBABYDOGE（幣安）與 MBABYDOGE（Gate）未被去重。
 - 2026-10-18：網站公開（D25）與 Discord webhook 設定完成。
 - 2026-10-19：D26 形狀驗證上線（241 測試全綠）。結論：只有 5 個正樣本時公式驗證區分力有限，下一步需要使用者標記好／壞樣本。
+- 2026-10-19：觀察名單、☰ 選單、頸線斜率篩選上線（D27），243 測試全綠，公開網站已更新。
 ## 決策記錄
 格式：日期｜決定｜原因｜何時可推翻
 
@@ -49,3 +50,4 @@
 - D24 2026-10-19｜Discord 通知修訂（取代 D20 的事件與門檻）：通知「新 forming」「新 watchlist」「任何→confirmed」，forming→watchlist 不通知；去重鍵不含 RS（`exchange|market|symbol|tf|LS_time|H_time`），state `version: 2`（舊版視為首次只發摘要）；門檻 50（`NOTIFY_MIN_SCORE`）；低於門檻者之後過門檻會補發一次｜使用者要在右肩區就收到提醒；forming 的 RS 會移動，含 RS 的鍵會重複通知；template 分數普遍 50–70｜每日通知量過多時提高門檻；已知限制：forming 期間即使收盤突破仍標 forming，突破通知最多延後 pivot N 根（4h/1d 5 根）
 - D25 2026-10-18｜網站公開：程式 repo 保持私有，另建公開 repo `chasen8/head-shoulders-site`（Pages：main 根目錄，https://chasen8.github.io/head-shoulders-site/）；workflow 每次非 dry-run 執行後用 deploy key（只對該 repo 有寫入權，私鑰存 secret `SITE_DEPLOY_KEY`，本機不留副本）force push site/ 單一 commit；`DISCORD_WEBHOOK_URL` secret 已設定｜使用者要公開網站、不想開終端機、程式不公開｜改為整個 repo 公開或換託管時
 - D26 2026-10-19｜template 加形狀驗證 V1–V4（全部通過才輸出）：V1 段內反向波動 ≤0.65 頭高（Lo 2000 連續極值概念）、V2 骨架偏差 MAD/頭高 ≤0.20（neurotrader888 pattern_r2 概念，R² 只顯示）、V3 頸線收盤完整性＋追高上限 0.5 頭高（SignalSync）、V4 對使用者 5 範例的模板距離 ≤0.25（Fu 2007，leave-one-out）；另列 shape_score，pattern_score 不變；網站顯示各驗證值｜使用者要「有公式佐證」｜論文原始門檻會擋掉全部 5 個範例，現值是校準到範例剛好通過（GRAM 餘裕僅 0.02–0.03）；快照 170→136 筆，抽圖仍約 3/8 不像 → 需要使用者標負樣本才能再收緊
+- D27 2026-10-19｜網站加星號觀察名單＋☰ 左側抽屜（全部型態／觀察名單／設定／關於）＋「頸線斜率」篩選（neckline_change_pct = N2/N1−1，±3% 分下降／水平／上升，build_site 計算）；觀察名單與設定存 localStorage（`ihs.watchlist.v1`／`ihs.settings.v1`，讀寫包 try/catch，提供匯出／匯入）；以 `pattern_key`（ihs_scanner/keys.py，與 Discord 共用）識別；狀態 watchlist 的顯示文字改為「右肩已確認」（網站與 Discord），避免與觀察名單混淆｜使用者要求｜要跨裝置同步或要 Discord 只通知觀察名單時，改存 repo（伺服器端）
