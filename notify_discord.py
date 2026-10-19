@@ -212,13 +212,13 @@ def build_embed(event: Mapping[str, Any]) -> dict[str, Any]:
     if event.get("kind") == "upgraded" and event.get("previous") in ("forming", "watchlist", "stale"):
         notes.append(f"由「{STATUS_LABEL[event['previous']]}」轉為已突破。")
     if not r.get("breakout_detected"):
-        notes.append("尚未突破：TP 以目前頸線價預估。")
+        notes.append("尚未突破：TP2 以目前頸線價預估。")
     fields = [
         ("交易所", market_label(r)),
         ("分數", f"{float(r['pattern_score']):.1f}"),
         ("目前價", fmt_price(ref)),
         ("頸線價", neck_text),
-        ("TP1" + est, fmt_price(r.get("tp1"), ref)),
+        ("TP1", fmt_price(r.get("tp1"), ref)),  # D28: fixed, not an estimate
         ("TP2" + est, fmt_price(r.get("tp2"), ref)),
         ("失效價（頭部低點）", fmt_price(r.get("invalidation_price"), ref)),
         ("左／右肩跌幅", f"{_pct(r.get('drop_left_pct'))}／{_pct(r.get('drop_right_pct'))}"),

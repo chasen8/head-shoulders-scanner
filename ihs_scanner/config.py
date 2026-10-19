@@ -141,6 +141,11 @@ CLASSIC_CONFIG: dict[str, Any] = {
     "max_neckline_wick_of_head": None,
     # score: "spec" (spec step 9) or "template" (scoring.calculate_template_score)
     "score_method": "spec",
+    # D28 TP1 (display only): Fibonacci extension from H (0) to the neckline midpoint (1), i.e.
+    # the neckline at the time midpoint of N1 and N2; log=True works in log price like TradingView's
+    # Fib tool with "log scale" on: TP1 = H * (mid / H) ** level; log=False: H + level * (mid - H)
+    "tp1_fib_level": 1.414,
+    "tp1_fib_log": True,
     "ideal_head_prominence": 1.5,  # template score: head_prominence giving full marks
     "ideal_head_rise": 0.40,  # template score: head_rise giving full marks
     # --- D26 shape validation V1-V4 (ihs_scanner/validation.py). Values are computed and output in BOTH

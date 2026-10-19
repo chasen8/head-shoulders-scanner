@@ -116,7 +116,7 @@ def test_embed_fields():
     assert f["交易所"] == "OKX 永續"
     assert f["目前價"] == "0.0001750"
     assert f["頸線價"] == "0.0002031（低於頸線 1.2%）"
-    assert f["TP1（預估）"] == "0.0002612" and f["TP2（預估）"] == "0.0002948"
+    assert f["TP1"] == "0.0002612" and f["TP2（預估）"] == "0.0002948"  # D28: TP1 is never an estimate
     assert f["失效價（頭部低點）"] == "0.0001399"
     assert f["左／右肩跌幅"] == "24.1%／22.8%" and f["頭到頸線漲幅"] == "45.2%"
     assert "右肩尚未確認" in e["description"]

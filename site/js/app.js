@@ -381,11 +381,11 @@
       "</div></section>" +
       "<section><h3>目標與失效</h3><dl class=\"facts\">" +
       "<dt>" + (r.breakout_detected ? "突破時頸線價" : "預估突破價（目前頸線）") + "</dt><dd>" + px(r.breakout_level) + "</dd>" +
-      "<dt><span class=\"key key--tp\" aria-hidden=\"true\"></span>TP1" + est + "</dt><dd>" + px(r.tp1) + "</dd>" +
+      "<dt><span class=\"key key--tp\" aria-hidden=\"true\"></span>TP1</dt><dd>" + px(r.tp1) + "</dd>" +
       "<dt><span class=\"key key--tp2\" aria-hidden=\"true\"></span>TP2" + est + "</dt><dd>" + px(r.tp2) + "</dd>" +
       "<dt><span class=\"key key--stop\" aria-hidden=\"true\"></span>失效價（頭部低點）</dt><dd>" + px(r.invalidation_price) + "</dd>" +
-      "</dl><p class=\"note\">TP1＝突破價＋頭高，TP2＝突破價 ×（1＋頭到頸線漲幅）。" +
-      (r.breakout_detected ? "" : "還沒突破，突破價先用目前頸線價，所以 TP 是預估、會隨頸線移動。") +
+      "</dl><p class=\"note\">TP1＝以頭部低點為 0、頸線中點為 1 的對數斐波那契 1.414；TP2＝突破價 ×（1＋頭到頸線漲幅）。" +
+      (r.breakout_detected ? "" : "還沒突破，TP2 的突破價先用目前頸線價，所以 TP2 是預估、會隨頸線移動。") +
       "收盤跌破失效價，型態就不成立。</p></section>" +
       "<section><h3>量測</h3><dl class=\"facts\">" +
       "<dt>左肩跌幅</dt><dd>" + pctOr(r.drop_left_pct) + "</dd>" +
@@ -582,7 +582,7 @@
     };
     api.levelLines = levels.map(function (lv) {
       var st = LEVEL_STYLE[lv.key] || { color: C.faint, style: LS_.Dotted };
-      var isTp = lv.key === "tp1" || lv.key === "tp2";
+      var isTp = lv.key === "tp2"; // D28: TP1 does not depend on the breakout
       return api.candles.createPriceLine({
         price: lv.price, color: st.color, lineWidth: 1, lineStyle: st.style, axisLabelVisible: true,
         title: lv.label + (isTp && c.levels_estimated ? " 預估" : "")

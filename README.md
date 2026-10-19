@@ -170,7 +170,7 @@ V3b、V3c 不判形狀，只把狀態改成 `stale`（`stale_reason`）：
 - D23 欄位（比例皆為小數，0.244＝24.4%）：`drop_left_pct`、`drop_right_pct`、`shoulder_drop_diff`、`head_rise_pct`、
   `head_prominence`、`neckline_tilt_of_head`、`neckline_max_violation`、`neckline_change`、`neckline_wick_of_head`、`head_height`
 - 目標價（只是顯示資訊）：`breakout_level`＝已突破時突破那根的頸線價，否則目前這根的頸線價（預估）；
-  `tp1 = breakout_level + head_height`（傳統價差量測）；`tp2 = breakout_level × (1 + head_rise_pct)`（使用者圖上算法）；
+  `tp1 = H.low × (neckline_mid / H.low) ^ 1.414`（D28：頭部到頸線中點的對數斐波那契 1.414，`tp1_fib_level`／`tp1_fib_log` 可調；`neckline_mid`＝N1、N2 時間中點的頸線價，不隨突破移動）；`tp2 = breakout_level × (1 + head_rise_pct)`（使用者圖上算法）；
   `invalidation_price = H.low`
 - `shoulder_score`、`head_depth_score`、`neckline_score`、`breakout_score`：四項分數；`base_score`＝四項總和（D26 前的 pattern_score）
 - `stale_reason`：`age`（D9 時間窗）／`runaway`（V3b）／`failed_breakout`（V3c）；非 stale 為空

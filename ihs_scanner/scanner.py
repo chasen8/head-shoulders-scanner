@@ -30,7 +30,7 @@ OUTPUT_FIELDS = [
     # D26 shape validation
     "v1_max_counter_swing", "v1_leg", "v2_mad", "v2_r2", "v3_close_violation", "v3_runaway", "v3_fallback",
     "v4_template_distance", "v4_nearest_template", "shape_valid",
-    "head_height", "breakout_level", "tp1", "tp2", "invalidation_price",
+    "head_height", "breakout_level", "neckline_mid", "tp1", "tp2", "invalidation_price",
     "current_close", "current_neckline_price", "distance_to_neckline",
     "breakout_detected", "breakout_time", "breakout_price", "volume_ratio",
     "average_volume_20", "bars_since_rs", "bars_since_breakout", "signal_time", "as_of_time",

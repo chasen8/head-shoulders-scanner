@@ -207,6 +207,8 @@ def find_pattern_candidates(df: pd.DataFrame, timeframe: str,
     if bad_names:
         raise KeyError(f"template_exclude has unknown templates {bad_names}; known: {sorted(TEMPLATES)}")
     shape_w = float(cfg["shape_score_weight"])
+    tp1_level = float(cfg["tp1_fib_level"])
+    tp1_log = bool(cfg["tp1_fib_log"])
 
     times = get_timestamps(df)
     high = df["high"].to_numpy(dtype=float)
@@ -530,8 +532,14 @@ def find_pattern_candidates(df: pd.DataFrame, timeframe: str,
             s_score = shape_score(swing, t_dist, max_swing, max_tdist)
             total_score = (1.0 - shape_w) * base_score + shape_w * s_score  # D26
             # D23 targets (display only): breakout level = neckline at the breakout bar, else at the
-            # last bar (estimate); TP1 = level + head height, TP2 = level * (1 + head_rise)
+            # last bar (estimate); TP2 = level * (1 + head_rise). D28: TP1 = Fibonacci extension
+            # tp1_fib_level of H -> neckline midpoint (log price by default); independent of breakout.
             breakout_level = float(neck.price_at(breakout_i)) if breakout else current_neck
+            neck_mid = float(neck.price_at((N1.index + N2.index) / 2.0))
+            if tp1_log and h_low > 0 and neck_mid > 0:
+                tp1 = h_low * (neck_mid / h_low) ** tp1_level
+            else:
+                tp1 = h_low + tp1_level * (neck_mid - h_low)
 
             volume_ratio = None
             avg_vol = None
@@ -607,7 +615,8 @@ def find_pattern_candidates(df: pd.DataFrame, timeframe: str,
                 "stale_reason": stale_reason,
                 "head_height": head_height,
                 "breakout_level": breakout_level,
-                "tp1": breakout_level + head_height,
+                "neckline_mid": neck_mid,
+                "tp1": tp1,
                 "tp2": breakout_level * (1.0 + head_rise),
                 "invalidation_price": h_low,
                 "current_close": current_close,

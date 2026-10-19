@@ -85,7 +85,9 @@ def test_wide_pattern_watchlist_values():
     assert r["invalidation_price"] == pytest.approx(90.0)
     # not broken out: breakout level = neckline at the last bar (flat -> 111)
     assert r["breakout_level"] == pytest.approx(111.0)
-    assert r["tp1"] == pytest.approx(111.0 + 21.0)
+    # D28: TP1 = log Fibonacci 1.414 from H (90) to the neckline midpoint (flat -> 111)
+    assert r["neckline_mid"] == pytest.approx(111.0)
+    assert r["tp1"] == pytest.approx(90.0 * (111.0 / 90.0) ** 1.414)
     assert r["tp2"] == pytest.approx(111.0 * (111 / 90))
 
 
@@ -102,7 +104,9 @@ def test_tp_uses_neckline_at_breakout_bar():
     neck_h = 111 + (113.2 - 111) * (60 - 40) / 40
     assert r["breakout_level"] == pytest.approx(neck_b)
     assert r["head_height"] == pytest.approx(neck_h - 90)
-    assert r["tp1"] == pytest.approx(neck_b + neck_h - 90)
+    # D28: TP1 does not depend on the breakout bar: neckline midpoint of N1 (40) and N2 (80)
+    assert r["neckline_mid"] == pytest.approx((111 + 113.2) / 2)
+    assert r["tp1"] == pytest.approx(90 * (((111 + 113.2) / 2) / 90) ** 1.414)
     assert r["tp2"] == pytest.approx(neck_b * (neck_h / 90))
 
 
@@ -317,3 +321,14 @@ def test_template_speed_1000_bars():
     print(f"\n1000-bar random walk (template): {len(res)} patterns in {dt * 1000:.1f} ms")
     assert dt < 1.0  # target 0.2 s on the dev box; generous for CI
     assert all(math.isfinite(r["pattern_score"]) for r in res)
+
+
+def test_tp1_fib_formula_pendle_hand_calc():  # D28, the user's PENDLE 1d numbers
+    h, mid = 0.969, (2.888 + 2.789) / 2
+    assert h * (mid / h) ** 1.414 == pytest.approx(4.43, abs=0.01)
+
+
+def test_tp1_fib_linear_option():  # D28: tp1_fib_log=False -> plain price Fibonacci
+    df = make_df(WIDE_FORMING)
+    r = _detect(df, tp1_fib_log=False)[0]
+    assert r["tp1"] == pytest.approx(r["invalidation_price"] + 1.414 * (r["neckline_mid"] - r["invalidation_price"]))
