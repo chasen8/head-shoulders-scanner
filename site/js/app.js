@@ -504,7 +504,43 @@
     var markers = LW.createSeriesMarkers(candles, []);
     chartApi = { chart: chart, candles: candles, volume: volume, shape: shape, shapeProv: shapeProv, neck: neck,
       markers: markers, levelLines: [], LW: LW };
+    initPriceAxisZoom(chartApi);
     return chartApi;
+  }
+
+  // TradingView-style Y-axis zoom: the mouse wheel over the right price axis stretches /
+  // squeezes the candles around the price under the cursor (dragging the axis and double-click
+  // reset are built into Lightweight Charts). The "A" button returns to auto-scale.
+  function initPriceAxisZoom(api) {
+    var el = $("chart"), btn = $("chart-autoscale");
+    var scale = api.candles.priceScale();
+    var syncBtn = function () {
+      if (!btn) return;
+      var auto = scale.options().autoScale !== false;
+      btn.setAttribute("aria-pressed", auto ? "true" : "false");
+    };
+    if (btn) {
+      btn.addEventListener("click", function () { scale.setAutoScale(true); syncBtn(); });
+    }
+    el.addEventListener("wheel", function (ev) {
+      var rect = el.getBoundingClientRect();
+      var axisW = api.chart.priceScale("right").width();
+      var paneH = api.chart.panes()[0].getHeight();
+      var x = ev.clientX - rect.left, y = ev.clientY - rect.top;
+      if (x < rect.width - axisW || y > paneH) return; // not over the main price axis
+      var range = scale.getVisibleRange();
+      var p = api.candles.coordinateToPrice(y);
+      if (!range || p === null) return;
+      ev.preventDefault();
+      ev.stopPropagation();
+      var k = ev.deltaY < 0 ? 1 / 1.12 : 1.12; // wheel up = taller candles
+      scale.setVisibleRange({ from: p - (p - range.from) * k, to: p + (range.to - p) * k });
+      syncBtn();
+    }, { passive: false, capture: true });
+    // dragging the axis also turns auto-scale off: keep the button state in sync
+    el.addEventListener("pointerup", syncBtn);
+    el.addEventListener("dblclick", function () { setTimeout(syncBtn, 0); });
+    api.syncAutoscaleBtn = syncBtn;
   }
 
   function drawChart(r, c) {
@@ -522,6 +558,9 @@
     api.volume.setData(c.bars.map(function (b) {
       return { time: b[0], value: b[5], color: b[4] >= b[1] ? "rgba(8,153,129,0.32)" : "rgba(242,54,69,0.32)" };
     }));
+    // a newly opened pattern always starts auto-scaled (manual Y zoom is per view)
+    api.candles.priceScale().setAutoScale(true);
+    if (api.syncAutoscaleBtn) api.syncAutoscaleBtn();
     var prov = !!c.rs_provisional;
     var line = function (p) { return { time: p.time, value: p.price }; };
     api.shape.setData((prov ? c.points.slice(0, 4) : c.points).map(line));
