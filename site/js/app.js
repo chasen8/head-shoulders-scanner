@@ -9,7 +9,7 @@
   var DATA_URL = DATA_DIR + "scan.json";
   var PAGE = 150; // rows rendered per "show more"
   var TF_LABEL = { "4h": "4 小時", "1d": "日線", "1w": "週線" };
-  var STATUS_LABEL = { forming: "右肩形成中", watchlist: "觀察中", confirmed: "已突破", stale: "已過期" };
+  var STATUS_LABEL = { forming: "右肩形成中", watchlist: "右肩已確認", confirmed: "已突破", stale: "已過期" };
   var STATUS_ORDER = ["forming", "watchlist", "confirmed", "stale"];
   var EX_LABEL = { binance: "幣安", okx: "OKX", gate: "Gate" };
   var MKT_LABEL = { spot: "現貨", perp: "永續" };
@@ -19,13 +19,19 @@
   var PROVISIONAL_NOTE = "右肩尚未確認，會隨新 K 線變動。";
   var POINT_NAME = { LS: "左肩", N1: "頸線點", H: "頭", N2: "頸線點", RS: "右肩" };
   var POINTS = ["LS", "N1", "H", "N2", "RS"];
+  var NECK_LABEL = { down: "下降", flat: "水平", up: "上升" };
+  var NECK_ORDER = ["down", "flat", "up"];
+  var WL_KEY = "ihs.watchlist.v1";
+  var SET_KEY = "ihs.settings.v1";
+  var DEFAULT_SETTINGS = { tf: "all", status: "all", neck: "all", sort: "score", minScore: 0, showLevels: true, showChecks: true };
   var C = {
     bg: "#FFFFFF", text: "#131722", muted: "#6A6D78", faint: "#787B86", line: "#E0E3EB", grid: "#F0F3FA",
     accent: "#2962FF", up: "#089981", down: "#F23645", forming: "#FF9800",
     tp: "#089981", tp2: "#22AB94", stop: "#787B86", accentSoft: "rgba(41,98,255,0.5)"
   };
 
-  var state = { data: null, q: "", tf: "all", status: "all", sort: "score", shown: PAGE, selected: null };
+  var state = { data: null, q: "", tf: "all", status: "all", neck: "all", sort: "score", shown: PAGE, selected: null,
+    minScore: 0, onlyWl: false };
   var chartApi = null;
   var chartCache = {};
   var reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -92,6 +98,11 @@
     return "正好在頸線上";
   }
 
+  function signedPct(x) { return (x < 0 ? "−" : "+") + pct(Math.abs(x), 1); }
+  function neckText(r) { // N1 -> N2 total change, computed by build_site.py
+    return typeof r.neckline_change_pct === "number" ? "頸線 " + signedPct(r.neckline_change_pct) : "";
+  }
+
   /* ---------- meta ---------- */
   function renderMeta() {
     var d = state.data, s = d.settings;
@@ -119,8 +130,11 @@
   }
   function pass(r, skip) {
     return matchQ(r) &&
+      (!state.onlyWl || isStarred(r.pattern_key)) &&
+      !(r.pattern_score < state.minScore) &&
       (skip === "tf" || state.tf === "all" || r.timeframe === state.tf) &&
-      (skip === "status" || state.status === "all" || r.status === state.status);
+      (skip === "status" || state.status === "all" || r.status === state.status) &&
+      (skip === "neck" || state.neck === "all" || r.neckline_trend === state.neck);
   }
   var SORTS = {
     score: function (a, b) { return a.rank - b.rank; },
@@ -143,11 +157,12 @@
 
   function renderFilters() {
     var res = state.data.results, s = state.data.settings;
-    var byTf = {}, bySt = {}, nTf = 0, nSt = 0, hasStale = false;
+    var byTf = {}, bySt = {}, byNk = {}, nTf = 0, nSt = 0, nNk = 0, hasStale = false;
     res.forEach(function (r) {
       if (r.status === "stale") hasStale = true;
       if (pass(r, "tf")) { byTf[r.timeframe] = (byTf[r.timeframe] || 0) + 1; nTf++; }
       if (pass(r, "status")) { bySt[r.status] = (bySt[r.status] || 0) + 1; nSt++; }
+      if (pass(r, "neck")) { byNk[r.neckline_trend] = (byNk[r.neckline_trend] || 0) + 1; nNk++; }
     });
     $("filter-tf").innerHTML = chip("tf", "all", "全部", nTf) + s.timeframes.map(function (tf) {
       return chip("tf", tf, tfName(tf), byTf[tf] || 0);
@@ -155,6 +170,9 @@
     $("filter-status").innerHTML = chip("status", "all", "全部", nSt) + STATUS_ORDER.filter(function (st) {
       return st !== "stale" || hasStale;
     }).map(function (st) { return chip("status", st, STATUS_LABEL[st], bySt[st] || 0); }).join("");
+    $("filter-neck").innerHTML = chip("neck", "all", "全部", nNk) + NECK_ORDER.map(function (k) {
+      return chip("neck", k, NECK_LABEL[k], byNk[k] || 0);
+    }).join("");
   }
 
   /* ---------- glyph: the pattern's silhouette from row.shape, mapped linearly ---------- */
@@ -191,9 +209,9 @@
   /* ---------- list ---------- */
   function rowHtml(r) {
     var sp = symParts(r.symbol);
-    return "<li><button type=\"button\" class=\"row\" data-id=\"" + esc(r.pattern_id) + "\" aria-current=\"" +
+    return "<li class=\"rowwrap\"><button type=\"button\" class=\"row\" data-id=\"" + esc(r.pattern_id) + "\" aria-current=\"" +
       (state.selected === r.pattern_id) + "\" aria-label=\"" + esc(sp.base + sp.quote + " " + tfName(r.timeframe) + "，" +
-      marketText(r) + "，" + STATUS_LABEL[r.status] + "，" + distText(r) + "，分數 " + r.pattern_score.toFixed(1)) + "\">" +
+      marketText(r) + "，" + STATUS_LABEL[r.status] + "，" + distText(r) + (neckText(r) ? "，" + neckText(r) : "") + "，分數 " + r.pattern_score.toFixed(1)) + "\">" +
       glyph(r) +
       "<span class=\"row__name\"><span class=\"sym\">" + esc(sp.base) + "<small>" + esc(sp.quote) + "</small></span>" +
       "<span class=\"tf\">" + esc(tfName(r.timeframe)) + "</span>" +
@@ -201,9 +219,10 @@
       "<span class=\"row__score\">" + r.pattern_score.toFixed(1) + "<small>分</small></span>" +
       "<span class=\"row__sub\"><span class=\"status status--" + esc(r.status) + "\">" + STATUS_LABEL[r.status] +
       "</span><span class=\"dist\">" + esc(distText(r)) + "</span>" +
+      (neckText(r) ? "<span class=\"dist\">" + esc(neckText(r)) + "</span>" : "") +
       (r.shape_score !== null && r.shape_score !== undefined
         ? "<span class=\"shp\">形狀 " + r.shape_score.toFixed(0) + "</span>" : "") + "</span>" +
-      "</button></li>";
+      "</button>" + starBtn(r, "") + "</li>";
   }
 
   function showNotice(kind, title, body, action) {
@@ -216,7 +235,7 @@
   }
 
   function clearFilters() {
-    state.q = ""; state.tf = "all"; state.status = "all"; state.shown = PAGE;
+    state.q = ""; state.tf = "all"; state.status = "all"; state.neck = "all"; state.onlyWl = false; state.shown = PAGE;
     $("q").value = "";
     update();
   }
@@ -240,8 +259,9 @@
       $("count").textContent = "沒有符合的型態";
       $("list").innerHTML = "";
       showNotice("empty", "沒有符合的型態",
-        (state.q ? "找不到名稱含「" + esc(state.q) + "」的幣種" : "這個篩選下沒有型態") +
-        "。換一個週期或狀態看看，或清除篩選看全部 " + all.length + " 個。",
+        (state.q ? "找不到名稱含「" + esc(state.q) + "」的幣種" : state.onlyWl ? "觀察名單裡沒有符合的型態（在每個型態旁按星號加入）" : "這個篩選下沒有型態") +
+        (state.minScore > 0 ? "；目前設定了最低分數 " + state.minScore + "（可在選單的設定調整）" : "") +
+        "。換一個週期、狀態或頸線斜率看看，或清除篩選看全部 " + all.length + " 個。",
         { label: "清除篩選", run: clearFilters });
       return rows;
     }
@@ -344,6 +364,7 @@
     $("detail").hidden = false;
     $("detail-head").innerHTML =
       "<div class=\"detail__title\"><h2>" + esc(sp.base) + "<small>" + esc(sp.quote) + "</small></h2>" +
+      starBtn(r, "star--lg") +
       "<span class=\"tf\">" + esc(tfName(tf)) + "</span>" +
       "<span class=\"mkt mkt--lg\">" + esc(marketText(r)) + "</span>" +
       "<span class=\"status status--" + esc(r.status) + "\">" + STATUS_LABEL[r.status] + "</span>" +
@@ -353,7 +374,7 @@
       "<a class=\"tvlink\" href=\"" + esc(tvUrl(r)) + "\" target=\"_blank\" rel=\"noopener\">在 TradingView 開啟</a></div>" +
       "<p class=\"summary\">" + esc(summary(r)) + "</p>";
 
-    $("detail-body").innerHTML = checksHtml(r) +
+    $("detail-body").innerHTML = (settings.showChecks ? checksHtml(r) : "") +
       "<section><h3>分數拆解</h3><div class=\"scorebars\">" +
       scoreBar("左右肩對稱", r.shoulder_score, 30) + scoreBar("頭部深度", r.head_depth_score, 25) +
       scoreBar("頸線平緩", r.neckline_score, 25) + scoreBar("突破／接近頸線", r.breakout_score, 20) +
@@ -370,6 +391,8 @@
       "<dt>左肩跌幅</dt><dd>" + pctOr(r.drop_left_pct) + "</dd>" +
       "<dt>右肩跌幅" + (r.rs_provisional ? "（暫定）" : "") + "</dt><dd>" + pctOr(r.drop_right_pct) + "</dd>" +
       "<dt>頭到頸線漲幅</dt><dd>" + pctOr(r.head_rise_pct) + "</dd>" +
+      (typeof r.neckline_change_pct === "number"
+        ? "<dt>頸線斜率（N1→N2）</dt><dd>" + signedPct(r.neckline_change_pct) + (NECK_LABEL[r.neckline_trend] ? "（" + NECK_LABEL[r.neckline_trend] + "）" : "") + "</dd>" : "") +
       "<dt>頸線角度</dt><dd>" + r.neckline_angle.toFixed(1) + "°</dd>" +
       "<dt>目前價</dt><dd>" + px(r.current_close) + "</dd>" +
       "<dt>目前頸線價</dt><dd>" + px(r.current_neckline_price) + "</dd>" +
@@ -507,7 +530,7 @@
     // TP1 / TP2 / invalidation: horizontal dashed lines at the JSON values (bars file `levels`).
     api.levelLines.forEach(function (pl) { api.candles.removePriceLine(pl); });
     var LS_ = api.LW.LineStyle;
-    var levels = Array.isArray(c.levels) ? c.levels : [];
+    var levels = settings.showLevels && Array.isArray(c.levels) ? c.levels : [];
     var LEVEL_STYLE = {
       tp1: { color: C.tp, style: LS_.Dashed }, tp2: { color: C.tp2, style: LS_.LargeDashed },
       invalidation_price: { color: C.stop, style: LS_.Dashed }
@@ -641,6 +664,425 @@
     });
   }
 
+  /* ---------- storage: every read / write is guarded, the site works with storage disabled ---------- */
+  var storageOk = (function () {
+    try { var k = "ihs.probe"; window.localStorage.setItem(k, "1"); window.localStorage.removeItem(k); return true; }
+    catch (e) { return false; }
+  })();
+  var demoMode = false; // only set by the ?demoStars=N test parameter: nothing is written to storage then
+  function readStore(key) {
+    try { var t = window.localStorage.getItem(key); return t === null ? null : JSON.parse(t); }
+    catch (e) { return null; }
+  }
+  function writeStore(key, obj) {
+    if (demoMode) return true;
+    try { window.localStorage.setItem(key, JSON.stringify(obj)); return true; }
+    catch (e) { storageOk = false; return false; }
+  }
+  function str(x) { return typeof x === "string" ? x.slice(0, 80) : null; }
+
+  /* ---------- settings ---------- */
+  function loadSettings() {
+    var s = {}, raw = readStore(SET_KEY), k;
+    for (k in DEFAULT_SETTINGS) s[k] = DEFAULT_SETTINGS[k];
+    if (raw && typeof raw === "object") {
+      if (raw.tf === "all" || TF_LABEL[raw.tf]) s.tf = raw.tf;
+      if (raw.status === "all" || STATUS_LABEL[raw.status]) s.status = raw.status;
+      if (raw.neck === "all" || NECK_LABEL[raw.neck]) s.neck = raw.neck;
+      if (typeof raw.sort === "string" && SORTS[raw.sort]) s.sort = raw.sort;
+      if (typeof raw.minScore === "number" && raw.minScore >= 0 && raw.minScore <= 100) s.minScore = raw.minScore;
+      if (typeof raw.showLevels === "boolean") s.showLevels = raw.showLevels;
+      if (typeof raw.showChecks === "boolean") s.showChecks = raw.showChecks;
+    }
+    return s;
+  }
+  var settings = loadSettings();
+  function saveSettings() { return writeStore(SET_KEY, settings); }
+  function applySettingsToState() {
+    state.tf = settings.tf; state.status = settings.status; state.neck = settings.neck;
+    state.sort = settings.sort; state.minScore = settings.minScore;
+    $("sort").value = state.sort;
+  }
+
+  /* ---------- watchlist (keyed by pattern_key, D24: no RS) ---------- */
+  function normItem(o) {
+    if (!o || typeof o !== "object") return null;
+    if (typeof o.pattern_key !== "string" || !o.pattern_key || typeof o.symbol !== "string" || !o.symbol) return null;
+    return {
+      pattern_key: o.pattern_key.slice(0, 200), symbol: o.symbol.slice(0, 40),
+      exchange: str(o.exchange), market: str(o.market), timeframe: str(o.timeframe),
+      added_at: typeof o.added_at === "string" && !isNaN(Date.parse(o.added_at)) ? o.added_at : new Date().toISOString(),
+      status_at_add: STATUS_LABEL[o.status_at_add] ? o.status_at_add : null,
+      score_at_add: typeof o.score_at_add === "number" && isFinite(o.score_at_add) ? o.score_at_add : null,
+      tv_symbol: str(o.tv_symbol)
+    };
+  }
+  function mergeItems(base, incoming) { // -> { items, added, dup, bad }
+    var seen = {}, out = [], added = 0, dup = 0, bad = 0;
+    base.forEach(function (it) { seen[it.pattern_key] = true; out.push(it); });
+    incoming.forEach(function (raw) {
+      var it = normItem(raw);
+      if (!it) { bad++; return; }
+      if (seen[it.pattern_key]) { dup++; return; }
+      if (out.length >= 2000) { bad++; return; }
+      seen[it.pattern_key] = true; out.push(it); added++;
+    });
+    return { items: out, added: added, dup: dup, bad: bad };
+  }
+  var watch = (function () {
+    var raw = readStore(WL_KEY);
+    var arr = raw && Array.isArray(raw.items) ? raw.items : Array.isArray(raw) ? raw : [];
+    return mergeItems([], arr).items;
+  })();
+  function saveWatch() { return writeStore(WL_KEY, { version: 1, items: watch }); }
+  function findWatch(key) {
+    for (var i = 0; i < watch.length; i++) if (watch[i].pattern_key === key) return watch[i];
+    return null;
+  }
+  function isStarred(key) { return !!key && !!findWatch(key); }
+  var keyIndex = {};
+  function buildKeyIndex() {
+    keyIndex = {};
+    state.data.results.forEach(function (r) { if (r.pattern_key && !keyIndex[r.pattern_key]) keyIndex[r.pattern_key] = r; });
+  }
+
+  var STAR_SVG = "<svg viewBox=\"0 0 24 24\" aria-hidden=\"true\" focusable=\"false\"><path d=\"M12 3.2l2.7 5.6 6.1.8-4.5 4.2 1.1 6.1L12 17l-5.4 2.9 1.1-6.1L3.2 9.6l6.1-.8z\"/></svg>";
+  function starAttrs(on) {
+    return { pressed: String(on), label: on ? "從觀察名單移除" : "加入觀察名單" };
+  }
+  function starBtn(r, cls) {
+    if (!r.pattern_key) return "";
+    var a = starAttrs(isStarred(r.pattern_key));
+    return "<button type=\"button\" class=\"star " + cls + "\" data-key=\"" + esc(r.pattern_key) + "\" aria-pressed=\"" +
+      a.pressed + "\" aria-label=\"" + a.label + "\" title=\"" + a.label + "\">" + STAR_SVG + "</button>";
+  }
+  function toggleStar(key) {
+    var cur = findWatch(key);
+    if (cur) {
+      watch = watch.filter(function (w) { return w.pattern_key !== key; });
+    } else {
+      var r = keyIndex[key];
+      if (!r) return;
+      watch.unshift(normItem({ pattern_key: key, symbol: r.symbol, exchange: r.exchange, market: r.market,
+        timeframe: r.timeframe, added_at: new Date().toISOString(), status_at_add: r.status,
+        score_at_add: r.pattern_score, tv_symbol: r.tv_symbol }));
+    }
+    saveWatch();
+    refreshStars();
+  }
+  function refreshStars() {
+    Array.prototype.forEach.call(document.querySelectorAll(".star"), function (b) {
+      var a = starAttrs(isStarred(b.getAttribute("data-key")));
+      b.setAttribute("aria-pressed", a.pressed); b.setAttribute("aria-label", a.label); b.title = a.label;
+    });
+    $("wl-n").textContent = watch.length;
+    var open = drawerEl().classList.contains("is-open");
+    if (open && drawer.view === "menu") renderDrawer();
+    if (open && drawer.view === "watchlist") {
+      renderDrawer();
+      if (!drawerEl().contains(document.activeElement)) focusFirst();
+    }
+    if (state.onlyWl && state.data) update(true);
+  }
+
+  /* ---------- drawer ---------- */
+  var drawer = { view: "menu", timer: null };
+  function drawerEl() { return $("drawer"); }
+  var VIEW_TITLE = { menu: "選單", watchlist: "觀察名單", settings: "設定", about: "關於" };
+  var FOCUSABLE = "a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex=\"-1\"])";
+  function focusables() {
+    return Array.prototype.filter.call(drawerEl().querySelectorAll(FOCUSABLE), function (el) { return !el.hidden && !el.closest("[hidden]"); });
+  }
+  function focusFirst() {
+    var el = drawerEl().querySelector(".dback") || drawerEl().querySelector(".dnav__btn") || $("drawer-close");
+    if (el) el.focus();
+  }
+  function setInert(on) {
+    ["topbar", "board", "colophon"].forEach(function (c) {
+      var el = document.querySelector("." + c);
+      if (!el) return;
+      try { el.inert = on; } catch (e) { /* no inert support: the focus trap still holds */ }
+    });
+  }
+  function openDrawer(view) {
+    var d = drawerEl();
+    clearTimeout(drawer.timer);
+    drawer.view = view || "menu";
+    renderDrawer();
+    $("scrim").hidden = false; d.hidden = false;
+    void d.offsetWidth; // let the closed state paint so the slide-in transitions
+    d.classList.add("is-open"); $("scrim").classList.add("is-open");
+    document.body.classList.add("nav-open");
+    $("menu-btn").setAttribute("aria-expanded", "true");
+    setInert(true);
+    focusFirst();
+  }
+  function closeDrawer(focusTarget) {
+    var d = drawerEl();
+    if (!d.classList.contains("is-open")) return;
+    d.classList.remove("is-open"); $("scrim").classList.remove("is-open");
+    document.body.classList.remove("nav-open");
+    $("menu-btn").setAttribute("aria-expanded", "false");
+    setInert(false);
+    var done = function () { d.hidden = true; $("scrim").hidden = true; };
+    if (reduceMotion) done(); else drawer.timer = setTimeout(done, 220);
+    (focusTarget || $("menu-btn")).focus();
+  }
+  function setView(v) { drawer.view = v; renderDrawer(); focusFirst(); }
+
+  function statusTag(st) { return "<span class=\"status status--" + esc(st) + "\">" + esc(STATUS_LABEL[st] || st) + "</span>"; }
+
+  function menuHtml() {
+    return "<ul class=\"dnav\">" +
+      "<li><button type=\"button\" class=\"dnav__btn\" data-act=\"all\">全部型態</button></li>" +
+      "<li><button type=\"button\" class=\"dnav__btn\" data-act=\"view\" data-view=\"watchlist\">觀察名單（" + watch.length + "）</button></li>" +
+      "<li><button type=\"button\" class=\"dnav__btn\" data-act=\"view\" data-view=\"settings\">設定</button></li>" +
+      "<li><button type=\"button\" class=\"dnav__btn\" data-act=\"view\" data-view=\"about\">關於</button></li></ul>";
+  }
+  function watchHtml() {
+    var h = "<button type=\"button\" class=\"dback\" data-act=\"back\">‹ 選單</button>";
+    if (!storageOk) h += "<p class=\"dwarn\">這個瀏覽器停用了網站儲存，觀察名單只在這次開啟期間有效，重新整理後會消失。</p>";
+    if (!watch.length) {
+      return h + "<p class=\"dempty\">還沒有加入任何型態。在清單每一列或詳細頁標題旁按星號（☆）就會出現在這裡。</p>";
+    }
+    var items = watch.slice().sort(function (a, b) { return Date.parse(b.added_at) - Date.parse(a.added_at); });
+    h += "<ul class=\"wls\">" + items.map(function (w) {
+      var cur = keyIndex[w.pattern_key], sp = symParts(w.symbol);
+      var head = "<span class=\"wl__top\"><span class=\"sym\">" + esc(sp.base) + "<small>" + esc(sp.quote) + "</small></span>" +
+        (w.timeframe ? "<span class=\"tf\">" + esc(tfName(w.timeframe)) + "</span>" : "") +
+        (w.exchange ? "<span class=\"mkt\">" + esc(marketText(w)) + "</span>" : "") + "</span>";
+      var sub, note = "加入於 " + fmtDay(w.added_at, true) +
+        (w.status_at_add ? "，當時 " + STATUS_LABEL[w.status_at_add] : "") +
+        (w.score_at_add !== null ? " " + w.score_at_add.toFixed(1) + " 分" : "");
+      if (cur) {
+        if (w.status_at_add && w.status_at_add !== cur.status) {
+          sub = "<span class=\"wl__chg\">" + esc(STATUS_LABEL[w.status_at_add]) + " → </span>" + statusTag(cur.status);
+        } else sub = statusTag(cur.status);
+        sub += "<span class=\"dist\">分數 " + cur.pattern_score.toFixed(1) + "</span>";
+      } else if (!state.data) {
+        sub = "<span class=\"dist\">尚未讀到最新掃描資料，無法比對</span>";
+      } else {
+        sub = "<span class=\"gone\">已不在最新結果（可能作廢或過期）</span>";
+      }
+      var inner = head + "<span class=\"wl__sub\">" + sub + "</span><span class=\"wl__note\">" + esc(note) + "</span>";
+      var main = cur
+        ? "<button type=\"button\" class=\"wl__main wl__open\" data-act=\"open\" data-key=\"" + esc(w.pattern_key) + "\">" + inner + "</button>"
+        : "<div class=\"wl__main\">" + inner + "</div>";
+      return "<li class=\"wl\">" + main + starBtn(w, "") + "</li>";
+    }).join("") + "</ul>";
+    return h;
+  }
+  function opt(v, label, cur) { return "<option value=\"" + esc(v) + "\"" + (v === cur ? " selected" : "") + ">" + esc(label) + "</option>"; }
+  function settingsHtml() {
+    var tfs = (state.data ? state.data.settings.timeframes : ["4h", "1d", "1w"]);
+    return "<button type=\"button\" class=\"dback\" data-act=\"back\">‹ 選單</button>" +
+      (storageOk ? "" : "<p class=\"dwarn\">這個瀏覽器停用了網站儲存，設定只在這次開啟期間有效。</p>") +
+      "<h3 class=\"dh\">預設篩選與排序</h3><p class=\"dnote\">改了立刻套用，也會記住，下次打開時還是這樣。</p>" +
+      "<div class=\"fld\"><label for=\"s-tf\">週期</label><select id=\"s-tf\" data-set=\"tf\">" + opt("all", "全部", settings.tf) +
+      tfs.map(function (t) { return opt(t, tfName(t), settings.tf); }).join("") + "</select></div>" +
+      "<div class=\"fld\"><label for=\"s-st\">狀態</label><select id=\"s-st\" data-set=\"status\">" + opt("all", "全部", settings.status) +
+      STATUS_ORDER.map(function (t) { return opt(t, STATUS_LABEL[t], settings.status); }).join("") + "</select></div>" +
+      "<div class=\"fld\"><label for=\"s-nk\">頸線斜率</label><select id=\"s-nk\" data-set=\"neck\">" + opt("all", "全部", settings.neck) +
+      NECK_ORDER.map(function (t) { return opt(t, NECK_LABEL[t], settings.neck); }).join("") + "</select></div>" +
+      "<div class=\"fld\"><label for=\"s-so\">排序</label><select id=\"s-so\" data-set=\"sort\">" +
+      Array.prototype.map.call($("sort").options, function (o) { return opt(o.value, o.textContent, settings.sort); }).join("") + "</select></div>" +
+      "<div class=\"fld fld--col\"><label for=\"s-min\">最低分數門檻：<output id=\"s-min-out\">" + settings.minScore + "</output></label>" +
+      "<input id=\"s-min\" type=\"range\" min=\"0\" max=\"100\" step=\"5\" value=\"" + settings.minScore + "\" data-set=\"minScore\"></div>" +
+      "<h3 class=\"dh\">詳細頁顯示</h3>" +
+      "<label class=\"chk\"><input type=\"checkbox\" data-set=\"showLevels\"" + (settings.showLevels ? " checked" : "") + "><span>在圖上顯示 TP／失效價線</span></label>" +
+      "<label class=\"chk\"><input type=\"checkbox\" data-set=\"showChecks\"" + (settings.showChecks ? " checked" : "") + "><span>顯示形狀驗證區塊</span></label>" +
+      "<h3 class=\"dh\">觀察名單備份</h3><p class=\"dnote\">觀察名單只存在這個瀏覽器。換裝置或清除瀏覽資料前，請先匯出。</p>" +
+      "<div class=\"btnrow\"><button type=\"button\" class=\"dbtn\" data-act=\"export-file\">下載 JSON</button>" +
+      "<button type=\"button\" class=\"dbtn\" data-act=\"export-copy\">複製到剪貼簿</button></div>" +
+      "<div class=\"fld fld--col\"><label for=\"imp-text\">匯入（貼上匯出的 JSON）</label>" +
+      "<textarea id=\"imp-text\" rows=\"4\" spellcheck=\"false\" placeholder=\"{ &quot;items&quot;: [ … ] }\"></textarea></div>" +
+      "<div class=\"btnrow\"><button type=\"button\" class=\"dbtn\" data-act=\"import-text\">匯入貼上的內容</button>" +
+      "<label class=\"dbtn dbtn--file\" for=\"imp-file\">選擇檔案匯入</label>" +
+      "<input id=\"imp-file\" class=\"vh\" type=\"file\" accept=\"application/json,.json\"></div>" +
+      "<div class=\"btnrow\"><button type=\"button\" class=\"dbtn dbtn--danger\" data-act=\"clear-ask\">清空觀察名單</button></div>" +
+      "<div class=\"ask\" id=\"clear-ask\" hidden><p>確定要清空全部 " + watch.length + " 筆觀察名單？這個動作無法復原。</p>" +
+      "<div class=\"btnrow\"><button type=\"button\" class=\"dbtn dbtn--danger\" data-act=\"clear-yes\">確定清空</button>" +
+      "<button type=\"button\" class=\"dbtn\" data-act=\"clear-no\">取消</button></div></div>" +
+      "<p class=\"dmsg\" id=\"d-msg\" role=\"status\" aria-live=\"polite\"></p>";
+  }
+  function aboutHtml() {
+    return "<button type=\"button\" class=\"dback\" data-act=\"back\">‹ 選單</button>" +
+      "<div class=\"about\"><p>資料來源：幣安、OKX、Gate 的公開 K 線行情，只用已收盤的 K 線。</p>" +
+      "<p>每 4 小時自動掃描並更新一次，頁首會寫出資料更新時間。</p>" +
+      "<p><strong>這是型態偵測工具，不是投資建議。</strong>型態成立不代表價格會上漲，請自行判斷風險。</p>" +
+      "<p>觀察名單與設定只存在這個瀏覽器（localStorage），不會上傳到任何地方；換裝置請用「設定」裡的匯出／匯入。</p>" +
+      "<p>「右肩已確認」是掃描狀態（右肩已成形、尚未突破頸線），和「觀察名單」是兩回事。</p></div>";
+  }
+  function renderDrawer() {
+    $("drawer-title").textContent = VIEW_TITLE[drawer.view] || "選單";
+    $("drawer-body").innerHTML = drawer.view === "watchlist" ? watchHtml() : drawer.view === "settings" ? settingsHtml()
+      : drawer.view === "about" ? aboutHtml() : menuHtml();
+  }
+  function showMsg(text, bad) {
+    var m = $("d-msg");
+    if (!m) return;
+    m.textContent = text; m.className = "dmsg" + (bad ? " dmsg--bad" : "");
+  }
+
+  /* ---------- export / import ---------- */
+  function exportText() {
+    return JSON.stringify({ app: "ihs-scanner-watchlist", version: 1, exported_at: new Date().toISOString(), items: watch }, null, 2);
+  }
+  function doImport(text) {
+    var data;
+    try { data = JSON.parse(text); } catch (e) { showMsg("格式不對：不是有效的 JSON。", true); return; }
+    var arr = data && Array.isArray(data.items) ? data.items : Array.isArray(data) ? data : null;
+    if (!arr) { showMsg("格式不對：找不到 items 清單，請貼上從這裡匯出的內容。", true); return; }
+    var res = mergeItems(watch, arr);
+    if (!res.added && !res.dup && res.bad) { showMsg("格式不對：" + res.bad + " 筆都缺少 pattern_key 或 symbol，沒有匯入。", true); return; }
+    watch = res.items;
+    var ok = saveWatch();
+    refreshStars();
+    showMsg("匯入完成：新增 " + res.added + " 筆，重複略過 " + res.dup + " 筆" + (res.bad ? "，格式不對略過 " + res.bad + " 筆" : "") +
+      "。" + (ok ? "" : "（儲存被停用，只在這次開啟期間有效）"), false);
+  }
+  function onDrawerClick(e) {
+    var t = e.target.closest("[data-act]");
+    if (!t) return;
+    var act = t.getAttribute("data-act");
+    if (act === "view") setView(t.getAttribute("data-view"));
+    else if (act === "back") setView("menu");
+    else if (act === "all") {
+      state.onlyWl = false; state.shown = PAGE; $("only-wl").setAttribute("aria-pressed", "false");
+      if (state.data) update();
+      closeDrawer();
+    } else if (act === "open") {
+      var r = keyIndex[t.getAttribute("data-key")];
+      if (!r) return;
+      state.q = ""; $("q").value = ""; state.tf = "all"; state.status = "all"; state.neck = "all"; state.onlyWl = false; state.shown = PAGE;
+      $("only-wl").setAttribute("aria-pressed", "false");
+      state.selected = r.pattern_id;
+      update();
+      closeDrawer($("detail"));
+      select(r.pattern_id, true);
+    } else if (act === "export-file") {
+      try {
+        var url = URL.createObjectURL(new Blob([exportText()], { type: "application/json" }));
+        var a = document.createElement("a");
+        a.href = url; a.download = "ihs-watchlist.json";
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+        showMsg("已下載 ihs-watchlist.json（" + watch.length + " 筆）。", false);
+      } catch (err) { showMsg("無法下載檔案，請改用「複製到剪貼簿」。", true); }
+    } else if (act === "export-copy") {
+      var txt = exportText();
+      var fallback = function () {
+        var ta = $("imp-text");
+        if (ta) { ta.value = txt; ta.focus(); ta.select(); }
+        showMsg("無法自動複製，內容已放進下方文字框並選取，請按 Ctrl+C。", true);
+      };
+      try {
+        navigator.clipboard.writeText(txt).then(function () { showMsg("已複製 " + watch.length + " 筆到剪貼簿。", false); }, fallback);
+      } catch (err) { fallback(); }
+    } else if (act === "import-text") {
+      doImport($("imp-text").value);
+    } else if (act === "clear-ask") {
+      $("clear-ask").hidden = false; t.hidden = true;
+      var y = document.querySelector("[data-act=\"clear-no\"]"); if (y) y.focus();
+    } else if (act === "clear-no") {
+      $("clear-ask").hidden = true;
+      var b = document.querySelector("[data-act=\"clear-ask\"]"); b.hidden = false; b.focus();
+    } else if (act === "clear-yes") {
+      watch = []; var ok2 = saveWatch(); refreshStars();
+      $("clear-ask").hidden = true;
+      var b2 = document.querySelector("[data-act=\"clear-ask\"]"); b2.hidden = false;
+      showMsg("已清空觀察名單。" + (ok2 ? "" : "（儲存被停用）"), false);
+    }
+  }
+  function onSettingChange(el) {
+    var k = el.getAttribute("data-set");
+    if (!k) return;
+    var v = el.type === "checkbox" ? el.checked : el.type === "range" ? Number(el.value) : el.value;
+    settings[k] = v;
+    saveSettings();
+    if (k === "minScore") $("s-min-out").textContent = v;
+    if (!state.data) return;
+    if (k === "showLevels" || k === "showChecks") {
+      var r = state.data.results.find(function (x) { return x.pattern_id === state.selected; });
+      if (r) renderDetail(r);
+      return;
+    }
+    state[k] = v;
+    if (k === "sort") $("sort").value = v;
+    state.shown = PAGE;
+    update();
+  }
+
+  function bindExtras() {
+    $("menu-btn").addEventListener("click", function () {
+      if (drawerEl().classList.contains("is-open")) closeDrawer(); else openDrawer("menu");
+    });
+    $("scrim").addEventListener("click", function () { closeDrawer(); });
+    $("drawer-close").addEventListener("click", function () { closeDrawer(); });
+    $("drawer-body").addEventListener("click", onDrawerClick);
+    $("drawer-body").addEventListener("change", function (e) {
+      if (e.target.id === "imp-file") {
+        var f = e.target.files && e.target.files[0];
+        if (!f) return;
+        var fr = new FileReader();
+        fr.onload = function () { doImport(String(fr.result)); };
+        fr.onerror = function () { showMsg("讀不到這個檔案。", true); };
+        fr.readAsText(f);
+        return;
+      }
+      onSettingChange(e.target);
+    });
+    $("drawer-body").addEventListener("input", function (e) { if (e.target.type === "range") onSettingChange(e.target); });
+    drawerEl().addEventListener("keydown", function (e) {
+      if (e.key === "Escape") { e.preventDefault(); closeDrawer(); return; }
+      if (e.key !== "Tab") return;
+      var f = focusables();
+      if (!f.length) return;
+      var first = f[0], last = f[f.length - 1];
+      if (!drawerEl().contains(document.activeElement)) { e.preventDefault(); first.focus(); }
+      else if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    });
+    document.addEventListener("click", function (e) {
+      var b = e.target.closest(".star");
+      if (b) toggleStar(b.getAttribute("data-key"));
+    });
+    $("only-wl").addEventListener("click", function () {
+      state.onlyWl = !state.onlyWl;
+      this.setAttribute("aria-pressed", String(state.onlyWl));
+      state.shown = PAGE;
+      if (state.data) update();
+    });
+    $("wl-n").textContent = watch.length;
+  }
+
+  // Test-only URL parameters (never set in normal use): ?demoStars=N stars the first N rows in memory
+  // (nothing is saved) plus one changed-status and one vanished entry; ?drawer=menu|watchlist|settings|about
+  // opens the drawer after load.
+  function applyTestParams(qs) {
+    var n = parseInt(qs.get("demoStars"), 10);
+    if (n > 0 && state.data) {
+      demoMode = true;
+      var seen = {};
+      watch = [];
+      state.data.results.forEach(function (r) {
+        if (watch.length >= n || !r.pattern_key || seen[r.pattern_key]) return;
+        seen[r.pattern_key] = true;
+        var other = r.status === "forming" ? "watchlist" : "forming";
+        watch.push(normItem({ pattern_key: r.pattern_key, symbol: r.symbol, exchange: r.exchange, market: r.market,
+          timeframe: r.timeframe, added_at: new Date(Date.now() - watch.length * 86400000).toISOString(),
+          status_at_add: watch.length === 0 ? other : r.status, score_at_add: r.pattern_score - (watch.length === 0 ? 3.2 : 0),
+          tv_symbol: r.tv_symbol }));
+      });
+      watch.push(normItem({ pattern_key: "binance|spot|GONEUSDT|1d|2026-01-01T00:00:00Z|2026-02-01T00:00:00Z", symbol: "GONEUSDT",
+        exchange: "binance", market: "spot", timeframe: "1d", added_at: new Date(Date.now() - 9 * 86400000).toISOString(),
+        status_at_add: "watchlist", score_at_add: 61.5 }));
+      refreshStars();
+    }
+    var dv = qs.get("drawer");
+    if (VIEW_TITLE[dv]) openDrawer(dv);
+  }
+
   function fail(err) {
     $("meta").textContent = "讀不到掃描資料。";
     document.querySelector(".panel__head .filters").hidden = true;
@@ -656,6 +1098,7 @@
 
   function start() {
     bind();
+    bindExtras();
     fetch(DATA_URL, { cache: "no-store" })
       .then(function (res) {
         if (!res.ok) throw new Error("HTTP " + res.status);
@@ -664,11 +1107,14 @@
       .then(function (data) {
         if (!data || !Array.isArray(data.results) || !data.settings) throw new Error("檔案格式不對");
         state.data = data;
-        // optional deep-link filters: ?status=forming&tf=1d&sort=dist&q=BTC
+        buildKeyIndex();
+        applySettingsToState();
+        // optional deep-link filters: ?status=forming&tf=1d&neck=down&sort=dist&q=BTC
         try {
           var qs = new URLSearchParams(location.search);
           if (STATUS_LABEL[qs.get("status")]) state.status = qs.get("status");
           if (TF_LABEL[qs.get("tf")]) state.tf = qs.get("tf");
+          if (NECK_LABEL[qs.get("neck")]) state.neck = qs.get("neck");
           if (SORTS[qs.get("sort")]) { state.sort = qs.get("sort"); $("sort").value = state.sort; }
           if (qs.get("q")) { state.q = qs.get("q").trim().toUpperCase().replace(/\s+/g, ""); $("q").value = qs.get("q"); }
         } catch (e) { /* old browsers: ignore */ }
@@ -676,6 +1122,7 @@
         if (hash && data.results.some(function (r) { return r.pattern_id === hash; })) state.selected = hash;
         renderMeta();
         update();
+        try { applyTestParams(new URLSearchParams(location.search)); } catch (e) { /* ignore */ }
       })
       .catch(fail);
   }

@@ -43,6 +43,7 @@ from ihs_scanner import data_binance_futures, data_gate, data_okx
 from ihs_scanner.config import TIMEFRAMES, merge_config
 from ihs_scanner.data_binance import (BinanceFetchError, WeightLimiter, fetch_klines, fetch_quote_volumes,
                                       list_usdt_symbols)
+from ihs_scanner.keys import pattern_key
 from ihs_scanner.neckline import calculate_neckline
 from ihs_scanner.scanner import OUTPUT_FIELDS, _to_jsonable, scan_symbols, sort_results
 from ihs_scanner.sources import SOURCE_PRIORITY, Instrument, SourceFetchError, merge_instruments
@@ -60,8 +61,12 @@ ERROR_CHARS = 240
 # Must match .github/workflows/scan-and-notify.yml: cron "7 */4 * * *"
 SCAN_EVERY_HOURS = 4
 SCAN_MINUTE = 7
-SCHEMA_VERSION = 4  # 3: bars files carry `levels`, `levels_estimated`, `rs_provisional`;
-#                     4: rows carry `shape_checks`, settings `shape_validation` (D26)
+SCHEMA_VERSION = 6  # 3: bars files carry `levels`, `levels_estimated`, `rs_provisional`;
+#                     4: rows carry `shape_checks`, settings `shape_validation` (D26);
+#                     5: rows carry `pattern_key` (D24 key, no RS) for the site watchlist;
+#                     6: rows carry `neckline_change_pct` and `neckline_trend`, settings `neckline_trend_threshold`
+# Neckline N1->N2 total change: <= -T is "down", >= +T is "up", otherwise "flat" (front end only filters on it).
+NECKLINE_TREND_THRESHOLD = 0.03
 POINT_NAMES = ("LS", "N1", "H", "N2", "RS")
 # Horizontal levels drawn on the chart (values come straight from the detector's output fields).
 LEVELS = (("tp1", "TP1"), ("tp2", "TP2"), ("invalidation_price", "失效"))
@@ -184,6 +189,16 @@ def shape_for(chart: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
+def neckline_trend(r: Mapping[str, Any]) -> tuple[float | None, str | None]:
+    """(N2_price / N1_price - 1, "down" | "flat" | "up"); D17: computed here, the front end only filters."""
+    n1, n2 = r.get("N1_price"), r.get("N2_price")
+    if not n1 or n2 is None or n1 <= 0:
+        return None, None
+    chg = float(n2) / float(n1) - 1.0
+    t = NECKLINE_TREND_THRESHOLD
+    return chg, ("down" if chg <= -t else "up" if chg >= t else "flat")
+
+
 def _neckline_side(r: Mapping[str, Any]) -> str:
     close, neck = float(r["current_close"]), float(r["current_neckline_price"])
     return "above" if close > neck else ("below" if close < neck else "at")
@@ -240,8 +255,10 @@ def build_payload(symbol_data: Mapping[str, Mapping[str, pd.DataFrame]], cfg: Ma
         keys = OUTPUT_FIELDS + [k for k in r if k not in OUTPUT_FIELDS]
         row = {k: _to_jsonable(r.get(k)) for k in keys}
         row["rank"] = len(rows) + 1
+        row["pattern_key"] = pattern_key(row)  # same function as notify_discord (D24); row times are strings
         row["neckline_side"] = _neckline_side(r)
         row["rs_provisional"] = rs_provisional(r)
+        row["neckline_change_pct"], row["neckline_trend"] = neckline_trend(row)
         row["shape_checks"] = shape_checks(r, cfg)  # D26: value / limit / pass decided here (D17)
         name = chart_file_name(r)
         row["chart_file"] = f"{BARS_DIRNAME}/{name}"
@@ -287,6 +304,7 @@ def build_payload(symbol_data: Mapping[str, Mapping[str, pd.DataFrame]], cfg: Ma
             "volume_filter": bool(cfg["enable_volume_filter"]),
             "min_pattern_score": float(cfg["min_pattern_score"]),
             "profile": str(cfg["profile"]),
+            "neckline_trend_threshold": NECKLINE_TREND_THRESHOLD,
             # D26 thresholds (None = check off); the per-row values and pass flags are in shape_checks
             "shape_validation": {cid: (None if cfg[key] is None else float(cfg[key]))
                                  for cid, _f, key, _k, _t in CHECKS},

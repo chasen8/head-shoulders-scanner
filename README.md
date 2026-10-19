@@ -69,6 +69,14 @@ bars 先寫到 `bars.tmp/` 再整個換上，舊檔不會殘留。
 速率：klines 每次 weight 2（任何 limit；2026-10 官方文件與回應 header 實測）、exchangeInfo 20；
 遇 429/418 依 `Retry-After` 退避（超過 300 秒視為失敗）。
 
+網站功能（`schema_version` 6）：
+- 每筆結果多兩類欄位：`pattern_key`（與 Discord 去重同一個函式 `ihs_scanner/keys.py`，不含 RS）、
+  `neckline_change_pct`（N2/N1 − 1）與 `neckline_trend`（`down`／`flat`／`up`，門檻 `NECKLINE_TREND_THRESHOLD`＝0.03，也寫在 `settings.neckline_trend_threshold`）。
+- 清單可再依「頸線斜率」篩選（網址 `?neck=down|flat|up`）；每列顯示「頸線 −6.2%」。
+- 星號加入「觀察名單」、左上角 ☰ 抽屜（全部型態／觀察名單／設定／關於）。觀察名單與設定存在瀏覽器 localStorage
+  （`ihs.watchlist.v1`、`ihs.settings.v1`），不上傳；換裝置用設定裡的匯出／匯入。儲存被停用時網站照常運作（只是不會記住）。
+- 網站上狀態 `watchlist` 顯示為「右肩已確認」（JSON 值不變），避免和「觀察名單」混淆；Discord 文字同步。
+
 設計與維護規則：`docs/site-design.md`。GitHub Actions：`.github/workflows/scan-and-notify.yml`（定時掃描＋Discord 通知，見下節）。
 
 ## config 參數（`ihs_scanner/config.py`，可部分覆寫）

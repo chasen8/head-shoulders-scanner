@@ -12,7 +12,7 @@ State file (state.json), version 2:
 
 Events (only when pattern_score >= --min-score and the status is in --statuses):
   * forming   (右肩形成中) and never notified before                       -> "new"
-  * watchlist (觀察中) and never notified before (appeared with a confirmed RS) -> "new"
+  * watchlist (右肩已確認) and never notified before (appeared with a confirmed RS) -> "new"
   * confirmed (已突破) and no confirmed notification yet for this key       -> "new" (unseen) / "upgraded"
   forming -> watchlist (the right shoulder got confirmed) is NOT notified.
 First run (no state file, or a state older than version 2): one summary message only, every current pattern
@@ -38,6 +38,8 @@ from urllib.parse import quote
 
 import requests
 
+from ihs_scanner.keys import pattern_key
+
 ROOT = Path(__file__).resolve().parent
 DEFAULT_SCAN = ROOT / "site" / "data" / "scan.json"
 DEFAULT_STATE = ROOT / "state.json"
@@ -59,7 +61,7 @@ COLOR_SUMMARY = 0x95A5A6
 STATUS_COLOR = {"confirmed": COLOR_CONFIRMED, "watchlist": COLOR_WATCHLIST, "forming": COLOR_FORMING}
 TV_INTERVAL = {"4h": "240", "1d": "1D", "1w": "1W"}
 TF_LABEL = {"4h": "4小時線", "1d": "日線", "1w": "週線"}
-STATUS_LABEL = {"forming": "右肩形成中", "watchlist": "觀察中", "confirmed": "已突破", "stale": "已過期"}
+STATUS_LABEL = {"forming": "右肩形成中", "watchlist": "右肩已確認", "confirmed": "已突破", "stale": "已過期"}
 EXCHANGE_LABEL = {"binance": "幣安", "okx": "OKX", "gate": "Gate"}
 MARKET_LABEL = {"spot": "現貨", "perp": "永續"}
 
@@ -82,9 +84,8 @@ def _parse_time(text: str | None) -> datetime | None:
 
 
 def notify_key(r: Mapping[str, Any]) -> str:
-    """Stable per-pattern key without RS (a forming RS moves with every new low)."""
-    return "|".join(str(x) for x in (r.get("exchange") or "binance", r.get("market") or "spot", r["symbol"],
-                                     r["timeframe"], r.get("LS_time"), r.get("H_time")))
+    """Stable per-pattern key without RS (a forming RS moves with every new low); shared with build_site."""
+    return pattern_key(r)
 
 
 def load_state(path: Path) -> dict[str, Any] | None:

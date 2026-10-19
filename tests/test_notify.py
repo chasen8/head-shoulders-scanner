@@ -93,10 +93,10 @@ def test_new_patterns_notified_and_recorded(tmp_path, post):
     rows = [row("AAAUSDT", "forming"), row("BBBUSDT"), row("CCCUSDT", "confirmed")]
     scan, st = setup(tmp_path, rows, state={})
     assert go(scan, st) == 0
-    assert titles(post) == ["AAAUSDT 日線 右肩形成中", "BBBUSDT 日線 觀察中", "CCCUSDT 日線 已突破"]
+    assert titles(post) == ["AAAUSDT 日線 右肩形成中", "BBBUSDT 日線 右肩已確認", "CCCUSDT 日線 已突破"]
     by = {e["title"]: e for e in embeds(post)}
     assert by["AAAUSDT 日線 右肩形成中"]["color"] == nd.COLOR_FORMING
-    assert by["BBBUSDT 日線 觀察中"]["color"] == nd.COLOR_WATCHLIST
+    assert by["BBBUSDT 日線 右肩已確認"]["color"] == nd.COLOR_WATCHLIST
     assert by["CCCUSDT 日線 已突破"]["color"] == nd.COLOR_CONFIRMED
     assert by["CCCUSDT 日線 已突破"]["url"] == \
         "https://www.tradingview.com/chart/?symbol=OKX%3ACCCUSDT.P&interval=1D"
@@ -273,7 +273,7 @@ def test_retries_are_bounded_and_failure_not_recorded(tmp_path, post, capsys):
     post.calls.clear()
     post.queue.clear()
     assert go(scan, st) == 0
-    assert titles(post) == ["AAAUSDT 日線 觀察中"]
+    assert titles(post) == ["AAAUSDT 日線 右肩已確認"]
 
 
 def test_failed_upgrade_is_retried(tmp_path, post):

@@ -16,10 +16,15 @@
   <a class="skip" href="#detail">跳到圖表</a>
 
   <header class="topbar">
-    <div class="topbar__inner">
-      <h1 class="brand">頭肩底掃描</h1>
-      <p class="topbar__scope" id="scope">幣安、OKX、Gate 的 USDT 交易對，4 小時、日線、週線</p>
-      <p class="topbar__warn">型態偵測工具，不是投資建議。</p>
+    <div class="topbar__row">
+      <button type="button" class="menu-btn" id="menu-btn" aria-label="開啟選單" aria-haspopup="dialog" aria-expanded="false" aria-controls="drawer">
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg>
+      </button>
+      <div class="topbar__inner">
+        <h1 class="brand">頭肩底掃描</h1>
+        <p class="topbar__scope" id="scope">幣安、OKX、Gate 的 USDT 交易對，4 小時、日線、週線</p>
+        <p class="topbar__warn">型態偵測工具，不是投資建議。</p>
+      </div>
     </div>
     <p class="meta" id="meta" aria-live="polite">正在讀取掃描資料…</p>
   </header>
@@ -42,6 +47,10 @@
             <span class="filters__name" id="f-st">狀態</span>
             <div class="chips" id="filter-status"></div>
           </div>
+          <div class="filters__group" role="group" aria-labelledby="f-nk">
+            <span class="filters__name" id="f-nk">頸線斜率</span>
+            <div class="chips" id="filter-neck"></div>
+          </div>
           <div class="filters__group">
             <label class="filters__name" for="sort">排序</label>
             <select id="sort">
@@ -53,7 +62,10 @@
             </select>
           </div>
         </div>
-        <p class="panel__count" id="count" aria-live="polite"></p>
+        <div class="panel__bar">
+          <p class="panel__count" id="count" aria-live="polite"></p>
+          <button type="button" class="chip chip--wl" id="only-wl" aria-pressed="false">★ 只看觀察名單<span class="chip__n" id="wl-n">0</span></button>
+        </div>
       </div>
       <div class="panel__scroll" id="scroller">
         <ol class="list" id="list"></ol>
@@ -86,7 +98,7 @@
     <section class="howto" aria-labelledby="howto-title">
       <h2 id="howto-title">怎麼讀這張圖</h2>
       <p>頭肩底由五個點組成：左肩 LS、頸線點 N1、頭 H、頸線點 N2、右肩 RS。頭是整段最低的低點，左右肩高度接近；N1 和 N2 連成的線就是頸線。</p>
-      <p>右肩還在形成、最低點尚未被確認的叫「右肩形成中」：圖上的 RS 是暫定點，會隨新 K 線移動。右肩確認後還沒突破的叫「觀察中」；收盤價站上頸線（再加一點緩衝）才算突破，剛突破的叫「已突破」，放太久沒動靜或突破已久的叫「已過期」。</p>
+      <p>右肩還在形成、最低點尚未被確認的叫「右肩形成中」：圖上的 RS 是暫定點，會隨新 K 線移動。右肩確認後還沒突破的叫「右肩已確認」；收盤價站上頸線（再加一點緩衝）才算突破，剛突破的叫「已突破」，放太久沒動靜或突破已久的叫「已過期」。</p>
       <p>TP1＝突破價＋頭高（頭部低點到頸線的價差），TP2＝突破價 ×（1＋頭到頸線漲幅）。還沒突破時用目前頸線價當突破價，所以是預估。失效價是頭部低點。</p>
       <p>分數滿分 100：左右肩對稱 30、頭部深度 25、頸線平緩 25、突破或接近頸線 20。只用已收盤的 K 線計算；除了暫定的右肩，結果不會事後改寫。</p>
       <p>每個型態還要通過「形狀驗證」才會列出：五點之間沒有夾著更大的轉折（V1）、走勢貼著五點骨架（V2）、頸線之前沒有收盤站上（V3a）、和你標的 5 個範例之一夠像（V4）。已經漲過頭（V3b）或突破後又跌回（V3c）的標為已過期。數值、門檻與白話說明都在詳細頁的「形狀驗證」區。</p>
@@ -96,6 +108,17 @@
       <p>K 線資料來自幣安、OKX、Gate 的公開行情。圖表由 <a href="https://www.tradingview.com/" rel="noopener">TradingView</a> 的 Lightweight Charts 繪製（Apache-2.0）。</p>
     </section>
   </footer>
+
+  <div class="scrim" id="scrim" hidden></div>
+  <aside class="drawer" id="drawer" role="dialog" aria-modal="true" aria-labelledby="drawer-title" hidden>
+    <div class="drawer__head">
+      <h2 id="drawer-title">選單</h2>
+      <button type="button" class="drawer__close" id="drawer-close" aria-label="關閉選單">
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="drawer__body" id="drawer-body"></div>
+  </aside>
 
   <script src="https://cdn.jsdelivr.net/npm/lightweight-charts@5.2.1/dist/lightweight-charts.standalone.production.js" crossorigin="anonymous"></script>
   <script src="js/app.js"></script>

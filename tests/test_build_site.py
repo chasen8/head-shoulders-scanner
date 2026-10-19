@@ -117,6 +117,31 @@ def test_results_fields_and_nulls(built):
             assert c["breakout"]["price"] == pytest.approx(r["breakout_price"])
 
 
+def test_pattern_key_and_neckline_trend(built):
+    from ihs_scanner.keys import pattern_key
+    import notify_discord
+    _, _, data, _ = built
+    t = data["settings"]["neckline_trend_threshold"]
+    assert t == build_site.NECKLINE_TREND_THRESHOLD == 0.03
+    assert data["schema_version"] == build_site.SCHEMA_VERSION >= 6
+    for r in data["results"]:
+        k = r["pattern_key"]
+        assert k == pattern_key(r) == notify_discord.notify_key(r)
+        assert k == "|".join([r["exchange"], r["market"], r["symbol"], r["timeframe"], r["LS_time"], r["H_time"]])
+        assert r["RS_time"] not in k.split("|")[4:] or r["RS_time"] in (r["LS_time"], r["H_time"])
+        chg = r["N2_price"] / r["N1_price"] - 1
+        assert r["neckline_change_pct"] == pytest.approx(chg)
+        assert r["neckline_trend"] == ("down" if chg <= -t else "up" if chg >= t else "flat")
+
+
+def test_neckline_trend_thresholds():
+    f = build_site.neckline_trend
+    assert f({"N1_price": 100.0, "N2_price": 97.0})[1] == "down"
+    assert f({"N1_price": 100.0, "N2_price": 103.0})[1] == "up"
+    assert f({"N1_price": 100.0, "N2_price": 98.0})[1] == "flat"
+    assert f({"N1_price": 0, "N2_price": 1}) == (None, None)
+
+
 def test_nan_becomes_null():
     df = make_df(IHS_BREAK, timeframe="4h")
     df["volume"] = 0.0  # avg volume 0 -> ratio undefined
