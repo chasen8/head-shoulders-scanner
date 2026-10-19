@@ -21,6 +21,7 @@
 - 2026-10-18：網站公開（D25）與 Discord webhook 設定完成。
 - 2026-10-19：D26 形狀驗證上線（241 測試全綠）。結論：只有 5 個正樣本時公式驗證區分力有限，下一步需要使用者標記好／壞樣本。
 - 2026-10-19：觀察名單、☰ 選單、頸線斜率篩選上線（D27），243 測試全綠，公開網站已更新。
+- 2026-10-19：TP1 改對數斐波那契 1.414（D28）；台股上線（D29），271 測試全綠，公開網站同時有加密貨幣 151 筆與台股 665 筆。
 ## 決策記錄
 格式：日期｜決定｜原因｜何時可推翻
 
@@ -52,3 +53,4 @@
 - D26 2026-10-19｜template 加形狀驗證 V1–V4（全部通過才輸出）：V1 段內反向波動 ≤0.65 頭高（Lo 2000 連續極值概念）、V2 骨架偏差 MAD/頭高 ≤0.20（neurotrader888 pattern_r2 概念，R² 只顯示）、V3 頸線收盤完整性＋追高上限 0.5 頭高（SignalSync）、V4 對使用者 5 範例的模板距離 ≤0.25（Fu 2007，leave-one-out）；另列 shape_score，pattern_score 不變；網站顯示各驗證值｜使用者要「有公式佐證」｜論文原始門檻會擋掉全部 5 個範例，現值是校準到範例剛好通過（GRAM 餘裕僅 0.02–0.03）；快照 170→136 筆，抽圖仍約 3/8 不像 → 需要使用者標負樣本才能再收緊
 - D27 2026-10-19｜網站加星號觀察名單＋☰ 左側抽屜（全部型態／觀察名單／設定／關於）＋「頸線斜率」篩選（neckline_change_pct = N2/N1−1，±3% 分下降／水平／上升，build_site 計算）；觀察名單與設定存 localStorage（`ihs.watchlist.v1`／`ihs.settings.v1`，讀寫包 try/catch，提供匯出／匯入）；以 `pattern_key`（ihs_scanner/keys.py，與 Discord 共用）識別；狀態 watchlist 的顯示文字改為「右肩已確認」（網站與 Discord），避免與觀察名單混淆｜使用者要求｜要跨裝置同步或要 Discord 只通知觀察名單時，改存 repo（伺服器端）
 - D28 2026-10-19｜TP1 改為對數斐波那契：以 H.low 為 0、頸線中點（N1 與 N2 時間中點的頸線價）為 1，取 1.414 → `TP1 = H × (mid/H)^1.414`（`tp1_fib_level`、`tp1_fib_log` 可調）；TP1 不再依賴突破價，因此不標「預估」；TP2 不變｜使用者指定（TradingView 斐波那契開啟對數）｜使用者改比例或改用線性
+- D29 2026-10-19｜新增台股市場：上市＋上櫃普通股 1973 檔（不含 ETF，`--tw-include-etf` 可開），清單／名稱用 TWSE、TPEx OpenAPI，K 線用 Yahoo chart API（runner 需 cookie＋crumb，否則 429）；1d 直接取、1w 由日 K 重採樣、4h 由 60m 切成 09:00–13:00／13:00–13:30（同 TradingView），4h 量為近似值；價格未還原權息；同一套 template 偵測；輸出獨立 `site/data/tw/`；workflow `scan-tw.yml`（平日 UTC 06:10）＋共用 `publish.yml`（發布時取回另一市場資料，concurrency `publish-site`）；Discord 同一 webhook，標題加「台股」，state 分開 `state_tw.json`；網站頁首與 ☰ 抽屜都可切換市場，設定兩市場共用｜使用者要求加密貨幣＋台股｜Yahoo 非官方介面失效時改用 TWSE/TPEx 逐日資料（只有 1d/1w）；台股門檻與通知門檻待使用者決定（首次 665 筆、分數中位數約 72）
