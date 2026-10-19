@@ -143,6 +143,63 @@ CLASSIC_CONFIG: dict[str, Any] = {
     "score_method": "spec",
     "ideal_head_prominence": 1.5,  # template score: head_prominence giving full marks
     "ideal_head_rise": 0.40,  # template score: head_rise giving full marks
+    # --- D26 shape validation V1-V4 (ihs_scanner/validation.py). Values are computed and output in BOTH
+    # profiles; a threshold of None switches that check off (classic: all off). In the template profile a
+    # pattern is output only when every enabled shape check passes (shape_valid); V3b/V3c do not reject the
+    # shape, they turn the status into "stale" (stale_reason "runaway" / "failed_breakout").
+    # Notation: z = natural log; head_height_log = log(neck(H.index)) - log(H.low); head_height (price) as above.
+    #
+    # V1 main turning points (Lo, Mamaysky & Wang 2000, Definition 1: E1..E5 are CONSECUTIVE extrema;
+    #   Bulkowski hsb.html "avoid multi-peaks"): inside each leg LS->N1 (up), N1->H (down), H->N2 (up),
+    #   N2->RS (down) no move against the leg's direction may reach value x head_height_log:
+    #     down leg: max over s < i < j < e of log(high[j]) - log(low[i])   (rebound)
+    #     up leg:   max over s < i < j < e of log(high[i]) - log(low[j])   (pullback)
+    #   (end bars excluded, i < j strictly; output v1_max_counter_swing = max over legs / head_height_log).
+    #   Lo's strict form would be a small value (the request started at 0.35), but the five examples measure
+    #   0.44-0.62 (they touch the neckline mid-pattern: HMSTR, TRUST, PENDLE "mid"); 0.65 = examples' max +0.03.
+    "max_counter_swing_of_head": None,
+    # V2 skeleton fit (neurotrader888/TechnicalAnalysisAutomation head_shoulders.py compute_pattern_r2, MIT):
+    #   model = straight lines through z_mid = log((high+low)/2) at LS, N1, H, N2, RS (+ the last bar for a
+    #   forming RS) over bars LS .. RS (or last); residual = z_mid - model.
+    #   v2_mad = mean|residual| / head_height_log  (PRIMARY, accept iff <= max_skeleton_mad_of_head)
+    #   v2_r2  = 1 - SS_res / SS_tot              (shown; accept iff >= min_skeleton_r2 when set)
+    #   R^2 is not used as the filter: the examples score -0.20..0.37 (their legs are not straight lines; the
+    #   original author also found pattern_r2 ineffective), so any rho that keeps them is meaningless.
+    #   MAD is in head heights (pattern scale), examples 0.137-0.178 -> 0.20.
+    "max_skeleton_mad_of_head": None,
+    "min_skeleton_r2": None,
+    # V3 neckline integrity and chasing limit (yanivil/SignalSync scan.py MAX_RUNAWAY, MIT -- there 5% above
+    #   the trigger; Bulkowski hsb.html: the neckline is the confirmation line):
+    #   V3a closes: max(close[i] / neck(i) - 1) over N1 < i < RS, i != N2 must be <= value (0.005). T4 stays
+    #       (it bounds the HIGHS at 1%, i.e. wicks); V3a is the stricter test on closes, the same quantity the
+    #       breakout rule uses (D8): a close above the neckline before RS means it was not acting as resistance.
+    #   V3b runaway: v3_runaway = (close[last] - neck(last)) / head_height (price units, negative = below);
+    #       > value (0.5 = half way to TP1) -> status "stale", stale_reason "runaway".
+    #   V3c failed breakout: once a close crossed the neckline after RS (first_cross_time set),
+    #       v3_fallback = (neck(last) - close[last]) / head_height; > value (0.25) -> "stale", "failed_breakout".
+    #       Small dips back to the neckline (Bulkowski's throwback, 65% of his cases) stay valid.
+    "max_neckline_close_violation": None,
+    "max_runaway_of_head": None,
+    "max_fallback_of_head": None,
+    # V4 example-template distance (Fu, Chung, Luk & Ng 2007 amplitude/temporal distance as restated in
+    #   docs/academic-ihs-research.md 5.3; normalisation and weights: section 9 (c)):
+    #   y'_k = (z_k - z_H) / (z_neck(H) - z_H), k in LS, N1, N2, RS;  x'_k = (t_k - t_LS) / (t_RS - t_LS), k in N1, H, N2
+    #   AD_j = sqrt(mean (y' - q_j)^2), TD_j = sqrt(mean (x' - q^t_j)^2), D_j = w AD_j + (1-w) TD_j, D = min_j D_j
+    #   over the five user examples (ihs_scanner/templates.py, scripts/build_templates.py); accept iff D <= value.
+    #   0.25 = the research report's starting value; the examples' leave-one-out distances are 0.096-0.191.
+    "max_template_distance": None,
+    "template_amplitude_weight": 0.8,  # w
+    "template_exclude": [],  # template names skipped by V4 (leave-one-out tests)
+    # shape_score (0-100, validation.shape_score) = 100 * (0.5 * clip(1 - v1_max_counter_swing / gamma, 0, 1)
+    #                                                     + 0.5 * clip(1 - v4_template_distance / theta, 0, 1))
+    #   gamma / theta = the V1 / V4 thresholds (0.65 / 0.25 when off). 0 = at both limits, 100 = no counter
+    #   swing and identical to an example. Shown and sortable; NOT mixed into pattern_score by default
+    #   (weight 0): it measures the distance to the calibrated limits, and the user's own examples sit close to
+    #   them (shape_score 15-40), so mixing would rank the examples' kind of shape down; D24's notify
+    #   threshold (50) is also calibrated on the unmixed score.
+    # pattern_score = (1 - weight) * base_score + weight * shape_score; base_score = the D23/spec total
+    # (= shoulder + head_depth + neckline + breakout component scores).
+    "shape_score_weight": 0.0,
 }
 
 # D23 template profile: calibrated on the five golden examples (per-example values:
@@ -182,6 +239,14 @@ TEMPLATE_OVERRIDES: dict[str, Any] = {
     # examples: N1/N2 wick 0.05-0.21 head heights
     "max_neckline_wick_of_head": 0.32,
     "score_method": "template",
+    # D26 shape validation (formulas above; per-example values: pytest -s tests/test_golden_examples.py).
+    # Calibrated on the five examples (leave-one-out for V4); literature values are noted where they exist.
+    "max_counter_swing_of_head": 0.65,  # V1: examples 0.44-0.62
+    "max_skeleton_mad_of_head": 0.20,  # V2: examples 0.137-0.178
+    "max_neckline_close_violation": 0.005,  # V3a: = the 4h breakout buffer (D8); examples <= -3%
+    "max_runaway_of_head": 0.5,  # V3b: SignalSync uses 5% of price; here half the measured move to TP1
+    "max_fallback_of_head": 0.25,  # V3c: judgment value (no literature number)
+    "max_template_distance": 0.25,  # V4: research report start value; examples' LOO 0.096-0.191
 }
 
 
@@ -205,6 +270,11 @@ RULE_OFF_OVERRIDES: dict[str, dict[str, Any]] = {
     "R3": {"max_neckline_total_slope": None},
     "R2": {"max_shoulder_diff_of_head": None},
     "R21": {"min_shoulder_depth_ratio": None, "max_shoulder_depth_ratio": None},
+    # D26 shape validation
+    "V1": {"max_counter_swing_of_head": None},
+    "V2": {"max_skeleton_mad_of_head": None, "min_skeleton_r2": None},
+    "V3": {"max_neckline_close_violation": None, "max_runaway_of_head": None, "max_fallback_of_head": None},
+    "V4": {"max_template_distance": None},
 }
 
 

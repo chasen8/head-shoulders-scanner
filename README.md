@@ -27,7 +27,7 @@ CLI 參數：
 | `--include-stale` | 關 | 也輸出過期型態（回測用） |
 | `--output` | `C:\trading-data\ihs-scanner-v2\output\results_<UTC>.csv` | `.csv` 或 `.json` |
 | `--no-cache` | 關 | 不寫 K 線快取（預設寫到 `C:\trading-data\ihs-scanner-v2\data`） |
-| `--rules-off` | 無 | 關掉 D21 規則做比較，例如 `R1,R3`；`all`＝五條全關（R1、R11、R3、R2、R21） |
+| `--rules-off` | 無 | 關掉規則做比較，例如 `R1,R3` 或 `V1,V4`；可選 D21 的 R1、R11、R3、R2、R21 與 D26 形狀驗證 V1、V2、V3（含 a/b/c）、V4；`all`＝全關 |
 
 程式內使用：
 
@@ -131,6 +131,27 @@ template 分數（0–100，分項欄位名同規格）：`shoulder_score = 30×
 
 `max_bars_after_rs`、`max_breakout_age` 也可給 `{"4h": .., "1d": .., "1w": ..}`。
 
+D26 形狀驗證（template 開、classic 全關；數值兩種 profile 都照算並輸出；公式與出處完整寫在 `config.py`）。
+符號：z＝自然對數價，`head_height_log = log(neck(H)) − log(H.low)`。V1、V2、V3a、V4 是**過濾**（全部通過才輸出，`shape_valid`）；
+V3b、V3c 不判形狀，只把狀態改成 `stale`（`stale_reason`）：
+
+| key | template | 說明（出處） |
+|---|---|---|
+| `max_counter_swing_of_head` | 0.65 | V1 主要轉折（Lo, Mamaysky & Wang 2000「E1..E5 為連續極值」；Bulkowski 避免 multi-peak）：LS→N1、N1→H、H→N2、N2→RS 每段內部（不含兩端 K 線）最大反向波動，下跌段＝`max_{i<j} log high[j] − log low[i]`、上漲段＝`max_{i<j} log high[i] − log low[j]`，除以 head_height_log。範例 0.44–0.62 |
+| `max_skeleton_mad_of_head` | 0.20 | V2 骨架貼合（neurotrader888 `compute_pattern_r2`，MIT）主指標：`log((high+low)/2)` 對五點折線（forming 再接到最後一根）的平均絕對偏差 / head_height_log。範例 0.137–0.178 |
+| `min_skeleton_r2` | None | V2 輔助：同一折線的 R²＝1−SS_res/SS_tot，只顯示；範例只有 −0.20～0.37，不能當過濾 |
+| `max_neckline_close_violation` | 0.005 | V3a N1 與 RS 之間（N2 除外）每根 `close/neck − 1` 的最大值上限（T4 管 high 1%，V3a 管收盤 0.5%） |
+| `max_runaway_of_head` | 0.5 | V3b 追高上限（SignalSync MAX_RUNAWAY 概念）：`(close − neck(now)) / head_height` 超過 → `stale`（`runaway`） |
+| `max_fallback_of_head` | 0.25 | V3c 突破失敗：曾收盤站上頸線（`first_cross_time`）後 `(neck(now) − close) / head_height` 超過 → `stale`（`failed_breakout`）；小幅回測頸線不算 |
+| `max_template_distance` | 0.25 | V4 範例模板距離（Fu et al. 2007 振幅／時間距離）：`y'_k=(z_k−z_H)/(z_neck(H)−z_H)`、`x'_k=(t_k−t_LS)/(t_RS−t_LS)`，`D_j = 0.8·AD_j + 0.2·TD_j`，`D = min_j D_j`；範例 leave-one-out 0.096–0.191 |
+| `template_amplitude_weight` | 0.8 | V4 的 w |
+| `template_exclude` | `[]` | V4 不比對的範例名稱（leave-one-out 測試用） |
+| `shape_score_weight` | 0.0 | `pattern_score = (1−w)·base_score + w·shape_score`；預設 0＝分數不變（理由見 `config.py`） |
+
+範例模板：`ihs_scanner/templates.py`，由 `scripts/build_templates.py` 從 `tests/golden_examples.py` 的點位＋fixture 產生
+（`--check` 只比對）。`shape_score = 100×(0.5·clip(1 − V1/0.65) + 0.5·clip(1 − V4/0.25))`：0＝卡在門檻，
+100＝中途無反向波動且和範例相同；使用者 5 個範例本身約 15–40 分，所以它是「離門檻多遠」，不混進 `pattern_score`。
+
 ## 輸出欄位
 
 規格第十步全部欄位，外加：
@@ -143,7 +164,11 @@ template 分數（0–100，分項欄位名同規格）：`shoulder_score = 30×
 - 目標價（只是顯示資訊）：`breakout_level`＝已突破時突破那根的頸線價，否則目前這根的頸線價（預估）；
   `tp1 = breakout_level + head_height`（傳統價差量測）；`tp2 = breakout_level × (1 + head_rise_pct)`（使用者圖上算法）；
   `invalidation_price = H.low`
-- `shoulder_score`、`head_depth_score`、`neckline_score`、`breakout_score`：四項分數
+- `shoulder_score`、`head_depth_score`、`neckline_score`、`breakout_score`：四項分數；`base_score`＝四項總和（D26 前的 pattern_score）
+- `stale_reason`：`age`（D9 時間窗）／`runaway`（V3b）／`failed_breakout`（V3c）；非 stale 為空
+- D26 形狀驗證（比例的單位是「頭高」）：`v1_max_counter_swing`、`v1_leg`（最大反向波動所在段，如 `N1-H`）、`v2_mad`、`v2_r2`、
+  `v3_close_violation`（小數，0.005＝高出頸線 0.5%）、`v3_runaway`（負＝在頸線下）、`v3_fallback`（未曾站上頸線為空）、
+  `v4_template_distance`、`v4_nearest_template`、`shape_valid`（classic 沒有啟用任何檢查時為空）、`shape_score`
 - `RS_confirm_time`：右肩 pivot 被確認的 K 線時間（= RS_time + N 根）；`forming` 為空
 - D21 規則數值（規則關掉時也照算）：`atr_at_head`、`head_atr_multiple`（(min(LS,RS) − H)/ATR）、
   `neckline_total_slope`、`shoulder_diff_of_head`、`shoulder_depth_ratio`、
@@ -162,14 +187,17 @@ template 分數（0–100，分項欄位名同規格）：`shoulder_score = 30×
 ```
 ihs_scanner/  config.py  swings.py  neckline.py  scoring.py  detector.py  scanner.py  data_binance.py
               sources.py  data_binance_futures.py  data_okx.py  data_gate.py   （多交易所來源）
+              validation.py  templates.py   （D26 形狀驗證 V1–V4；templates.py 由腳本產生）
 scan.py       CLI
 scripts/fetch_golden_fixtures.py   下載黃金範例 K 線到 tests/fixtures/（公開端點：幣安現貨／USDT-M、OKX）
+scripts/build_templates.py         從黃金範例產生 ihs_scanner/templates.py（V4 模板）；--check 只比對
 tests/        pytest（不碰網路；截斷／不 repaint 測試在 test_truncation.py、test_template.py、test_golden_examples.py）
 ```
 
 黃金測試（D23）：`tests/golden_examples.py` 是使用者 5 個範例（時間已換成 UTC），`tests/test_golden_examples.py`
 把 K 線截到截圖當下最後一根已收盤 K 線，用預設 template 偵測並核對點位；`pytest -s tests/test_golden_examples.py`
-會印出偵測點位、drop／head_rise、TP 與使用者標註對照。
+會印出偵測點位、drop／head_rise、TP 與使用者標註對照。`test_golden_shape_validation_leave_one_out`（D26）
+在排除該範例自己的模板後再偵測，要求 V1–V4 全過，`-s` 會印出每條驗證的值、門檻與餘裕。
 
 ## 資料來源（D22）
 

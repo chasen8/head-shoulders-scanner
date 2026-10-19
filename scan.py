@@ -45,8 +45,8 @@ def parse_args(argv=None) -> argparse.Namespace:
                    help="override max_time_symmetry_ratio; <= 0 disables the rule (D19)")
     p.add_argument("--pivot-windows", default=None, help="e.g. 4h=3,1d=3,1w=2 (default 5/5/3)")
     p.add_argument("--rules-off", default="",
-                   help="comma separated D21 rule ids to disable, from " + ",".join(RULE_OFF_OVERRIDES)
-                   + " (e.g. R1,R3); 'all' disables all five")
+                   help="comma separated rule ids to disable, from " + ",".join(RULE_OFF_OVERRIDES)
+                   + " (D21 R*, D26 shape validation V1-V4; e.g. R1,V2); 'all' disables every one")
     return p.parse_args(argv)
 
 

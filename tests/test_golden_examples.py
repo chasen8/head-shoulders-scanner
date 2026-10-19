@@ -14,6 +14,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
+from ihs_scanner.config import merge_config
 from ihs_scanner.detector import detect_inverse_head_shoulders
 
 from .golden_examples import GOLDEN_EXAMPLES
@@ -75,6 +76,31 @@ def test_golden_example_found(name):
           f"head_rise {r['head_rise_pct']:.2%} (user {u['user_head_rise']:.2%})")
     print(f"  breakout_level {r['breakout_level']:.6g}  tp1 {r['tp1']:.6g}  tp2 {r['tp2']:.6g}"
           f" (user target {u['user_target']})  invalidation {r['invalidation_price']:.6g}")
+
+
+@pytest.mark.parametrize("name", list(GOLDEN_EXAMPLES))
+def test_golden_shape_validation_leave_one_out(name):
+    """D26: each example passes V1-V4 with its OWN template excluded from V4 (leave-one-out), so the
+    thresholds are not just "an example matches itself". Prints value, threshold and margin per check."""
+    df, spec = load_as_of_screenshot(name)
+    cfg = {"template_exclude": [name]}
+    res = detect_inverse_head_shoulders(df, spec["timeframe"], cfg, symbol=spec["symbol"])
+    hits = [r for r in res if _matches(r, spec, df["timestamp"])]
+    assert hits, f"{name}: not found with its own template excluded"
+    r = hits[0]
+    assert r["shape_valid"] is True and r["v4_nearest_template"] != name
+    tpl = merge_config()
+    rows = [("V1 counter swing", r["v1_max_counter_swing"], tpl["max_counter_swing_of_head"], "max"),
+            ("V2 MAD/head", r["v2_mad"], tpl["max_skeleton_mad_of_head"], "max"),
+            ("V3a close vs neck", r["v3_close_violation"], tpl["max_neckline_close_violation"], "max"),
+            ("V3b runaway", r["v3_runaway"], tpl["max_runaway_of_head"], "max"),
+            ("V4 LOO distance", r["v4_template_distance"], tpl["max_template_distance"], "max")]
+    print(f"\n{name} [{r['status']}] nearest other template {r['v4_nearest_template']}, R2 {r['v2_r2']:.3f}, "
+          f"shape_score {r['shape_score']:.1f}, max swing leg {r['v1_leg']}")
+    for label, value, limit, kind in rows:
+        margin = limit - value if kind == "max" else value - limit
+        assert margin >= 0, label
+        print(f"  {label:<18} {value:>8.4f}  limit {limit:<6g} margin {margin:.4f}")
 
 
 @pytest.mark.parametrize("name", ["HMSTRUSDT_binance_spot_4h", "PENDLEUSDT_binance_spot_1d"])

@@ -1,4 +1,4 @@
-"""Inverse head-and-shoulders detection (spec steps 2-10, charter D5-D12, D19, D21, D23).
+"""Inverse head-and-shoulders detection (spec steps 2-10, charter D5-D12, D19, D21, D23, D26).
 
 Everything is computed "as of" the last bar of df: the caller passes only
 closed bars, and results depend only on df (truncation tests lock this in).
@@ -15,6 +15,9 @@ from .config import TIMEFRAMES, merge_config, tf_value
 from .neckline import calculate_neckline
 from .scoring import calculate_pattern_score, calculate_template_score, result_sort_key
 from .swings import SwingPoint, find_swing_points, get_timestamps
+from .templates import TEMPLATES
+from .validation import (check_passes, close_violation, max_counter_swing, shape_score, skeleton_fit,
+                         template_coords, template_distance)
 
 PATTERN_TYPE = "inverse_head_and_shoulders"
 REQUIRED_COLUMNS = ("open", "high", "low", "close", "volume")
@@ -190,6 +193,20 @@ def find_pattern_candidates(df: pd.DataFrame, timeframe: str,
     max_wick = _opt_float(cfg["max_neckline_wick_of_head"])
     ideal_prom = float(cfg["ideal_head_prominence"])
     ideal_rise = float(cfg["ideal_head_rise"])
+    # D26 shape validation V1-V4 (formulas: config.py / validation.py); None = off
+    max_swing = _opt_float(cfg["max_counter_swing_of_head"])
+    max_mad = _opt_float(cfg["max_skeleton_mad_of_head"])
+    min_r2 = _opt_float(cfg["min_skeleton_r2"])
+    max_close_viol = _opt_float(cfg["max_neckline_close_violation"])
+    max_runaway = _opt_float(cfg["max_runaway_of_head"])
+    max_fallback = _opt_float(cfg["max_fallback_of_head"])
+    max_tdist = _opt_float(cfg["max_template_distance"])
+    t_weight = float(cfg["template_amplitude_weight"])
+    t_exclude = tuple(cfg["template_exclude"] or ())
+    bad_names = [x for x in t_exclude if x not in TEMPLATES]
+    if bad_names:
+        raise KeyError(f"template_exclude has unknown templates {bad_names}; known: {sorted(TEMPLATES)}")
+    shape_w = float(cfg["shape_score_weight"])
 
     times = get_timestamps(df)
     high = df["high"].to_numpy(dtype=float)
@@ -199,6 +216,8 @@ def find_pattern_candidates(df: pd.DataFrame, timeframe: str,
     body_top = np.maximum(df["open"].to_numpy(dtype=float), close)
     start_px = df[start_price_key].to_numpy(dtype=float)
     atr_all = wilder_atr(df, int(cfg["atr_length"]))
+    with np.errstate(divide="ignore", invalid="ignore"):  # D26: log prices (a non-positive price -> NaN/-inf)
+        z_low, z_high, z_mid = np.log(low), np.log(high), np.log((high + low) / 2.0)
 
     swings = find_swing_points(df, N)
     lows: list[SwingPoint] = swings["lows"]
@@ -407,6 +426,41 @@ def find_pattern_candidates(df: pd.DataFrame, timeframe: str,
             if start_rule and pat_start_gap is None:
                 continue
 
+            # D26 shape validation (values in both profiles; filter = every enabled check passes).
+            # Cheap checks first so a failing candidate stops early.
+            neck_at_h = head_height + h_low
+            with np.errstate(divide="ignore", invalid="ignore"):
+                hh_log = float(np.log(neck_at_h) - np.log(h_low))
+            pidx = (LS.index, N1.index, hi, N2.index, RS.index)
+            try:  # V4 template distance
+                y_t, x_t = template_coords({"LS": LS.price, "N1": N1.price, "H": h_low, "N2": N2.price,
+                                            "RS": RS.price}, dict(zip(("LS", "N1", "H", "N2", "RS"), pidx)),
+                                           neck_at_h)
+                t_dist, t_name = template_distance(y_t, x_t, t_weight, t_exclude)
+            except (ValueError, ZeroDivisionError):  # non-positive price: cannot normalise
+                t_dist, t_name = math.nan, None
+            v4_ok = check_passes(t_dist, max_tdist, "max")
+            if v4_ok is False:
+                continue
+            # V3a closes vs the neckline over the T4 bars (N1 < i < RS, i != N2); no bars -> nothing violated
+            close_viol = close_violation(close[seg], neck.price_at(seg)) if seg.size else None
+            v3a_ok = None if max_close_viol is None else (close_viol is None or close_viol <= max_close_viol)
+            if v3a_ok is False:
+                continue
+            swing_log, swing_leg = max_counter_swing(z_low, z_high, pidx)  # V1
+            swing = swing_log / hh_log if hh_log > 0 else math.nan
+            v1_ok = check_passes(swing, max_swing, "max")
+            if v1_ok is False:
+                continue
+            fit_end = last if forming else RS.index  # V2: a forming RS is followed by the newest bars
+            r2, mad = skeleton_fit(z_mid, pidx, fit_end, hh_log)
+            v2_ok = check_passes(mad, max_mad, "max")
+            v2r_ok = check_passes(r2, min_r2, "min")
+            if v2_ok is False or v2r_ok is False:
+                continue
+            enabled = [ok for ok in (v1_ok, v2_ok, v2r_ok, v3a_ok, v4_ok) if ok is not None]
+            shape_valid = all(enabled) if enabled else None  # None: no shape check enabled (classic)
+
             # D7 invalidation + D8 breakout, scanning bars after RS
             breakout_i: int | None = None
             cross_i: int | None = None  # first price-only cross (D14)
@@ -441,12 +495,21 @@ def find_pattern_candidates(df: pd.DataFrame, timeframe: str,
                 status = "watchlist" if fresh else "stale"
             else:
                 status = "watchlist" if last - RS.index <= max_after_rs else "stale"
+            current_neck = float(neck.price_at(last))  # D12
+            # D26 V3b runaway / V3c failed breakout: not a shape defect, the signal is just no longer fresh
+            runaway = (current_close - current_neck) / head_height
+            fallback = (current_neck - current_close) / head_height if cross_i is not None else None
+            stale_reason = "age" if status == "stale" else None
+            if status != "stale":
+                if max_runaway is not None and runaway > max_runaway:
+                    status, stale_reason = "stale", "runaway"
+                elif max_fallback is not None and fallback is not None and fallback > max_fallback:
+                    status, stale_reason = "stale", "failed_breakout"
             if status == "stale" and not include_stale:
                 continue
             if breakout_mode and not breakout:
                 continue
 
-            current_neck = float(neck.price_at(last))  # D12
             distance = abs(current_close - current_neck) / current_neck
             # D23 shape values (computed in both profiles)
             drop_left = (N1.price - LS.price) / N1.price
@@ -463,6 +526,9 @@ def find_pattern_candidates(df: pd.DataFrame, timeframe: str,
                 scores = calculate_pattern_score(
                     shoulder_diff, score_shoulder_limit, head_depth, angle, max_angle,
                     breakout, distance, ideal_depth, dist_range)
+            base_score = scores["pattern_score"]
+            s_score = shape_score(swing, t_dist, max_swing, max_tdist)
+            total_score = (1.0 - shape_w) * base_score + shape_w * s_score  # D26
             # D23 targets (display only): breakout level = neckline at the breakout bar, else at the
             # last bar (estimate); TP1 = level + head height, TP2 = level * (1 + head_rise)
             breakout_level = float(neck.price_at(breakout_i)) if breakout else current_neck
@@ -492,7 +558,9 @@ def find_pattern_candidates(df: pd.DataFrame, timeframe: str,
                 "profile": profile,
                 "mode": mode,
                 "status": status,
-                "pattern_score": round(scores["pattern_score"], 2),
+                "pattern_score": round(total_score, 2),
+                "base_score": round(base_score, 2),
+                "shape_score": round(s_score, 2),
                 "shoulder_score": round(scores["shoulder_score"], 2),
                 "head_depth_score": round(scores["head_depth_score"], 2),
                 "neckline_score": round(scores["neckline_score"], 2),
@@ -525,6 +593,18 @@ def find_pattern_candidates(df: pd.DataFrame, timeframe: str,
                 "neckline_max_violation": violation,
                 "neckline_change": neck_change,
                 "neckline_wick_of_head": wick_of_head,
+                # D26 shape validation (ratios in head heights; v3_* see config.py)
+                "v1_max_counter_swing": swing,
+                "v1_leg": swing_leg,
+                "v2_mad": mad,
+                "v2_r2": r2,
+                "v3_close_violation": close_viol,
+                "v3_runaway": runaway,
+                "v3_fallback": fallback,
+                "v4_template_distance": t_dist,
+                "v4_nearest_template": t_name,
+                "shape_valid": shape_valid,
+                "stale_reason": stale_reason,
                 "head_height": head_height,
                 "breakout_level": breakout_level,
                 "tp1": breakout_level + head_height,
@@ -558,7 +638,9 @@ def detect_inverse_head_shoulders(df: pd.DataFrame, timeframe: str,
     mode: enable_breakout_filter=False -> "candidate" (forming + watchlist + confirmed),
           True -> "breakout" (only patterns with a detected breakout).
     status: "forming" (template only: RS = lowest low since N2, not yet a confirmed pivot; changes with
-            every new bar), "watchlist", "confirmed", "stale" (only with include_stale).
+            every new bar), "watchlist", "confirmed", "stale" (only with include_stale; stale_reason
+            "age" = D9 window, "runaway" / "failed_breakout" = D26 V3b / V3c).
+    D26: with any shape check enabled (template profile) only patterns passing V1, V2, V3a, V4 are returned.
     Returns de-duplicated (D11) results sorted by spec step 11 order.
     """
     candidates = find_pattern_candidates(df, timeframe, config, symbol)

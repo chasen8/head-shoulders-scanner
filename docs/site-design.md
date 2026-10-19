@@ -43,6 +43,7 @@
 | `--tp` | `#089981` | TP1 水平虛線（與上漲綠同色系） |
 | `--tp2` | `#22AB94` | TP2 水平長虛線 |
 | `--stop` | `#787B86` | 失效價（頭部低點）水平虛線，灰色、不搶 TP 與突破紅 |
+| `--ok-text` | `#067A66` | 形狀驗證「通過」文字（淡綠底 `--ok-wash` rgba(8,153,129,0.10)，對白 5.3:1）；「未通過」用 `--down-text`＋`--down-wash` |
 
 - **K 線配色＝黑白**（定案）：上漲＝白色實體＋`#131722` 外框，下跌＝`#131722` 實心；影線 `#131722`。
   理由：照使用者參考圖；顏色留給型態與突破，不會被幾百根紅綠蠟燭淹沒。成交量用淡綠淡紅保留漲跌資訊。
@@ -93,18 +94,22 @@
 
 - 搜尋：幣種代號包含字串（不分大小寫、忽略空白）。
 - 篩選：週期、狀態（aria-pressed 按鈕）；每顆按鈕的數字是「套用其他篩選後」的筆數。
-- 排序：分數高到低（`rank`）、離頸線最近（`distance_to_neckline`）、最新訊號（`signal_time`）、幣種名稱。
+- 排序：分數高到低（`rank`）、形狀分高到低（`shape_score`，D26）、離頸線最近（`distance_to_neckline`）、最新訊號（`signal_time`）、幣種名稱。
   只用 JSON 欄位排序，不重算。
 - 一次渲染 150 筆，「再顯示 N 個」載入下一批；網址 hash 指到的那筆一定顯示。
 - 每列：型態剪影（`shape` 的五點折線＋藍虛線頸線＋紅色突破點）、幣種、週期、交易所／市場標籤（例：OKX 永續）、
-  狀態標籤、距頸線、分數。
+  狀態標籤、距頸線、形狀分（`形狀 44`）、分數。
+- 詳細頁「形狀驗證」區（D26，橫跨三欄、放在分數拆解之前）：每條 V1、V2、V2r（R² 參考）、V3a、V3b、V3c、V4 一列，
+  欄位＝項目＋短名、一句白話「檢查什麼」、數值、門檻、結果（通過／未通過／不適用／參考）。值、門檻與通過與否全來自
+  scan.json 每筆的 `shape_checks`（build_site.py 用 `validation.shape_checks` 算好），前端只格式化；標題列另有「形狀分」。
+  stale 的摘要依 `stale_reason` 說明（已漲過頭／突破失敗／過期）。
 - 狀態篩選順序：全部、右肩形成中、觀察中、已突破（已過期只在資料有時出現）。
 
 ## 資料與原則
 
 1. 前端只畫 build_site.py 產出的值。分數、頸線端點、`neckline_side`、`next_scan_at` 都由 Python 算好；
    JS 只做格式化（時區、小數位、文字組句）、篩選排序與把 JSON 座標線性映射到 SVG。
-2. **拆檔**：`site/data/scan.json` 只有 metadata＋每筆摘要（OUTPUT_FIELDS＋`rank`、`neckline_side`、
+2. **拆檔**：`site/data/scan.json` 只有 metadata＋每筆摘要（OUTPUT_FIELDS＋`rank`、`neckline_side`、`shape_checks`、
    `chart_file`、`shape`、`rs_provisional`）；畫圖資料在 `site/data/bars/<檔名>.json`（`bars`、`points`、`neckline`、
    `breakout`、`levels`＝[{key,label,price}] 的 TP1/TP2/失效價、`levels_estimated`、`rs_provisional`；RS 點暫定時帶
    `"provisional": true`），點選該筆時才 fetch，並在頁面內快取。TP 數值是偵測器輸出的 `tp1`／`tp2`／`invalidation_price`，

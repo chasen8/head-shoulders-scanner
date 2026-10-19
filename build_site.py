@@ -47,6 +47,7 @@ from ihs_scanner.neckline import calculate_neckline
 from ihs_scanner.scanner import OUTPUT_FIELDS, _to_jsonable, scan_symbols, sort_results
 from ihs_scanner.sources import SOURCE_PRIORITY, Instrument, SourceFetchError, merge_instruments
 from ihs_scanner.swings import get_timestamps
+from ihs_scanner.validation import CHECKS, shape_checks
 
 DEFAULT_OUT = Path(__file__).resolve().parent / "site" / "data" / "scan.json"
 BARS_DIRNAME = "bars"
@@ -59,7 +60,8 @@ ERROR_CHARS = 240
 # Must match .github/workflows/scan-and-notify.yml: cron "7 */4 * * *"
 SCAN_EVERY_HOURS = 4
 SCAN_MINUTE = 7
-SCHEMA_VERSION = 3  # 3: bars files carry `levels`, `levels_estimated`, `rs_provisional`
+SCHEMA_VERSION = 4  # 3: bars files carry `levels`, `levels_estimated`, `rs_provisional`;
+#                     4: rows carry `shape_checks`, settings `shape_validation` (D26)
 POINT_NAMES = ("LS", "N1", "H", "N2", "RS")
 # Horizontal levels drawn on the chart (values come straight from the detector's output fields).
 LEVELS = (("tp1", "TP1"), ("tp2", "TP2"), ("invalidation_price", "失效"))
@@ -240,6 +242,7 @@ def build_payload(symbol_data: Mapping[str, Mapping[str, pd.DataFrame]], cfg: Ma
         row["rank"] = len(rows) + 1
         row["neckline_side"] = _neckline_side(r)
         row["rs_provisional"] = rs_provisional(r)
+        row["shape_checks"] = shape_checks(r, cfg)  # D26: value / limit / pass decided here (D17)
         name = chart_file_name(r)
         row["chart_file"] = f"{BARS_DIRNAME}/{name}"
         row["shape"] = shape_for(chart)
@@ -283,6 +286,10 @@ def build_payload(symbol_data: Mapping[str, Mapping[str, pd.DataFrame]], cfg: Ma
             "include_stale": bool(cfg["include_stale"]),
             "volume_filter": bool(cfg["enable_volume_filter"]),
             "min_pattern_score": float(cfg["min_pattern_score"]),
+            "profile": str(cfg["profile"]),
+            # D26 thresholds (None = check off); the per-row values and pass flags are in shape_checks
+            "shape_validation": {cid: (None if cfg[key] is None else float(cfg[key]))
+                                 for cid, _f, key, _k, _t in CHECKS},
             "bars_per_series": {tf: limit_for(tf, limit) for tf in timeframes},
             "sources": list(sources) if sources else sorted(source_counts),
             "data_source": "exchange public klines (" + ", ".join(sorted(source_counts)) + "), closed bars only",

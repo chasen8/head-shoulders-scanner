@@ -464,3 +464,22 @@ def test_long_ban_is_an_error_not_a_wait():
     with pytest.raises(BinanceFetchError, match="418"):
         db._get_json(s, db.KLINES_PATH, {}, (db.PRIMARY_BASE,), 5, limiter=lim)
     assert clk.sleeps == []
+
+
+def test_shape_checks_in_rows(built):
+    """D26: every row carries the V1-V4 checks with value, limit and a Python-decided pass flag (D17);
+    settings.shape_validation lists the thresholds."""
+    _, _, data, _ = built
+    sv = data["settings"]["shape_validation"]
+    assert sv["V1"] == 0.65 and sv["V4"] == 0.25 and sv["V2r"] is None
+    assert data["settings"]["profile"] == "template"
+    for r in data["results"]:
+        checks = {c["id"]: c for c in r["shape_checks"]}
+        assert list(checks) == ["V1", "V2", "V2r", "V3a", "V3b", "V3c", "V4"]
+        assert r["shape_valid"] is True
+        for cid in ("V1", "V2", "V3a", "V4"):
+            c = checks[cid]
+            assert c["pass"] is True and c["limit"] == sv[cid] and c["value"] == pytest.approx(r[c["field"]])
+        assert checks["V3b"]["pass"] is True  # not stale -> runaway within the limit
+        assert checks["V2r"]["enabled"] is False and checks["V2r"]["value"] == pytest.approx(r["v2_r2"])
+        assert 0.0 <= r["shape_score"] <= 100.0 and r["v4_nearest_template"]

@@ -124,6 +124,7 @@
   }
   var SORTS = {
     score: function (a, b) { return a.rank - b.rank; },
+    shape: function (a, b) { return ((b.shape_score || 0) - (a.shape_score || 0)) || (a.rank - b.rank); },
     dist: function (a, b) { return (a.distance_to_neckline - b.distance_to_neckline) || (a.rank - b.rank); },
     recent: function (a, b) {
       return (Date.parse(b.signal_time) - Date.parse(a.signal_time)) || (a.rank - b.rank);
@@ -199,7 +200,9 @@
       "<span class=\"mkt\">" + esc(marketText(r)) + "</span></span>" +
       "<span class=\"row__score\">" + r.pattern_score.toFixed(1) + "<small>分</small></span>" +
       "<span class=\"row__sub\"><span class=\"status status--" + esc(r.status) + "\">" + STATUS_LABEL[r.status] +
-      "</span><span class=\"dist\">" + esc(distText(r)) + "</span></span>" +
+      "</span><span class=\"dist\">" + esc(distText(r)) + "</span>" +
+      (r.shape_score !== null && r.shape_score !== undefined
+        ? "<span class=\"shp\">形狀 " + r.shape_score.toFixed(0) + "</span>" : "") + "</span>" +
       "</button></li>";
   }
 
@@ -270,6 +273,12 @@
       return "右肩在 " + fmtBar(r.RS_time, tf) + " 成形，" + fmtBar(r.RS_confirm_time, tf) + " 確認；之後 " +
         r.bars_since_rs + " 根 K 線還沒有突破頸線。" + close;
     }
+    if (r.stale_reason === "runaway") {
+      return "已經漲過頭，只供回顧：目前收盤高出頸線 " + headX(r.v3_runaway) + "（上限見下方形狀驗證 V3b）。" + close;
+    }
+    if (r.stale_reason === "failed_breakout") {
+      return "突破後又跌回頸線下方 " + headX(r.v3_fallback) + "，視為突破失敗，只供回顧。" + close;
+    }
     return "這個型態已過期，只供回顧：" + (r.breakout_detected
       ? fmtBar(r.breakout_time, tf) + " 突破頸線，已經過了 " + r.bars_since_breakout + " 根。"
       : "右肩之後 " + r.bars_since_rs + " 根 K 線都沒有突破。") + close;
@@ -282,6 +291,51 @@
   }
 
   function pctOr(x) { return x === null || x === undefined ? "—" : pct(x, 1); }
+  function headX(x) { return (x === null || x === undefined) ? "—" : x.toFixed(2) + " 個頭高"; }
+  // D26 shape checks: value / limit / pass come from build_site.py (shape_checks); this only formats them.
+  var CHECK_NAME = { V1: "中途沒有大轉折", V2: "貼著五點骨架", V2r: "骨架 R²", V3a: "頸線乾淨",
+    V3b: "還沒漲過頭", V3c: "沒有突破失敗", V4: "像你的範例" };
+  function templateName(t) {
+    if (!t) return "";
+    var parts = String(t).split("_");
+    return parts[0].replace(/-?USDT$/, "") + " " + parts[parts.length - 1];
+  }
+  function checkValue(c, r) {
+    if (c.value === null) return c.id === "V3c" ? "沒站上過頸線" : "—";
+    if (c.id === "V3a") return (c.value >= 0 ? "+" : "−") + pct(Math.abs(c.value), 1);
+    if (c.id === "V2r") return c.value.toFixed(2);
+    if (c.id === "V4") return c.value.toFixed(3) + "（最像 " + templateName(r.v4_nearest_template) + "）";
+    return c.value.toFixed(2) + " 頭高";
+  }
+  function checkLimit(c) {
+    if (!c.enabled) return "不過濾";
+    var op = c.kind === "max" ? "≤ " : "≥ ";
+    if (c.id === "V3a") return op + "+" + pct(c.limit, 1);
+    if (c.id === "V4") return op + c.limit.toFixed(2);
+    if (c.id === "V2r") return op + c.limit.toFixed(2);
+    return op + c.limit.toFixed(2) + " 頭高";
+  }
+  function checkResult(c) {
+    if (c.pass === true) return "<span class=\"ck ck--ok\">通過</span>";
+    if (c.pass === false) return "<span class=\"ck ck--bad\">未通過</span>";
+    return "<span class=\"ck\">" + (c.enabled ? "不適用" : "參考") + "</span>";
+  }
+  function checksHtml(r) {
+    var list = Array.isArray(r.shape_checks) ? r.shape_checks : [];
+    if (!list.length) return "";
+    return "<section class=\"checks-sec\"><h3>形狀驗證<span class=\"checks-sum\">形狀分 " +
+      (r.shape_score === null || r.shape_score === undefined ? "—" : r.shape_score.toFixed(1)) + " / 100</span></h3>" +
+      "<table class=\"checks\"><thead><tr><th scope=\"col\">項目</th><th scope=\"col\">檢查什麼</th>" +
+      "<th scope=\"col\">數值</th><th scope=\"col\">門檻</th><th scope=\"col\">結果</th></tr></thead><tbody>" +
+      list.map(function (c) {
+        return "<tr><td class=\"checks__id\">" + esc(c.id) + "<small>" + esc(CHECK_NAME[c.id] || "") + "</small></td>" +
+          "<td class=\"checks__text\">" + esc(c.text) + "</td><td>" + esc(checkValue(c, r)) + "</td><td>" +
+          esc(checkLimit(c)) + "</td><td>" + checkResult(c) + "</td></tr>";
+      }).join("") + "</tbody></table>" +
+      "<p class=\"note\">頭高＝頭部低點到頸線的距離（對數價）。V1、V2、V3a、V4 全部通過才會列在清單上；V3b、V3c 不通過時標為已過期。" +
+      "形狀分＝50%×(1 − V1/門檻) ＋ 50%×(1 − V4/門檻)，0 代表剛好卡在門檻、100 代表中途完全沒有反向波動且和範例一模一樣；" +
+      "你的 5 個範例本身大約 15～40 分，所以它是「離門檻多遠」，不是好壞的絕對分數。</p></section>";
+  }
 
   function renderDetail(r) {
     var sp = symParts(r.symbol), tf = r.timeframe;
@@ -294,10 +348,12 @@
       "<span class=\"mkt mkt--lg\">" + esc(marketText(r)) + "</span>" +
       "<span class=\"status status--" + esc(r.status) + "\">" + STATUS_LABEL[r.status] + "</span>" +
       "<span class=\"score\">分數 <b>" + r.pattern_score.toFixed(1) + "</b></span>" +
+      (r.shape_score !== null && r.shape_score !== undefined
+        ? "<span class=\"score\">形狀分 <b>" + r.shape_score.toFixed(1) + "</b></span>" : "") +
       "<a class=\"tvlink\" href=\"" + esc(tvUrl(r)) + "\" target=\"_blank\" rel=\"noopener\">在 TradingView 開啟</a></div>" +
       "<p class=\"summary\">" + esc(summary(r)) + "</p>";
 
-    $("detail-body").innerHTML =
+    $("detail-body").innerHTML = checksHtml(r) +
       "<section><h3>分數拆解</h3><div class=\"scorebars\">" +
       scoreBar("左右肩對稱", r.shoulder_score, 30) + scoreBar("頭部深度", r.head_depth_score, 25) +
       scoreBar("頸線平緩", r.neckline_score, 25) + scoreBar("突破／接近頸線", r.breakout_score, 20) +

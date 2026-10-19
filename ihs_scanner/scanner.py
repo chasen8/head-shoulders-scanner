@@ -15,7 +15,8 @@ from .detector import detect_inverse_head_shoulders
 from .scoring import result_sort_key
 
 OUTPUT_FIELDS = [
-    "symbol", "timeframe", "pattern_type", "profile", "mode", "status", "pattern_score",
+    "symbol", "timeframe", "pattern_type", "profile", "mode", "status", "stale_reason", "pattern_score",
+    "base_score", "shape_score",
     "shoulder_score", "head_depth_score", "neckline_score", "breakout_score",
     "LS_time", "LS_price", "N1_time", "N1_price", "H_time", "H_price",
     "N2_time", "N2_price", "RS_time", "RS_price", "RS_confirm_time",
@@ -26,6 +27,9 @@ OUTPUT_FIELDS = [
     # D23 template values and display-only targets
     "drop_left_pct", "drop_right_pct", "shoulder_drop_diff", "head_rise_pct", "head_prominence",
     "neckline_tilt_of_head", "neckline_max_violation", "neckline_change", "neckline_wick_of_head",
+    # D26 shape validation
+    "v1_max_counter_swing", "v1_leg", "v2_mad", "v2_r2", "v3_close_violation", "v3_runaway", "v3_fallback",
+    "v4_template_distance", "v4_nearest_template", "shape_valid",
     "head_height", "breakout_level", "tp1", "tp2", "invalidation_price",
     "current_close", "current_neckline_price", "distance_to_neckline",
     "breakout_detected", "breakout_time", "breakout_price", "volume_ratio",
