@@ -149,7 +149,7 @@ CHECKS = (
     ("V2", "v2_mad", "max_skeleton_mad_of_head", "max",
      "整段走勢貼著五點連成的骨架：價格離骨架的平均距離，小於頭高的這個比例"),
     ("V2r", "v2_r2", "min_skeleton_r2", "min",
-     "骨架貼合度 R²（1＝完全貼合；參考值，你的範例只有 −0.20～0.37，所以不拿來過濾）"),
+     "骨架貼合度 R²（1＝完全貼合；只當參考，不拿來過濾）"),
     ("V3a", "v3_close_violation", "max_neckline_close_violation", "max",
      "左頸線到右肩之間，沒有收盤站上頸線（頸線是乾淨的壓力）"),
     ("V3b", "v3_runaway", "max_runaway_of_head", "max",
@@ -157,7 +157,7 @@ CHECKS = (
     ("V3c", "v3_fallback", "max_fallback_of_head", "max",
      "突破後沒有跌回頸線下太多：跌回頸線下的幅度，小於頭高的這個比例（只看已站上過頸線的）"),
     ("V4", "v4_template_distance", "max_template_distance", "max",
-     "和你的 5 個範例之一夠像（振幅 80%、時間 20% 的距離，越小越像）"),
+     "整體形狀與參考型態的距離（振幅 80%、時間 20%，越小越接近）"),
 )
 SHAPE_CHECK_IDS = ("V1", "V2", "V2r", "V3a", "V4")  # shape_valid = all enabled ones pass; V3b/V3c set the status
 

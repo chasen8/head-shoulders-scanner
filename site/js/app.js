@@ -351,7 +351,7 @@
   function headX(x) { return (x === null || x === undefined) ? "—" : x.toFixed(2) + " 個頭高"; }
   // D26 shape checks: value / limit / pass come from build_site.py (shape_checks); this only formats them.
   var CHECK_NAME = { V1: "中途沒有大轉折", V2: "貼著五點骨架", V2r: "骨架 R²", V3a: "頸線乾淨",
-    V3b: "還沒漲過頭", V3c: "沒有突破失敗", V4: "像你的範例" };
+    V3b: "還沒漲過頭", V3c: "沒有突破失敗", V4: "整體形狀" };
   function templateName(t) {
     if (!t) return "";
     var parts = String(t).split("_");
@@ -378,7 +378,8 @@
     return "<span class=\"ck\">" + (c.enabled ? "不適用" : "參考") + "</span>";
   }
   function checksHtml(r) {
-    var list = Array.isArray(r.shape_checks) ? r.shape_checks : [];
+    // D30: the V4 template-distance check still filters, but its row is not shown on the site
+    var list = (Array.isArray(r.shape_checks) ? r.shape_checks : []).filter(function (c) { return c.id !== "V4"; });
     if (!list.length) return "";
     return "<section class=\"checks-sec\"><h3>形狀驗證<span class=\"checks-sum\">形狀分 " +
       (r.shape_score === null || r.shape_score === undefined ? "—" : r.shape_score.toFixed(1)) + " / 100</span></h3>" +
@@ -389,9 +390,8 @@
           "<td class=\"checks__text\">" + esc(c.text) + "</td><td>" + esc(checkValue(c, r)) + "</td><td>" +
           esc(checkLimit(c)) + "</td><td>" + checkResult(c) + "</td></tr>";
       }).join("") + "</tbody></table>" +
-      "<p class=\"note\">頭高＝頭部低點到頸線的距離（對數價）。V1、V2、V3a、V4 全部通過才會列在清單上；V3b、V3c 不通過時標為已過期。" +
-      "形狀分＝50%×(1 − V1/門檻) ＋ 50%×(1 − V4/門檻)，0 代表剛好卡在門檻、100 代表中途完全沒有反向波動且和範例一模一樣；" +
-      "你的 5 個範例本身大約 15～40 分，所以它是「離門檻多遠」，不是好壞的絕對分數。</p></section>";
+      "<p class=\"note\">頭高＝頭部低點到頸線的距離（對數價）。形狀條件全部通過才會列在清單上；V3b、V3c 不通過時標為已過期。" +
+      "形狀分表示離門檻多遠：0 代表剛好卡在門檻，分數越高形狀越乾淨；它不是好壞的絕對分數。</p></section>";
   }
 
   function renderDetail(r) {
