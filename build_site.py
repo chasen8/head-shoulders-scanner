@@ -51,6 +51,10 @@ from ihs_scanner.swings import get_timestamps
 from ihs_scanner.validation import CHECKS, shape_checks
 
 DEFAULT_OUT = Path(__file__).resolve().parent / "site" / "data" / "scan.json"
+# D29: Taiwan stocks are a separate market with their own scan.json + bars/ (written by build_site_tw.py),
+# so the crypto and the Taiwan scans never overwrite each other.
+DEFAULT_OUT_TW = Path(__file__).resolve().parent / "site" / "data" / "tw" / "scan.json"
+MARKETS = ("crypto", "tw")
 BARS_DIRNAME = "bars"
 BARS_BEFORE_LS = 15  # chart context to the left of the left shoulder
 # Weekly history is short (BTC has < 500 weekly bars) and patterns span <= 80 bars.
@@ -61,10 +65,11 @@ ERROR_CHARS = 240
 # Must match .github/workflows/scan-and-notify.yml: cron "7 */4 * * *"
 SCAN_EVERY_HOURS = 4
 SCAN_MINUTE = 7
-SCHEMA_VERSION = 6  # 3: bars files carry `levels`, `levels_estimated`, `rs_provisional`;
+SCHEMA_VERSION = 7  # 3: bars files carry `levels`, `levels_estimated`, `rs_provisional`;
 #                     4: rows carry `shape_checks`, settings `shape_validation` (D26);
 #                     5: rows carry `pattern_key` (D24 key, no RS) for the site watchlist;
-#                     6: rows carry `neckline_change_pct` and `neckline_trend`, settings `neckline_trend_threshold`
+#                     6: rows carry `neckline_change_pct` and `neckline_trend`, settings `neckline_trend_threshold`;
+#                     7: payload `market` ("crypto" | "tw"), rows (and bars files) may carry `name` (D29 Taiwan stocks)
 # Neckline N1->N2 total change: <= -T is "down", >= +T is "up", otherwise "flat" (front end only filters on it).
 NECKLINE_TREND_THRESHOLD = 0.03
 POINT_NAMES = ("LS", "N1", "H", "N2", "RS")
@@ -218,11 +223,18 @@ def build_payload(symbol_data: Mapping[str, Mapping[str, pd.DataFrame]], cfg: Ma
                   instruments: Mapping[str, Instrument] | None = None,
                   sources: Sequence[str] | None = None,
                   source_listed: Mapping[str, int] | None = None,
-                  source_errors: list[dict[str, Any]] | None = None) -> tuple[dict[str, Any], dict[str, dict[str, Any]]]:
+                  source_errors: list[dict[str, Any]] | None = None,
+                  market: str = "crypto",
+                  next_scan: Callable[[datetime], datetime] | None = None,
+                  data_source: str | None = None,
+                  extra_settings: Mapping[str, Any] | None = None) -> tuple[dict[str, Any], dict[str, dict[str, Any]]]:
     """Returns (scan.json payload, {bars file name: chart data}).
 
     Each symbol/timeframe is scanned on its own; a detector exception is recorded in `failures`
-    (stage "scan") instead of aborting the build. scheduled=False -> next_scan_at is null."""
+    (stage "scan") instead of aborting the build. scheduled=False -> next_scan_at is null.
+    market: "crypto" or "tw" (D29); next_scan: the market's cron schedule (default: every 4 h);
+    instruments with a `name` (Taiwan stocks) put it on every row and bars file."""
+    next_scan = next_scan or next_scan_time
     generated_at = generated_at or datetime.now(timezone.utc)
     failures = list(failures or [])
     instruments = instruments or {}
@@ -240,6 +252,8 @@ def build_payload(symbol_data: Mapping[str, Mapping[str, pd.DataFrame]], cfg: Ma
     for r in results:  # tag the origin; pattern_id gets a prefix so ids never collide across sources
         inst = inst_of(r["symbol"])
         r["exchange"], r["market"], r["tv_symbol"] = inst.exchange, inst.market, inst.tv_symbol
+        if inst.name:
+            r["name"] = inst.name
         r["pattern_id"] = f"{inst.exchange}|{inst.market}|{r['pattern_id']}"
     results = sort_results(results)
 
@@ -265,7 +279,7 @@ def build_payload(symbol_data: Mapping[str, Mapping[str, pd.DataFrame]], cfg: Ma
         row["shape"] = shape_for(chart)
         charts[name] = {"schema_version": SCHEMA_VERSION, "pattern_id": row["pattern_id"],
                         "symbol": row["symbol"], "exchange": row["exchange"], "market": row["market"],
-                        "timeframe": row["timeframe"], **chart}
+                        "timeframe": row["timeframe"], **({"name": row["name"]} if row.get("name") else {}), **chart}
         rows.append(row)
 
     last_closed: dict[str, str | None] = {}
@@ -293,8 +307,9 @@ def build_payload(symbol_data: Mapping[str, Mapping[str, pd.DataFrame]], cfg: Ma
         source_counts.setdefault(key, dict(blank))["listed"] = n
     payload = {
         "schema_version": SCHEMA_VERSION,
+        "market": market,
         "generated_at": generated_at.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-        "next_scan_at": next_scan_time(generated_at).strftime("%Y-%m-%dT%H:%M:%SZ") if scheduled else None,
+        "next_scan_at": next_scan(generated_at).strftime("%Y-%m-%dT%H:%M:%SZ") if scheduled else None,
         "settings": {
             "symbols_source": symbols_source,
             "symbols": symbols,
@@ -310,7 +325,9 @@ def build_payload(symbol_data: Mapping[str, Mapping[str, pd.DataFrame]], cfg: Ma
                                  for cid, _f, key, _k, _t in CHECKS},
             "bars_per_series": {tf: limit_for(tf, limit) for tf in timeframes},
             "sources": list(sources) if sources else sorted(source_counts),
-            "data_source": "exchange public klines (" + ", ".join(sorted(source_counts)) + "), closed bars only",
+            "data_source": data_source or
+                           "exchange public klines (" + ", ".join(sorted(source_counts)) + "), closed bars only",
+            **dict(extra_settings or {}),
         },
         "source_counts": {k: source_counts[k] for k in sorted(source_counts)},
         "source_errors": list(source_errors or []),
@@ -509,13 +526,19 @@ def parse_sources(text: str | None) -> list[str]:
 
 def parse_args(argv=None) -> argparse.Namespace:
     p = argparse.ArgumentParser(description="Scan exchange public klines and write site/data/")
+    p.add_argument("--market", choices=MARKETS, default="crypto",
+                   help="crypto (default) or tw = Taiwan listed + OTC stocks (D29; written to site/data/tw/)")
+    p.add_argument("--tw-include-etf", action="store_true",
+                   help="tw: also scan ETFs (00xx codes); default is common stocks only")
+    p.add_argument("--tw-rps", type=float, default=None,
+                   help="tw: Yahoo requests per second over all workers (default 5)")
     p.add_argument("--sources", default=None,
                    help="comma list of %s; 'default' = %s, 'all' = every source (binance-perp is blocked "
                         "from US IPs). One source per base coin, by that priority." %
                         (",".join(ALL_SOURCES), ",".join(DEFAULT_SOURCES)))
     p.add_argument("--symbols", default="all",
                    help='"all" = every instrument of the chosen sources (default); a comma list of Binance spot '
-                        'symbols (debug) restricts the scan to those, binance-spot only')
+                        'symbols (debug) restricts the scan to those, binance-spot only; tw: stock codes, e.g. 2330,6488')
     p.add_argument("--timeframes", default="4h,1d,1w", help="comma separated subset of 4h,1d,1w")
     p.add_argument("--limit", type=int, default=1000,
                    help="closed klines per symbol/timeframe (1w is capped at %d)" % LIMIT_CAP_BY_TIMEFRAME["1w"])
@@ -527,10 +550,14 @@ def parse_args(argv=None) -> argparse.Namespace:
                         "(IP limit 6000)")
     p.add_argument("--include-stale", action="store_true",
                    help="also include stale patterns (for local preview; production leaves this off)")
-    p.add_argument("--out", default=str(DEFAULT_OUT), help="output JSON path (default site/data/scan.json)")
+    p.add_argument("--out", default=None,
+                   help="output JSON path (default site/data/scan.json; --market tw: site/data/tw/scan.json)")
     p.add_argument("--scheduled", action="store_true",
                    help="a cron runs this every 4h: publish next_scan_at (automatic when GITHUB_EVENT_NAME=schedule)")
-    return p.parse_args(argv)
+    args = p.parse_args(argv)
+    if args.out is None:
+        args.out = str(DEFAULT_OUT_TW if args.market == "tw" else DEFAULT_OUT)
+    return args
 
 
 def main(argv=None) -> int:
@@ -541,6 +568,9 @@ def main(argv=None) -> int:
         pass
     t0 = time.perf_counter()
     args = parse_args(argv)
+    if args.market == "tw":  # D29: separate pipeline (stock list + Yahoo), same detector and payload
+        import build_site_tw
+        return build_site_tw.main_tw(args, t0)
     timeframes = _csv_list(args.timeframes)
     bad = [tf for tf in timeframes if tf not in TIMEFRAMES]
     if not timeframes or bad or args.limit < 1:

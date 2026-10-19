@@ -1,8 +1,10 @@
 # 定時掃描 + Discord 通知。
 # repo 是私有的（charter D16）；網站推到公開 repo chasen8/head-shoulders-site 由 Pages 提供（D25）：
 #   https://chasen8.github.io/head-shoulders-site/
-#   - 結果與通知狀態存在獨立的 orphan 分支 `scan-state`（state.json + site/data/）。
-#   - 每次執行的 site/ 也上傳成 artifact（保留 7 天）。
+#   - 結果與通知狀態存在獨立的 orphan 分支 `scan-state`（state.json + site/data/；台股的 state_tw.json +
+#     site/data/tw/ 也在同一分支，D29）。
+#   - 每次執行的 site/ 也上傳成 artifact（保留 7 天）；發布由 publish job（publish.yml）做。
+# 台股另有 scan-tw.yml（平日 UTC 06:10）。
 # 需要的 secret：DISCORD_WEBHOOK_URL（沒設也能跑：只更新 state，印「未設定 webhook」）。
 # 資料來源：幣安現貨 data-api.binance.vision、OKX 現貨/永續、Gate 永續，全是公開端點不需金鑰（charter D3、D22）；
 # 幣安永續 fapi 在美國 runner 回 451，預設不掃。
@@ -27,10 +29,7 @@ on:
         default: false
 
 permissions:
-  contents: write  # 推 scan-state 分支
-  # 啟用 Pages 部署時再打開（私有 repo 免費方案不能用）：
-  # pages: write
-  # id-token: write
+  contents: write  # publish job 推 scan-state 分支
 
 # 此 workflow 只由 schedule / workflow_dispatch 觸發；沒有 push 觸發，
 # 所以推 scan-state 分支不會引發任何 workflow 迴圈（且 GITHUB_TOKEN 的 push 本來就不會觸發 workflow）。
@@ -42,6 +41,8 @@ jobs:
   scan:
     runs-on: ubuntu-latest
     timeout-minutes: 30  # 本機實測全部來源約 10 分鐘（D22）；上限 30
+    outputs:
+      build_ok: ${{ steps.build.outcome == 'success' }}
     env:
       DRY_RUN: ${{ github.event.inputs.dry_run }}
       NOTIFY_ALL: ${{ github.event.inputs.notify_all }}
@@ -85,51 +86,7 @@ jobs:
           python notify_discord.py $args
 
       # notify 送失敗時也要存 state（沒送成功的型態不會被記錄，下次重試），所以用 !cancelled()。
-      # dry-run 不更新 scan-state。每次推一個全新的 orphan commit（force），分支不累積歷史、不會越長越大。
-      - name: Publish state + site/data to scan-state
-        if: ${{ !cancelled() && steps.build.outcome == 'success' && github.event.inputs.dry_run != 'true' }}
-        run: |
-          set -e
-          dir="$RUNNER_TEMP/scan-state"
-          git worktree add --detach "$dir"
-          cd "$dir"
-          git checkout --orphan scan-state
-          git rm -rf -q --ignore-unmatch .
-          find . -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
-          mkdir -p site
-          cp "$GITHUB_WORKSPACE/state.json" state.json
-          cp -r "$GITHUB_WORKSPACE/site/data" site/data
-          git add -f state.json site/data
-          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
-            commit -q -m "scan-state: $(date -u +%Y-%m-%dT%H:%MZ) (run ${GITHUB_RUN_ID})"
-          git push --force origin scan-state
-
-      # D25：網站公開在另一個公開 repo chasen8/head-shoulders-site（GitHub Pages，main 根目錄），
-      # 本 repo 保持私有。用只對該 repo 有寫入權的 deploy key（secret SITE_DEPLOY_KEY）推送；
-      # 每次 force push 一個全新的單一 commit，不累積歷史。dry-run 不發布。
-      - name: Publish site to public repo
-        if: ${{ !cancelled() && steps.build.outcome == 'success' && github.event.inputs.dry_run != 'true' }}
-        env:
-          SITE_DEPLOY_KEY: ${{ secrets.SITE_DEPLOY_KEY }}
-        run: |
-          set -e
-          if [ -z "$SITE_DEPLOY_KEY" ]; then echo "SITE_DEPLOY_KEY 未設定，略過網站發布"; exit 0; fi
-          key="$RUNNER_TEMP/site_key"
-          printf '%s\n' "$SITE_DEPLOY_KEY" > "$key" && chmod 600 "$key"
-          out="$RUNNER_TEMP/public-site"
-          rm -rf "$out" && mkdir -p "$out"
-          cp -r site/. "$out/"
-          touch "$out/.nojekyll"
-          cd "$out"
-          git init -q -b main
-          git add -A
-          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
-            commit -q -m "site: $(date -u +%Y-%m-%dT%H:%MZ) (run ${GITHUB_RUN_ID})"
-          GIT_SSH_COMMAND="ssh -i $key -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new" \
-            git push --force -q git@github.com:chasen8/head-shoulders-site.git main
-          rm -f "$key"
-          echo "網站已發布：https://chasen8.github.io/head-shoulders-site/"
-
+      # scan-state 與公開網站在 publish job 推送（D29：保留台股那一邊的檔案）；dry-run 不推。
       - name: Upload site as artifact
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         uses: actions/upload-artifact@v7
@@ -139,17 +96,23 @@ jobs:
           retention-days: 7
           if-no-files-found: error
 
-      # ---- GitHub Pages 部署（暫停用；啟用時把上面 upload-artifact 換成這兩段，並打開 permissions）----
-      # - uses: actions/upload-pages-artifact@v5
-      #   with:
-      #     path: site/
+      - name: Upload state as artifact
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: state
+          path: state.json
+          retention-days: 7
+          if-no-files-found: warn
 
-  # deploy:
-  #   needs: scan
-  #   runs-on: ubuntu-latest
-  #   environment:
-  #     name: github-pages
-  #     url: ${{ steps.deployment.outputs.page_url }}
-  #   steps:
-  #     - id: deployment
-  #       uses: actions/deploy-pages@v5
+  # D25 + D29：scan-state 分支與公開網站 chasen8/head-shoulders-site 都是 force push 單一 commit。
+  # 台股（scan-tw.yml）也推同一個地方，所以發布改由共用的 publish.yml 做：只換掉加密貨幣自己的檔案、
+  # 保留台股的 data/tw 與 state_tw.json；concurrency group publish-site 讓兩邊的發布不會同時進行。
+  publish:
+    needs: scan
+    if: ${{ !cancelled() && needs.scan.outputs.build_ok == 'true' && github.event.inputs.dry_run != 'true' }}
+    uses: ./.github/workflows/publish.yml
+    with:
+      market: crypto
+      state_file: state.json
+    secrets: inherit

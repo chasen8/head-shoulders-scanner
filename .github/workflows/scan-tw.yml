@@ -1,0 +1,103 @@
+# 台股（上市＋上櫃普通股）定時掃描 + Discord 通知（charter D29）。
+#   資料：股票清單 TWSE / TPEx OpenAPI，K 線 Yahoo Finance chart API（runner 需 cookie + crumb，
+#   ihs_scanner/data_tw.py 處理）；全是公開端點、不需金鑰、不需註冊。
+#   結果：site/data/tw/scan.json + bars/；通知狀態 state_tw.json（與加密貨幣分開）。
+#   發布：共用 publish.yml，只換掉台股自己的檔案，保留加密貨幣的 data/scan.json、data/bars、state.json。
+#
+# 排程：平日 UTC 06:10 = 台北 14:10（13:30 收盤後 40 分鐘；build_site_tw.py 的 SCAN_HOUR_UTC /
+# SCAN_MINUTE_UTC 要一起改）。國定假日照跑，只是不會有新 K 線。
+name: Scan TW stocks and notify
+
+on:
+  schedule:
+    - cron: "10 6 * * 1-5"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "只印出會發送的內容，不送 Discord、不更新 scan-state、不發布網站"
+        type: boolean
+        default: false
+      notify_all:
+        description: "沒有 state 時逐筆通知（預設只發一則摘要）"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write  # publish job 推 scan-state 分支
+
+concurrency:
+  group: scan-tw
+  cancel-in-progress: false
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45  # 約 2000 檔 × 2 次 Yahoo 請求，5 次/秒約 13–15 分鐘
+    outputs:
+      build_ok: ${{ steps.build.outcome == 'success' }}
+    env:
+      DRY_RUN: ${{ github.event.inputs.dry_run }}
+      NOTIFY_ALL: ${{ github.event.inputs.notify_all }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run tests
+        run: python -m pytest -q
+
+      # 失敗率 >20% 會非零退出 -> 不通知、不發布（D18）。
+      - name: Scan and write site/data/tw/scan.json
+        id: build
+        run: python build_site.py --market tw --scheduled
+
+      - name: Restore previous TW state from scan-state
+        run: |
+          if git fetch --depth=1 origin scan-state 2>/dev/null; then
+            git show FETCH_HEAD:state_tw.json > state_tw.json \
+              || { rm -f state_tw.json; echo "scan-state has no state_tw.json (treated as first run)"; }
+          else
+            echo "no scan-state branch yet (first run)"
+          fi
+
+      - name: Notify Discord
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: |
+          args="--scan site/data/tw/scan.json --state state_tw.json"
+          [ "$DRY_RUN" = "true" ] && args="$args --dry-run"
+          [ "$NOTIFY_ALL" = "true" ] && args="$args --notify-all"
+          python notify_discord.py $args
+
+      - name: Upload site as artifact
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: site
+          path: site/
+          retention-days: 7
+          if-no-files-found: error
+
+      - name: Upload state as artifact
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: state
+          path: state_tw.json
+          retention-days: 7
+          if-no-files-found: warn
+
+  publish:
+    needs: scan
+    if: ${{ !cancelled() && needs.scan.outputs.build_ok == 'true' && github.event.inputs.dry_run != 'true' }}
+    uses: ./.github/workflows/publish.yml
+    with:
+      market: tw
+      state_file: state_tw.json
+    secrets: inherit

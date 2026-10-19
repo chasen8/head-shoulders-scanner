@@ -19,8 +19,13 @@ First run (no state file, or a state older than version 2): one summary message 
 becomes the baseline (no per-pattern spam, D20); --notify-all overrides. A message that failed to send leaves
 its patterns un-notified, so the next run retries them.
 
+Taiwan stocks (D29): the TW scan (site/data/tw/scan.json, `"market": "tw"`) uses its own state file
+(state_tw.json on the scan-state branch) and the same webhook; titles read "台股 2330 台積電 日線 右肩形成中",
+prices are shown as NT$ with two decimals, and the first run is again a single summary.
+
 Example:
     python notify_discord.py --dry-run
+    python notify_discord.py --scan site/data/tw/scan.json --state state_tw.json --dry-run
     DISCORD_WEBHOOK_URL=... python notify_discord.py --min-score 60
 """
 from __future__ import annotations
@@ -62,8 +67,9 @@ STATUS_COLOR = {"confirmed": COLOR_CONFIRMED, "watchlist": COLOR_WATCHLIST, "for
 TV_INTERVAL = {"4h": "240", "1d": "1D", "1w": "1W"}
 TF_LABEL = {"4h": "4小時線", "1d": "日線", "1w": "週線"}
 STATUS_LABEL = {"forming": "右肩形成中", "watchlist": "右肩已確認", "confirmed": "已突破", "stale": "已過期"}
-EXCHANGE_LABEL = {"binance": "幣安", "okx": "OKX", "gate": "Gate"}
-MARKET_LABEL = {"spot": "現貨", "perp": "永續"}
+EXCHANGE_LABEL = {"binance": "幣安", "okx": "OKX", "gate": "Gate", "twse": "上市", "tpex": "上櫃"}
+MARKET_LABEL = {"spot": "現貨", "perp": "永續", "stock": ""}
+TW_PREFIX = "台股"
 
 
 class NotifyError(Exception):
@@ -184,6 +190,22 @@ def fmt_price(x: Any, ref: Any = None) -> str:
     return f"{v:,.{d}f}"
 
 
+def is_tw_row(row: Mapping[str, Any]) -> bool:
+    """Taiwan stock row (D29): market "stock" on TWSE / TPEx."""
+    return row.get("market") == "stock" or row.get("exchange") in ("twse", "tpex")
+
+
+def fmt_twd(x: Any, ref: Any = None) -> str:
+    """Taiwan dollars, two decimals: NT$1,005.00 (`ref` accepted for the fmt_price signature, unused)."""
+    if x is None:
+        return "-"
+    try:
+        v = float(x)
+    except (TypeError, ValueError):
+        return "-"
+    return f"NT${v:,.2f}" if math.isfinite(v) else "-"
+
+
 def _pct(x: Any, digits: int = 1) -> str:
     if x is None:
         return "-"
@@ -193,19 +215,31 @@ def _pct(x: Any, digits: int = 1) -> str:
 def market_label(row: Mapping[str, Any]) -> str:
     ex = row.get("exchange") or "binance"
     mk = row.get("market") or "spot"
+    if is_tw_row(row):
+        return f"台股{EXCHANGE_LABEL.get(ex, ex)}"
     return f"{EXCHANGE_LABEL.get(ex, ex)} {MARKET_LABEL.get(mk, mk)}"
+
+
+def embed_title(r: Mapping[str, Any]) -> str:
+    tf_status = f"{TF_LABEL.get(r['timeframe'], r['timeframe'])} {STATUS_LABEL.get(r['status'], r['status'])}"
+    if is_tw_row(r):
+        name = f" {r['name']}" if r.get("name") else ""
+        return f"{TW_PREFIX} {r['symbol']}{name} {tf_status}"
+    return f"{r['symbol']} {tf_status}"
 
 
 def build_embed(event: Mapping[str, Any]) -> dict[str, Any]:
     r = event["row"]
     status = r["status"]
     ref = r.get("current_close")
+    tw = is_tw_row(r)
+    px = fmt_twd if tw else fmt_price
     side = {"above": "高於", "below": "低於"}.get(r.get("neckline_side"), "距")
     dist = r.get("distance_to_neckline")
-    neck = fmt_price(r.get("current_neckline_price"), ref)
+    neck = px(r.get("current_neckline_price"), ref)
     neck_text = f"{neck}（{side}頸線 {float(dist) * 100:.1f}%）" if dist is not None else neck
     est = "" if r.get("breakout_detected") else "（預估）"
-    title = f"{r['symbol']} {TF_LABEL.get(r['timeframe'], r['timeframe'])} {STATUS_LABEL.get(status, status)}"
+    title = embed_title(r)
     notes = []
     if status == "forming":
         notes.append("右肩尚未確認，會隨新 K 線變動。")
@@ -214,13 +248,13 @@ def build_embed(event: Mapping[str, Any]) -> dict[str, Any]:
     if not r.get("breakout_detected"):
         notes.append("尚未突破：TP2 以目前頸線價預估。")
     fields = [
-        ("交易所", market_label(r)),
+        ("市場" if tw else "交易所", market_label(r)),
         ("分數", f"{float(r['pattern_score']):.1f}"),
-        ("目前價", fmt_price(ref)),
+        ("目前價", px(ref)),
         ("頸線價", neck_text),
-        ("TP1", fmt_price(r.get("tp1"), ref)),  # D28: fixed, not an estimate
-        ("TP2" + est, fmt_price(r.get("tp2"), ref)),
-        ("失效價（頭部低點）", fmt_price(r.get("invalidation_price"), ref)),
+        ("TP1", px(r.get("tp1"), ref)),  # D28: fixed, not an estimate
+        ("TP2" + est, px(r.get("tp2"), ref)),
+        ("失效價（頭部低點）", px(r.get("invalidation_price"), ref)),
         ("左／右肩跌幅", f"{_pct(r.get('drop_left_pct'))}／{_pct(r.get('drop_right_pct'))}"),
         ("頭到頸線漲幅", _pct(r.get("head_rise_pct"))),
     ]
@@ -236,7 +270,7 @@ def build_embed(event: Mapping[str, Any]) -> dict[str, Any]:
 
 
 def build_messages(events: list[Mapping[str, Any]], *, max_detailed: int = MAX_DETAILED,
-                   extra_summary: str | None = None) -> list[dict[str, Any]]:
+                   extra_summary: str | None = None, market: str = "crypto") -> list[dict[str, Any]]:
     """Webhook payloads: <= 10 embeds each; beyond max_detailed events only a summary line."""
     detailed = events[:max_detailed]
     rest = len(events) - len(detailed)
@@ -249,22 +283,33 @@ def build_messages(events: list[Mapping[str, Any]], *, max_detailed: int = MAX_D
     if extra_summary:
         notes.append(extra_summary)
     if notes:
-        messages.append({"embeds": [{"title": "摘要", "description": "\n".join(notes), "color": COLOR_SUMMARY}]})
+        title = f"{TW_PREFIX}摘要" if market == "tw" else "摘要"
+        messages.append({"embeds": [{"title": title, "description": "\n".join(notes), "color": COLOR_SUMMARY}]})
     return messages
 
 
-def summary_message(text: str) -> dict[str, Any]:
-    return {"embeds": [{"title": "頭肩底掃描", "description": text, "color": COLOR_SUMMARY}]}
+def summary_message(text: str, market: str = "crypto") -> dict[str, Any]:
+    title = f"{TW_PREFIX}頭肩底掃描" if market == "tw" else "頭肩底掃描"
+    return {"embeds": [{"title": title, "description": text, "color": COLOR_SUMMARY}]}
 
 
-def first_run_text(rows: Mapping[str, Mapping[str, Any]], min_score: float) -> str:
+def scan_market(scan: Mapping[str, Any]) -> str:
+    """"tw" for the Taiwan-stock scan (payload `market`, or rows on TWSE / TPEx for older files), else "crypto"."""
+    if scan.get("market") in ("tw", "crypto"):
+        return scan["market"]
+    rows = scan.get("results") or []
+    return "tw" if rows and all(is_tw_row(r) for r in rows) else "crypto"
+
+
+def first_run_text(rows: Mapping[str, Mapping[str, Any]], min_score: float, market: str = "crypto") -> str:
     counts: dict[str, int] = {}
     for r in rows.values():
         counts[r["status"]] = counts.get(r["status"], 0) + 1
     parts = "、".join(f"{STATUS_LABEL.get(s, s)} {counts[s]}" for s in ("forming", "watchlist", "confirmed", "stale")
                      if counts.get(s))
     above = sum(float(r.get("pattern_score") or 0) >= min_score for r in rows.values())
-    return (f"開始追蹤，目前 {len(rows)} 個型態" + (f"（{parts}）" if parts else "") +
+    what = "台股" if market == "tw" else ""
+    return (f"開始追蹤{what}，目前 {len(rows)} 個型態" + (f"（{parts}）" if parts else "") +
             f"，其中分數 ≥ {min_score:g} 的 {above} 個。之後只通知新出現的型態與突破。")
 
 
@@ -310,11 +355,12 @@ def run(scan_path: Path, state_path: Path, *, min_score: float, statuses: set[st
     now_text = _utc_text(now)
     scan = json.loads(scan_path.read_text(encoding="utf-8"))
     results = scan.get("results", [])
+    market = scan_market(scan)
     rows = unique_rows(results)
     state = load_state(state_path)
     first_run = state is None
     prev = dict(state or {})
-    print(f"[notify] {len(results)} patterns in scan ({len(rows)} keys), previous state: "
+    print(f"[notify] market={market}: {len(results)} patterns in scan ({len(rows)} keys), previous state: "
           f"{'none or old version (first run)' if first_run else str(len(prev)) + ' patterns'}; "
           f"min_score={min_score:g}, statuses={','.join(sorted(statuses))}; "
           f"webhook {'已設定' if webhook else '未設定'}{'; dry-run' if dry_run else ''}")
@@ -322,10 +368,10 @@ def run(scan_path: Path, state_path: Path, *, min_score: float, statuses: set[st
     baseline = first_run and not notify_all
     if baseline:
         events: list[dict[str, Any]] = []
-        messages = [summary_message(first_run_text(rows, min_score))]
+        messages = [summary_message(first_run_text(rows, min_score, market), market)]
     else:
         events = find_events(results, None if first_run else prev, min_score=min_score, statuses=statuses)
-        messages = build_messages(events, max_detailed=max_detailed)
+        messages = build_messages(events, max_detailed=max_detailed, market=market)
     kinds: dict[str, int] = {}
     for e in events:
         label = "confirmed" if e["row"]["status"] == "confirmed" else e["row"]["status"]

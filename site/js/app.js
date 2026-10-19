@@ -1,37 +1,48 @@
 /* 頭肩底掃描 front end.
- * Draws only what data/scan.json and data/bars/*.json contain (built by build_site.py).
+ * Draws only what data/scan.json and data/bars/*.json contain (built by build_site.py); D29 adds a second
+ * market, Taiwan stocks, in data/tw/scan.json + data/tw/bars/ (same row format plus `name`).
  * No detection or scoring logic lives here: just formatting, filtering, sorting by JSON fields
  * and linear mapping to pixels. Bars for a pattern are fetched only when it is opened. */
 (function () {
   "use strict";
 
-  var DATA_DIR = "data/";
-  var DATA_URL = DATA_DIR + "scan.json";
+  // D29: each market has its own scan.json + bars/ (crypto and Taiwan scans are published independently)
+  var MARKETS = {
+    crypto: { label: "加密貨幣", dir: "data/" },
+    tw: { label: "台股", dir: "data/tw/" }
+  };
+  var MARKET_ORDER = ["crypto", "tw"];
+  function dataUrl(m) { return MARKETS[m].dir + "scan.json"; }
   var PAGE = 150; // rows rendered per "show more"
   var TF_LABEL = { "4h": "4 小時", "1d": "日線", "1w": "週線" };
   var STATUS_LABEL = { forming: "右肩形成中", watchlist: "右肩已確認", confirmed: "已突破", stale: "已過期" };
   var STATUS_ORDER = ["forming", "watchlist", "confirmed", "stale"];
-  var EX_LABEL = { binance: "幣安", okx: "OKX", gate: "Gate" };
-  var MKT_LABEL = { spot: "現貨", perp: "永續" };
+  var EX_LABEL = { binance: "幣安", okx: "OKX", gate: "Gate", twse: "上市", tpex: "上櫃" };
+  var MKT_LABEL = { spot: "現貨", perp: "永續", stock: "" };
   var SOURCE_LABEL = { "binance-spot": "幣安現貨", "binance-perp": "幣安永續", "okx-spot": "OKX 現貨",
-    "okx-perp": "OKX 永續", "gate-perp": "Gate 永續" };
+    "okx-perp": "OKX 永續", "gate-perp": "Gate 永續", "twse-stock": "上市", "tpex-stock": "上櫃" };
   var TV_INTERVAL = { "4h": "240", "1d": "1D", "1w": "1W" };
   var PROVISIONAL_NOTE = "右肩尚未確認，會隨新 K 線變動。";
+  var TW_4H_NOTE = "台股 4 小時線一天兩根：09:00–13:00 與 13:00–13:30（台北時間，和 TradingView 相同），所以兩根長短不一。";
   var POINT_NAME = { LS: "左肩", N1: "頸線點", H: "頭", N2: "頸線點", RS: "右肩" };
   var POINTS = ["LS", "N1", "H", "N2", "RS"];
   var NECK_LABEL = { down: "下降", flat: "水平", up: "上升" };
   var NECK_ORDER = ["down", "flat", "up"];
   var WL_KEY = "ihs.watchlist.v1";
   var SET_KEY = "ihs.settings.v1";
-  var DEFAULT_SETTINGS = { tf: "all", status: "all", neck: "all", sort: "score", minScore: 0, showLevels: true, showChecks: true };
+  // Filter defaults are shared by both markets; `market` remembers the market viewed last (D29).
+  var DEFAULT_SETTINGS = { tf: "all", status: "all", neck: "all", sort: "score", minScore: 0, showLevels: true, showChecks: true,
+    market: "crypto" };
   var C = {
     bg: "#FFFFFF", text: "#131722", muted: "#6A6D78", faint: "#787B86", line: "#E0E3EB", grid: "#F0F3FA",
     accent: "#2962FF", up: "#089981", down: "#F23645", forming: "#FF9800",
     tp: "#089981", tp2: "#22AB94", stop: "#787B86", accentSoft: "rgba(41,98,255,0.5)"
   };
 
-  var state = { data: null, q: "", tf: "all", status: "all", neck: "all", sort: "score", shown: PAGE, selected: null,
-    minScore: 0, onlyWl: false };
+  var state = { data: null, market: "crypto", q: "", tf: "all", status: "all", neck: "all", sort: "score", shown: PAGE,
+    selected: null, minScore: 0, onlyWl: false };
+  var dataCache = {}; // market -> scan.json payload (loaded on demand)
+  var loadErr = {}; // market -> last load error
   var chartApi = null;
   var chartCache = {};
   var reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -72,18 +83,35 @@
     if (!(a > 0)) return 2;
     return Math.min(12, Math.ceil(-Math.log10(a)) + 3);
   }
+  function isTw() { return state.market === "tw"; }
+  function rowMarket(r) { return r && (r.market === "stock" || r.exchange === "twse" || r.exchange === "tpex") ? "tw" : "crypto"; }
+  // Taiwan stocks: always two decimals (NT$); crypto: by magnitude
   function fmtPrice(p, ref) {
     if (p === null || p === undefined) return "—";
-    var d = decimalsFor(ref === undefined ? p : ref);
+    var d = isTw() ? 2 : decimalsFor(ref === undefined ? p : ref);
     return Number(p).toLocaleString("en-US", { minimumFractionDigits: d, maximumFractionDigits: d });
   }
   function pct(x, digits) { return (x * 100).toFixed(digits === undefined ? 1 : digits) + "%"; }
   function symParts(sym) {
     return /USDT$/.test(sym) ? { base: sym.slice(0, -4), quote: "/USDT" } : { base: sym, quote: "" };
   }
+  // "BTC<small>/USDT</small>" or, for a Taiwan stock, "2330<small class=sym__name>台積電</small>"
+  function symHtml(r) {
+    if (rowMarket(r) === "tw") {
+      return esc(r.symbol) + (r.name ? "<small class=\"sym__name\">" + esc(r.name) + "</small>" : "");
+    }
+    var sp = symParts(r.symbol);
+    return esc(sp.base) + "<small>" + esc(sp.quote) + "</small>";
+  }
+  function symText(r) {
+    if (rowMarket(r) === "tw") return r.symbol + (r.name ? " " + r.name : "");
+    var sp = symParts(r.symbol);
+    return sp.base + sp.quote;
+  }
   function tfName(tf) { return TF_LABEL[tf] || tf; }
   function marketText(r) {
     var ex = r.exchange || "binance", mk = r.market || "spot";
+    if (rowMarket(r) === "tw") return EX_LABEL[ex] || ex;
     return (EX_LABEL[ex] || ex) + " " + (MKT_LABEL[mk] || mk);
   }
   function tvUrl(r) {
@@ -104,21 +132,30 @@
   }
 
   /* ---------- meta ---------- */
+  function unitWord() { return isTw() ? "檔股票" : "個幣種"; }
+  function scopeText(d) {
+    var s = d.settings, tfs = s.timeframes.map(tfName).join("、");
+    if (d.market === "tw") {
+      return "台灣上市＋上櫃" + (s.universe === "common+etf" ? "普通股與 ETF" : "普通股") +
+        (s.symbols_source === "all" ? "" : "（部分）") + "，" + tfs;
+    }
+    var srcs = (s.sources || []).map(function (k) { return SOURCE_LABEL[k] || k; });
+    return (srcs.length ? srcs.join("、") : "幣安現貨") +
+      (s.symbols_source === "all" ? " 全部 USDT 交易對" : " USDT 交易對") + "，" + tfs;
+  }
   function renderMeta() {
     var d = state.data, s = d.settings;
-    var tfs = s.timeframes.map(tfName).join("、");
     var scanned = d.scanned_symbols !== undefined ? d.scanned_symbols : s.symbols.length;
     var next = d.next_scan_at, nextText;
+    var every = isTw() ? "每個交易日收盤後（台北 14:10 左右）掃描一次" : "每 4 小時掃描一次";
     if (!next) nextText = "目前沒有定時掃描，資料只在手動執行時更新。";
     else if (new Date(next).getTime() < Date.now()) nextText = "預定的下次掃描（" + fmtStamp(next) + "）已經過了，這份資料可能不是最新的。";
-    else nextText = "每 4 小時掃描一次，下次約在 " + (sameDay(next, new Date().toISOString()) ? fmtClock(next) : fmtStamp(next)) + "。";
+    else nextText = every + "，下次約在 " + (sameDay(next, new Date().toISOString()) ? fmtClock(next) : fmtStamp(next)) + "。";
     var fails = (d.failures || []).length;
-    var srcs = (s.sources || []).map(function (k) { return SOURCE_LABEL[k] || k; });
-    $("scope").textContent = (srcs.length ? srcs.join("、") : "幣安現貨") +
-      (s.symbols_source === "all" ? " 全部 USDT 交易對" : " USDT 交易對") + "，" + tfs;
+    $("scope").textContent = scopeText(d);
     $("meta").innerHTML =
-      "資料更新於 <time datetime=\"" + esc(d.generated_at) + "\">" + fmtStamp(d.generated_at) + "</time>（" +
-      tzLabel() + "），掃描了 " + scanned + " 個幣種。" +
+      "<b class=\"meta__mkt\">" + esc(MARKETS[state.market].label) + "</b>資料更新於 <time datetime=\"" + esc(d.generated_at) + "\">" +
+      fmtStamp(d.generated_at) + "</time>（" + tzLabel() + "），掃描了 " + scanned + " " + unitWord() + "。" +
       (fails ? "有 " + fails + " 組 K 線抓取失敗，已略過。" : "") + nextText +
       (s.include_stale ? "這份資料包含已過期的型態（預覽用）。" : "");
   }
@@ -126,7 +163,8 @@
   /* ---------- filtering / sorting (JSON fields only) ---------- */
   function matchQ(r) {
     if (!state.q) return true;
-    return r.symbol.toUpperCase().indexOf(state.q) !== -1;
+    return r.symbol.toUpperCase().indexOf(state.q) !== -1 ||
+      (!!r.name && String(r.name).toUpperCase().indexOf(state.q) !== -1);
   }
   function pass(r, skip) {
     return matchQ(r) &&
@@ -208,12 +246,11 @@
 
   /* ---------- list ---------- */
   function rowHtml(r) {
-    var sp = symParts(r.symbol);
     return "<li class=\"rowwrap\"><button type=\"button\" class=\"row\" data-id=\"" + esc(r.pattern_id) + "\" aria-current=\"" +
-      (state.selected === r.pattern_id) + "\" aria-label=\"" + esc(sp.base + sp.quote + " " + tfName(r.timeframe) + "，" +
+      (state.selected === r.pattern_id) + "\" aria-label=\"" + esc(symText(r) + " " + tfName(r.timeframe) + "，" +
       marketText(r) + "，" + STATUS_LABEL[r.status] + "，" + distText(r) + (neckText(r) ? "，" + neckText(r) : "") + "，分數 " + r.pattern_score.toFixed(1)) + "\">" +
       glyph(r) +
-      "<span class=\"row__name\"><span class=\"sym\">" + esc(sp.base) + "<small>" + esc(sp.quote) + "</small></span>" +
+      "<span class=\"row__name\"><span class=\"sym\">" + symHtml(r) + "</span>" +
       "<span class=\"tf\">" + esc(tfName(r.timeframe)) + "</span>" +
       "<span class=\"mkt\">" + esc(marketText(r)) + "</span></span>" +
       "<span class=\"row__score\">" + r.pattern_score.toFixed(1) + "<small>分</small></span>" +
@@ -249,7 +286,7 @@
       $("list").innerHTML = "";
       showNotice("empty", "目前沒有符合條件的頭肩底",
         "最近一次掃描（" + fmtStamp(d.generated_at) + "）在 " + (d.scanned_symbols || d.settings.symbols.length) +
-        " 個幣種的 " + esc(d.settings.timeframes.map(tfName).join("、")) +
+        " " + unitWord() + "的 " + esc(d.settings.timeframes.map(tfName).join("、")) +
         " K 線上，沒有找到正在成形或剛突破頸線的型態。" + (d.next_scan_at
           ? "下次掃描約在 " + fmtStamp(d.next_scan_at) + "（" + tzLabel() + "），到時新收盤的 K 線會再檢查一次。"
           : "目前沒有定時掃描；新的 K 線收盤後，重新執行一次掃描才會更新這裡。"));
@@ -259,7 +296,7 @@
       $("count").textContent = "沒有符合的型態";
       $("list").innerHTML = "";
       showNotice("empty", "沒有符合的型態",
-        (state.q ? "找不到名稱含「" + esc(state.q) + "」的幣種" : state.onlyWl ? "觀察名單裡沒有符合的型態（在每個型態旁按星號加入）" : "這個篩選下沒有型態") +
+        (state.q ? "找不到代號或名稱含「" + esc(state.q) + "」的" + (isTw() ? "股票" : "幣種") : state.onlyWl ? "觀察名單裡沒有符合的型態（在每個型態旁按星號加入）" : "這個篩選下沒有型態") +
         (state.minScore > 0 ? "；目前設定了最低分數 " + state.minScore + "（可在選單的設定調整）" : "") +
         "。換一個週期、狀態或頸線斜率看看，或清除篩選看全部 " + all.length + " 個。",
         { label: "清除篩選", run: clearFilters });
@@ -358,12 +395,12 @@
   }
 
   function renderDetail(r) {
-    var sp = symParts(r.symbol), tf = r.timeframe;
+    var tf = r.timeframe;
     var px = function (p) { return fmtPrice(p, r.current_close); };
     var est = r.breakout_detected ? "" : "（預估）";
     $("detail").hidden = false;
     $("detail-head").innerHTML =
-      "<div class=\"detail__title\"><h2>" + esc(sp.base) + "<small>" + esc(sp.quote) + "</small></h2>" +
+      "<div class=\"detail__title\"><h2>" + symHtml(r) + "</h2>" +
       starBtn(r, "star--lg") +
       "<span class=\"tf\">" + esc(tfName(tf)) + "</span>" +
       "<span class=\"mkt mkt--lg\">" + esc(marketText(r)) + "</span>" +
@@ -420,7 +457,7 @@
   }
 
   function loadChart(r) {
-    var id = r.pattern_id, url = DATA_DIR + r.chart_file;
+    var id = r.pattern_id, url = MARKETS[rowMarket(r)].dir + r.chart_file;
     if (chartCache[id]) { drawChart(r, chartCache[id]); return; }
     chartState("loading", "<p>正在載入 K 線…</p>");
     fetch(url, { cache: "no-store" })
@@ -556,7 +593,7 @@
       return;
     }
     chartState(null);
-    var d = Math.abs(r.current_close) >= 10000 ? 0 : decimalsFor(r.current_close);
+    var d = rowMarket(r) === "tw" ? 2 : Math.abs(r.current_close) >= 10000 ? 0 : decimalsFor(r.current_close);
     api.candles.applyOptions({ priceFormat: { type: "price", precision: d, minMove: Math.pow(10, -d) } });
     api.candles.setData(c.bars.map(function (b) {
       return { time: b[0], open: b[1], high: b[2], low: b[3], close: b[4] };
@@ -624,7 +661,7 @@
     api.chart.timeScale().applyOptions({ rightOffset: prov ? 12 : 6 });
     if (to >= lastIdx) api.chart.timeScale().fitContent();
     else api.chart.timeScale().setVisibleLogicalRange({ from: -2, to: to + 6 });
-    $("chart").setAttribute("aria-label", symParts(r.symbol).base + " " + tfName(r.timeframe) +
+    $("chart").setAttribute("aria-label", symText(r) + " " + tfName(r.timeframe) +
       " K 線圖，標出 LS、N1、H、N2、RS 五個點與頸線" + (prov ? "（右肩暫定）" : "") +
       (c.breakout ? "，以及突破點" : "") + (levels.length ? "，TP1、TP2 與失效價水平線" : ""));
     $("chart-legend").hidden = false;
@@ -634,8 +671,10 @@
     toggle(".lg--tp", levels.length > 0);
     toggle(".lg--stop", levels.length > 0);
     var note = $("chart-note");
-    note.textContent = prov ? "RS 是暫定點：" + PROVISIONAL_NOTE : "";
-    note.hidden = !prov;
+    var tw4h = rowMarket(r) === "tw" && r.timeframe === "4h";
+    note.textContent = (prov ? "RS 是暫定點：" + PROVISIONAL_NOTE : "") +
+      (tw4h ? (prov ? " " : "") + TW_4H_NOTE : "");
+    note.hidden = !prov && !tw4h;
   }
 
   /* ---------- wiring ---------- */
@@ -738,6 +777,7 @@
       if (typeof raw.minScore === "number" && raw.minScore >= 0 && raw.minScore <= 100) s.minScore = raw.minScore;
       if (typeof raw.showLevels === "boolean") s.showLevels = raw.showLevels;
       if (typeof raw.showChecks === "boolean") s.showChecks = raw.showChecks;
+      if (typeof raw.market === "string" && MARKETS[raw.market]) s.market = raw.market;
     }
     return s;
   }
@@ -755,7 +795,7 @@
     if (typeof o.pattern_key !== "string" || !o.pattern_key || typeof o.symbol !== "string" || !o.symbol) return null;
     return {
       pattern_key: o.pattern_key.slice(0, 200), symbol: o.symbol.slice(0, 40),
-      exchange: str(o.exchange), market: str(o.market), timeframe: str(o.timeframe),
+      exchange: str(o.exchange), market: str(o.market), timeframe: str(o.timeframe), name: str(o.name),
       added_at: typeof o.added_at === "string" && !isNaN(Date.parse(o.added_at)) ? o.added_at : new Date().toISOString(),
       status_at_add: STATUS_LABEL[o.status_at_add] ? o.status_at_add : null,
       score_at_add: typeof o.score_at_add === "number" && isFinite(o.score_at_add) ? o.score_at_add : null,
@@ -786,10 +826,14 @@
   }
   function isStarred(key) { return !!key && !!findWatch(key); }
   var keyIndex = {};
-  function buildKeyIndex() {
+  function buildKeyIndex() { // pattern_key -> row, over every market loaded so far (keys never collide: D29)
     keyIndex = {};
-    state.data.results.forEach(function (r) { if (r.pattern_key && !keyIndex[r.pattern_key]) keyIndex[r.pattern_key] = r; });
+    MARKET_ORDER.forEach(function (m) {
+      if (!dataCache[m]) return;
+      dataCache[m].results.forEach(function (r) { if (r.pattern_key && !keyIndex[r.pattern_key]) keyIndex[r.pattern_key] = r; });
+    });
   }
+  function watchInMarket(m) { return watch.filter(function (w) { return rowMarket(w) === m; }).length; }
 
   var STAR_SVG = "<svg viewBox=\"0 0 24 24\" aria-hidden=\"true\" focusable=\"false\"><path d=\"M12 3.2l2.7 5.6 6.1.8-4.5 4.2 1.1 6.1L12 17l-5.4 2.9 1.1-6.1L3.2 9.6l6.1-.8z\"/></svg>";
   function starAttrs(on) {
@@ -810,7 +854,7 @@
       if (!r) return;
       watch.unshift(normItem({ pattern_key: key, symbol: r.symbol, exchange: r.exchange, market: r.market,
         timeframe: r.timeframe, added_at: new Date().toISOString(), status_at_add: r.status,
-        score_at_add: r.pattern_score, tv_symbol: r.tv_symbol }));
+        score_at_add: r.pattern_score, tv_symbol: r.tv_symbol, name: r.name }));
     }
     saveWatch();
     refreshStars();
@@ -820,7 +864,7 @@
       var a = starAttrs(isStarred(b.getAttribute("data-key")));
       b.setAttribute("aria-pressed", a.pressed); b.setAttribute("aria-label", a.label); b.title = a.label;
     });
-    $("wl-n").textContent = watch.length;
+    $("wl-n").textContent = watchInMarket(state.market);
     var open = drawerEl().classList.contains("is-open");
     if (open && drawer.view === "menu") renderDrawer();
     if (open && drawer.view === "watchlist") {
@@ -861,6 +905,7 @@
     $("menu-btn").setAttribute("aria-expanded", "true");
     setInert(true);
     focusFirst();
+    if (drawer.view === "watchlist") loadAllMarkets();
   }
   function closeDrawer(focusTarget) {
     var d = drawerEl();
@@ -873,13 +918,18 @@
     if (reduceMotion) done(); else drawer.timer = setTimeout(done, 220);
     (focusTarget || $("menu-btn")).focus();
   }
-  function setView(v) { drawer.view = v; renderDrawer(); focusFirst(); }
+  function setView(v) { drawer.view = v; renderDrawer(); focusFirst(); if (v === "watchlist") loadAllMarkets(); }
 
   function statusTag(st) { return "<span class=\"status status--" + esc(st) + "\">" + esc(STATUS_LABEL[st] || st) + "</span>"; }
 
   function menuHtml() {
-    return "<ul class=\"dnav\">" +
-      "<li><button type=\"button\" class=\"dnav__btn\" data-act=\"all\">全部型態</button></li>" +
+    return "<ul class=\"dnav\">" + MARKET_ORDER.map(function (m) {
+      var cur = m === state.market, d = dataCache[m];
+      var n = d ? d.results.length + " 個型態" : (loadErr[m] ? "尚無資料" : "");
+      return "<li><button type=\"button\" class=\"dnav__btn dnav__btn--mkt\" data-act=\"market\" data-market=\"" + m + "\"" +
+        (cur ? " aria-current=\"page\"" : "") + "><span>" + esc(MARKETS[m].label) + "</span>" +
+        "<span class=\"dnav__sub\">" + (cur ? "目前" + (n ? "・" : "") : "") + esc(n) + "</span></button></li>";
+    }).join("") +
       "<li><button type=\"button\" class=\"dnav__btn\" data-act=\"view\" data-view=\"watchlist\">觀察名單（" + watch.length + "）</button></li>" +
       "<li><button type=\"button\" class=\"dnav__btn\" data-act=\"view\" data-view=\"settings\">設定</button></li>" +
       "<li><button type=\"button\" class=\"dnav__btn\" data-act=\"view\" data-view=\"about\">關於</button></li></ul>";
@@ -892,8 +942,9 @@
     }
     var items = watch.slice().sort(function (a, b) { return Date.parse(b.added_at) - Date.parse(a.added_at); });
     h += "<ul class=\"wls\">" + items.map(function (w) {
-      var cur = keyIndex[w.pattern_key], sp = symParts(w.symbol);
-      var head = "<span class=\"wl__top\"><span class=\"sym\">" + esc(sp.base) + "<small>" + esc(sp.quote) + "</small></span>" +
+      var cur = keyIndex[w.pattern_key], wm = rowMarket(w);
+      var head = "<span class=\"wl__top\"><span class=\"mtag mtag--" + wm + "\">" + esc(MARKETS[wm].label) + "</span>" +
+        "<span class=\"sym\">" + symHtml(w) + "</span>" +
         (w.timeframe ? "<span class=\"tf\">" + esc(tfName(w.timeframe)) + "</span>" : "") +
         (w.exchange ? "<span class=\"mkt\">" + esc(marketText(w)) + "</span>" : "") + "</span>";
       var sub, note = "加入於 " + fmtDay(w.added_at, true) +
@@ -904,8 +955,8 @@
           sub = "<span class=\"wl__chg\">" + esc(STATUS_LABEL[w.status_at_add]) + " → </span>" + statusTag(cur.status);
         } else sub = statusTag(cur.status);
         sub += "<span class=\"dist\">分數 " + cur.pattern_score.toFixed(1) + "</span>";
-      } else if (!state.data) {
-        sub = "<span class=\"dist\">尚未讀到最新掃描資料，無法比對</span>";
+      } else if (!dataCache[wm]) {
+        sub = "<span class=\"dist\">尚未讀到" + esc(MARKETS[wm].label) + "的最新掃描資料，無法比對</span>";
       } else {
         sub = "<span class=\"gone\">已不在最新結果（可能作廢或過期）</span>";
       }
@@ -922,7 +973,7 @@
     var tfs = (state.data ? state.data.settings.timeframes : ["4h", "1d", "1w"]);
     return "<button type=\"button\" class=\"dback\" data-act=\"back\">‹ 選單</button>" +
       (storageOk ? "" : "<p class=\"dwarn\">這個瀏覽器停用了網站儲存，設定只在這次開啟期間有效。</p>") +
-      "<h3 class=\"dh\">預設篩選與排序</h3><p class=\"dnote\">改了立刻套用，也會記住，下次打開時還是這樣。</p>" +
+      "<h3 class=\"dh\">預設篩選與排序</h3><p class=\"dnote\">改了立刻套用，也會記住，下次打開時還是這樣。加密貨幣與台股共用這組預設；網站也會記住你上次看的市場。</p>" +
       "<div class=\"fld\"><label for=\"s-tf\">週期</label><select id=\"s-tf\" data-set=\"tf\">" + opt("all", "全部", settings.tf) +
       tfs.map(function (t) { return opt(t, tfName(t), settings.tf); }).join("") + "</select></div>" +
       "<div class=\"fld\"><label for=\"s-st\">狀態</label><select id=\"s-st\" data-set=\"status\">" + opt("all", "全部", settings.status) +
@@ -952,8 +1003,10 @@
   }
   function aboutHtml() {
     return "<button type=\"button\" class=\"dback\" data-act=\"back\">‹ 選單</button>" +
-      "<div class=\"about\"><p>資料來源：幣安、OKX、Gate 的公開 K 線行情，只用已收盤的 K 線。</p>" +
-      "<p>每 4 小時自動掃描並更新一次，頁首會寫出資料更新時間。</p>" +
+      "<div class=\"about\"><p>加密貨幣：幣安、OKX、Gate 的公開 K 線行情，每 4 小時自動掃描一次。</p>" +
+      "<p>台股：上市＋上櫃普通股（清單與名稱來自證交所、櫃買中心 OpenAPI），K 線來自 Yahoo Finance（未還原權息，和 TradingView 預設相同），" +
+      "每個交易日收盤後（台北 14:10 左右）掃描一次；4 小時線一天兩根：09:00–13:00、13:00–13:30。</p>" +
+      "<p>兩邊都只用已收盤的 K 線，頁首會寫出該市場的資料更新時間。</p>" +
       "<p><strong>這是型態偵測工具，不是投資建議。</strong>型態成立不代表價格會上漲，請自行判斷風險。</p>" +
       "<p>觀察名單與設定只存在這個瀏覽器（localStorage），不會上傳到任何地方；換裝置請用「設定」裡的匯出／匯入。</p>" +
       "<p>「右肩已確認」是掃描狀態（右肩已成形、尚未突破頸線），和「觀察名單」是兩回事。</p></div>";
@@ -992,19 +1045,17 @@
     var act = t.getAttribute("data-act");
     if (act === "view") setView(t.getAttribute("data-view"));
     else if (act === "back") setView("menu");
-    else if (act === "all") {
-      state.onlyWl = false; state.shown = PAGE; $("only-wl").setAttribute("aria-pressed", "false");
-      if (state.data) update();
+    else if (act === "market") {
+      state.onlyWl = false; $("only-wl").setAttribute("aria-pressed", "false");
       closeDrawer();
+      switchMarket(t.getAttribute("data-market"));
     } else if (act === "open") {
       var r = keyIndex[t.getAttribute("data-key")];
       if (!r) return;
       state.q = ""; $("q").value = ""; state.tf = "all"; state.status = "all"; state.neck = "all"; state.onlyWl = false; state.shown = PAGE;
       $("only-wl").setAttribute("aria-pressed", "false");
-      state.selected = r.pattern_id;
-      update();
       closeDrawer($("detail"));
-      select(r.pattern_id, true);
+      switchMarket(rowMarket(r), r.pattern_id);
     } else if (act === "export-file") {
       try {
         var url = URL.createObjectURL(new Blob([exportText()], { type: "application/json" }));
@@ -1098,7 +1149,13 @@
       state.shown = PAGE;
       if (state.data) update();
     });
-    $("wl-n").textContent = watch.length;
+    $("wl-n").textContent = watchInMarket(state.market);
+    Array.prototype.forEach.call(document.querySelectorAll(".mtab"), function (b) {
+      b.addEventListener("click", function () {
+        var m = b.getAttribute("data-market");
+        if (m !== state.market) { state.onlyWl = false; $("only-wl").setAttribute("aria-pressed", "false"); switchMarket(m); }
+      });
+    });
   }
 
   // Test-only URL parameters (never set in normal use): ?demoStars=N stars the first N rows in memory
@@ -1117,7 +1174,7 @@
         watch.push(normItem({ pattern_key: r.pattern_key, symbol: r.symbol, exchange: r.exchange, market: r.market,
           timeframe: r.timeframe, added_at: new Date(Date.now() - watch.length * 86400000).toISOString(),
           status_at_add: watch.length === 0 ? other : r.status, score_at_add: r.pattern_score - (watch.length === 0 ? 3.2 : 0),
-          tv_symbol: r.tv_symbol }));
+          tv_symbol: r.tv_symbol, name: r.name }));
       });
       watch.push(normItem({ pattern_key: "binance|spot|GONEUSDT|1d|2026-01-01T00:00:00Z|2026-02-01T00:00:00Z", symbol: "GONEUSDT",
         exchange: "binance", market: "spot", timeframe: "1d", added_at: new Date(Date.now() - 9 * 86400000).toISOString(),
@@ -1128,48 +1185,142 @@
     if (VIEW_TITLE[dv]) openDrawer(dv);
   }
 
-  function fail(err) {
-    $("meta").textContent = "讀不到掃描資料。";
-    document.querySelector(".panel__head .filters").hidden = true;
-    document.querySelector(".panel__head .search").hidden = true;
+  function showControls(on) {
+    document.querySelector(".panel__head .filters").hidden = !on;
+    document.querySelector(".panel__head .search").hidden = !on;
+    $("only-wl").hidden = !on;
+  }
+  function fail(m, err) {
+    var missing = err && /HTTP 404/.test(String(err.message || err));
+    $("meta").innerHTML = "<b class=\"meta__mkt\">" + esc(MARKETS[m].label) + "</b>" +
+      (missing && m === "tw" ? "台股資料還沒產生。" : "讀不到掃描資料。");
+    $("scope").textContent = m === "tw" ? "台灣上市＋上櫃普通股，4 小時、日線、週線" : "幣安、OKX、Gate 的 USDT 交易對，4 小時、日線、週線";
+    showControls(false);
     $("detail").hidden = true;
     $("count").textContent = "";
+    $("list").innerHTML = "";
+    $("more").hidden = true;
+    if (missing && m === "tw") {
+      showNotice("empty", "台股資料還沒產生",
+        "台股每個交易日收盤後（台北 14:10 左右）掃描一次；第一次掃描完成後，這裡就會出現上市、上櫃股票的頭肩底型態。" +
+        "現在可以先看加密貨幣。", { label: "看加密貨幣", run: function () { switchMarket("crypto"); } });
+      return;
+    }
     showNotice("error", "讀不到掃描資料",
-      "<code>" + DATA_URL + "</code> 載入失敗（" + esc(err && err.message ? err.message : err) + "）。" +
+      "<code>" + esc(dataUrl(m)) + "</code> 載入失敗（" + esc(err && err.message ? err.message : err) + "）。" +
       "如果網站剛建好，等第一次掃描跑完再重新整理；本機預覽請在 <code>site</code> 資料夾裡執行 " +
       "<code>python -m http.server</code> 再用瀏覽器開，不要直接雙擊 HTML 檔。",
       { label: "重新整理", run: function () { location.reload(); } });
   }
 
-  function start() {
-    bind();
-    bindExtras();
-    fetch(DATA_URL, { cache: "no-store" })
+  function loadMarket(m) {
+    if (dataCache[m]) return Promise.resolve(dataCache[m]);
+    return fetch(dataUrl(m), { cache: "no-store" })
       .then(function (res) {
         if (!res.ok) throw new Error("HTTP " + res.status);
         return res.json();
       })
       .then(function (data) {
         if (!data || !Array.isArray(data.results) || !data.settings) throw new Error("檔案格式不對");
-        state.data = data;
+        dataCache[m] = data; delete loadErr[m];
         buildKeyIndex();
-        applySettingsToState();
+        return data;
+      }, function (err) { loadErr[m] = err; throw err; });
+  }
+  function loadAllMarkets() { // for the watchlist view: compare stars of every market with its latest scan
+    MARKET_ORDER.forEach(function (m) {
+      if (dataCache[m] || loadErr[m]) return;
+      loadMarket(m).then(function () {
+        if (drawerEl().classList.contains("is-open") && drawer.view === "watchlist") renderDrawer();
+      }, function () {
+        if (drawerEl().classList.contains("is-open") && drawer.view === "watchlist") renderDrawer();
+      });
+    });
+  }
+
+  function renderMarketChrome() {
+    var m = state.market;
+    document.documentElement.setAttribute("data-market", m);
+    Array.prototype.forEach.call(document.querySelectorAll(".mtab"), function (b) {
+      b.setAttribute("aria-pressed", String(b.getAttribute("data-market") === m));
+    });
+    $("panel-title").textContent = MARKETS[m].label + "型態清單";
+    $("q-label").textContent = m === "tw" ? "搜尋股票" : "搜尋幣種";
+    $("q").placeholder = m === "tw" ? "搜尋代號或名稱，例如 2330、台積電" : "搜尋幣種，例如 BTC";
+    $("wl-n").textContent = watchInMarket(m);
+    document.title = (m === "tw" ? "台股" : "") + "頭肩底掃描";
+  }
+
+  function setUrlMarket(m, keepHash) {
+    try {
+      var qs = new URLSearchParams(location.search);
+      if (m === "crypto") qs.delete("market"); else qs.set("market", m);
+      var q = qs.toString();
+      history.replaceState(null, "", location.pathname + (q ? "?" + q : "") + (keepHash ? location.hash : ""));
+    } catch (e) { /* file:// etc. */ }
+  }
+
+  // Switch the list, filters, counts and detail to market m. selectId: a pattern to open after loading.
+  function switchMarket(m, selectId) {
+    if (!MARKETS[m]) m = "crypto";
+    var changed = m !== state.market;
+    state.market = m;
+    if (changed) {
+      state.q = ""; $("q").value = ""; state.shown = PAGE; state.selected = null;
+      setUrlMarket(m, false);
+    }
+    if (settings.market !== m) { settings.market = m; saveSettings(); }
+    renderMarketChrome();
+    if (changed || !dataCache[m]) { $("meta").textContent = "正在讀取" + MARKETS[m].label + "掃描資料…"; }
+    return loadMarket(m).then(function (data) {
+      if (state.market !== m) return;
+      state.data = data;
+      showControls(true);
+      if (selectId && data.results.some(function (r) { return r.pattern_id === selectId; })) state.selected = selectId;
+      renderMeta();
+      update();
+      if (selectId && state.selected === selectId) select(selectId, true);
+      if (drawerEl().classList.contains("is-open")) renderDrawer();
+    }, function (err) {
+      if (state.market !== m) return;
+      state.data = null;
+      fail(m, err);
+      if (drawerEl().classList.contains("is-open")) renderDrawer();
+    });
+  }
+
+  function start() {
+    bind();
+    bindExtras();
+    applySettingsToState();
+    var qs = null;
+    try { qs = new URLSearchParams(location.search); } catch (e) { /* old browsers */ }
+    var hash = decodeURIComponent(location.hash.slice(1));
+    // market: ?market=tw > a Taiwan pattern in the hash > the market viewed last
+    var m = qs && MARKETS[qs.get("market")] ? qs.get("market")
+      : /^(twse|tpex)\|/.test(hash) ? "tw" : /^[a-z]+\|/.test(hash) ? "crypto" : settings.market;
+    state.market = MARKETS[m] ? m : "crypto";
+    renderMarketChrome();
+    loadMarket(state.market)
+      .then(function (data) {
+        state.data = data;
         // optional deep-link filters: ?status=forming&tf=1d&neck=down&sort=dist&q=BTC
-        try {
-          var qs = new URLSearchParams(location.search);
+        if (qs) {
           if (STATUS_LABEL[qs.get("status")]) state.status = qs.get("status");
           if (TF_LABEL[qs.get("tf")]) state.tf = qs.get("tf");
           if (NECK_LABEL[qs.get("neck")]) state.neck = qs.get("neck");
           if (SORTS[qs.get("sort")]) { state.sort = qs.get("sort"); $("sort").value = state.sort; }
           if (qs.get("q")) { state.q = qs.get("q").trim().toUpperCase().replace(/\s+/g, ""); $("q").value = qs.get("q"); }
-        } catch (e) { /* old browsers: ignore */ }
-        var hash = decodeURIComponent(location.hash.slice(1));
+        }
         if (hash && data.results.some(function (r) { return r.pattern_id === hash; })) state.selected = hash;
         renderMeta();
         update();
-        try { applyTestParams(new URLSearchParams(location.search)); } catch (e) { /* ignore */ }
+        try { if (qs) applyTestParams(qs); } catch (e) { /* ignore */ }
       })
-      .catch(fail);
+      .catch(function (err) {
+        fail(state.market, err);
+        try { if (qs && qs.get("drawer") && VIEW_TITLE[qs.get("drawer")]) openDrawer(qs.get("drawer")); } catch (e) { /* ignore */ }
+      });
   }
 
   start();

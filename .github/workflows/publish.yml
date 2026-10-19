@@ -1,0 +1,111 @@
+# Reusable publish job (charter D25 + D29), called by scan-and-notify.yml (crypto) and scan-tw.yml (Taiwan).
+#
+# Two markets, two workflows, but ONE public site repo and ONE scan-state branch, both force pushed as a
+# single fresh commit. So each publish rebuilds the tree from:
+#   this run's artifacts (`site` = site/, `state` = the market's state file)
+#   + the OTHER market's files taken from what is published right now
+# with scripts/merge_published.py (ownership table there; tests in tests/test_tw.py). If the currently
+# published tree cannot be read, the step fails instead of pushing a site without the other market.
+#
+# concurrency group `publish-site` is shared by both callers, so two publishes never interleave
+# (a scan can still run while the other market publishes; only this short job is serialized).
+name: Publish (reusable)
+
+on:
+  workflow_call:
+    inputs:
+      market:
+        description: "crypto | tw"
+        type: string
+        required: true
+      state_file:
+        description: "state.json (crypto) | state_tw.json (tw)"
+        type: string
+        required: true
+    secrets:
+      SITE_DEPLOY_KEY:
+        required: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    concurrency:
+      group: publish-site
+      cancel-in-progress: false
+    env:
+      MARKET: ${{ inputs.market }}
+      STATE_FILE: ${{ inputs.state_file }}
+    steps:
+      - uses: actions/checkout@v7  # for scripts/merge_published.py (stdlib only, system python3)
+
+      - uses: actions/download-artifact@v7
+        with:
+          name: site
+          path: ${{ runner.temp }}/new-site
+
+      # notify_discord writes the state even when a send failed; if it crashed there is no state artifact:
+      # then only the site is published (same as before D29).
+      - uses: actions/download-artifact@v7
+        id: state
+        continue-on-error: true
+        with:
+          name: state
+          path: ${{ runner.temp }}/new-state
+
+      - name: Publish state + site/data to scan-state (keeps the other market's files)
+        run: |
+          set -e
+          if [ ! -f "$RUNNER_TEMP/new-state/$STATE_FILE" ]; then echo "no $STATE_FILE artifact; scan-state not updated"; exit 0; fi
+          stage="$RUNNER_TEMP/stage"
+          rm -rf "$stage" && mkdir -p "$stage/site"
+          cp "$RUNNER_TEMP/new-state/$STATE_FILE" "$stage/$STATE_FILE"
+          cp -r "$RUNNER_TEMP/new-site/data" "$stage/site/data"
+          prev="$RUNNER_TEMP/prev-state"
+          if git ls-remote --exit-code --heads origin scan-state >/dev/null; then
+            git fetch --depth=1 origin scan-state      # exists: a failed fetch must stop the publish (set -e)
+            git worktree add --detach "$prev" FETCH_HEAD
+            prev_args="--prev $prev"
+          else
+            echo "no scan-state branch yet (first publish)"
+            prev_args="--allow-missing-prev"
+          fi
+          out="$RUNNER_TEMP/state-out"
+          python3 scripts/merge_published.py --kind state --market "$MARKET" --new "$stage" $prev_args --out "$out"
+          dir="$RUNNER_TEMP/scan-state"
+          git worktree add --detach "$dir"
+          cd "$dir"
+          git checkout -q --orphan scan-state-new
+          git rm -rf -q --ignore-unmatch .
+          find . -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
+          cp -r "$out"/. .
+          git add -A -f
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+            commit -q -m "scan-state: $MARKET $(date -u +%Y-%m-%dT%H:%MZ) (run ${GITHUB_RUN_ID})"
+          git push --force origin HEAD:scan-state
+          git ls-tree -r --name-only HEAD | grep -E '^(state|site/data/(scan\.json|tw/scan\.json))' || true
+
+      - name: Publish site to public repo (keeps the other market's data)
+        env:
+          SITE_DEPLOY_KEY: ${{ secrets.SITE_DEPLOY_KEY }}
+        run: |
+          set -e
+          if [ -z "$SITE_DEPLOY_KEY" ]; then echo "SITE_DEPLOY_KEY 未設定，略過網站發布"; exit 0; fi
+          key="$RUNNER_TEMP/site_key"
+          printf '%s\n' "$SITE_DEPLOY_KEY" > "$key" && chmod 600 "$key"
+          export GIT_SSH_COMMAND="ssh -i $key -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new"
+          prev="$RUNNER_TEMP/public-prev"
+          git clone -q --depth 1 git@github.com:chasen8/head-shoulders-site.git "$prev"  # failure stops the publish
+          out="$RUNNER_TEMP/public-site"
+          python3 scripts/merge_published.py --kind site --market "$MARKET" --new "$RUNNER_TEMP/new-site" \
+            --prev "$prev" --out "$out"
+          touch "$out/.nojekyll"
+          cd "$out"
+          git init -q -b main
+          git add -A
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+            commit -q -m "site: $MARKET $(date -u +%Y-%m-%dT%H:%MZ) (run ${GITHUB_RUN_ID})"
+          git push --force -q git@github.com:chasen8/head-shoulders-site.git main
+          rm -f "$key"
+          ls data data/tw 2>/dev/null | head -20 || true
+          echo "網站已發布：https://chasen8.github.io/head-shoulders-site/"

@@ -1,6 +1,7 @@
 # 頭肩底V2（IHS Scanner）
 
-純 OHLCV 數學規則的頭肩底（Inverse Head and Shoulders）掃描器，支援多 symbol × 4h/1d/1w。
+純 OHLCV 數學規則的頭肩底（Inverse Head and Shoulders）掃描器，支援多 symbol × 4h/1d/1w；
+兩個市場：加密貨幣（多交易所，D22）與台股（上市＋上櫃普通股，D29，見「台股」一節）。
 規格：`docs/spec.md`；規格詮釋與補充：`docs/project-charter.md` 決策 D3–D12。
 資料來源是各交易所**公開**行情端點（不需金鑰；見下方「資料來源」），只用已收盤 K 線，不 repaint。
 
@@ -76,6 +77,9 @@ bars 先寫到 `bars.tmp/` 再整個換上，舊檔不會殘留。
 - 星號加入「觀察名單」、左上角 ☰ 抽屜（全部型態／觀察名單／設定／關於）。觀察名單與設定存在瀏覽器 localStorage
   （`ihs.watchlist.v1`、`ihs.settings.v1`），不上傳；換裝置用設定裡的匯出／匯入。儲存被停用時網站照常運作（只是不會記住）。
 - 網站上狀態 `watchlist` 顯示為「右肩已確認」（JSON 值不變），避免和「觀察名單」混淆；Discord 文字同步。
+
+- 兩個市場（D29）：頁首「加密貨幣／台股」切換與 ☰ 抽屜裡的兩個入口；網址 `?market=tw`。各讀各的 `data/scan.json`、`data/tw/scan.json`，
+  頁首顯示該市場的更新時間與範圍；觀察名單同時收兩個市場、每筆標市場；預設篩選兩個市場共用。
 
 設計與維護規則：`docs/site-design.md`。GitHub Actions：`.github/workflows/scan-and-notify.yml`（定時掃描＋Discord 通知，見下節）。
 
@@ -227,11 +231,76 @@ Bybit 403；MEXC、Bitget 200。
 `scan.json` 的 `source_counts` 列每個來源的 `listed`（去重前）、`symbols`（實際掃描）、`scanned_symbols`、
 `series_scanned`、`failed_series`。
 
+## 台股（D29）
+
+加密貨幣之外的第二個「市場」：台灣**上市＋上櫃普通股**，偵測器、template profile、形狀驗證、TP1/TP2、forming 狀態全部共用，
+門檻沒有另外調（見 charter D29）。程式：`ihs_scanner/data_tw.py`（清單、Yahoo、重採樣）、`build_site_tw.py`（建置），
+入口一樣是 `build_site.py`：
+
+```bash
+/c/trading-data/ihs-scanner-v2/venv/Scripts/python.exe build_site.py --market tw                    # 全部普通股
+/c/trading-data/ihs-scanner-v2/venv/Scripts/python.exe build_site.py --market tw --symbols 2330,6488 --include-stale
+/c/trading-data/ihs-scanner-v2/venv/Scripts/python.exe build_site.py --market tw --tw-include-etf    # 加 ETF
+```
+
+| 參數 | 預設 | 說明 |
+|---|---|---|
+| `--market` | `crypto` | `tw`＝台股，輸出到 `site/data/tw/scan.json`＋`site/data/tw/bars/`（不碰加密貨幣的 `site/data/scan.json`） |
+| `--tw-include-etf` | 關 | 也掃 ETF（`00` 開頭代號）；預設只掃普通股 |
+| `--tw-rps` | 5 | Yahoo 每秒請求數（所有執行緒合計） |
+| `--symbols` | `all` | 台股時是股票代號清單，例如 `2330,6488`（除錯用） |
+| `--timeframes`、`--limit`、`--workers`、`--include-stale`、`--scheduled`、`--out` | 同加密貨幣 | `1w` 上限 500 根 |
+
+**資料來源**（全部公開、不需金鑰、不需註冊）：
+
+| 用途 | 端點 | 備註 |
+|---|---|---|
+| 上市清單與中文簡稱 | `openapi.twse.com.tw/v1/exchangeReport/STOCK_DAY_ALL` | `Code`、`Name` |
+| 上櫃清單與中文簡稱 | `www.tpex.org.tw/openapi/v1/tpex_mainboard_quotes` | `SecuritiesCompanyCode`、`CompanyName`；回應較慢（runner 上約 15 秒） |
+| 日 K（→ 日線、週線） | Yahoo `query1.finance.yahoo.com/v8/finance/chart/<代號>.TW（上櫃 .TWO）?interval=1d&range=10y` | |
+| 60 分 K（→ 4 小時線） | 同上 `interval=60m&range=730d` | Yahoo 60 分 K 最長約 730 天 → 4h 約 980 根 |
+
+- **範圍**：4 位數、非 0 開頭的代號，去掉名稱以 `-DR` 結尾的存託憑證。這條規則同時排除 ETF（`00xx`）、ETN（`02xxxx`）、
+  權證（6 位數）、特別股（`2881A`）、受益證券（`01xxxT`）。2026-10-19 實測上市 1082＋上櫃 891＝1973 檔。
+- **Yahoo 在 GitHub runner（美國 IP）上沒有 cookie 會回 429**；先開 `finance.yahoo.com` 拿 cookie、再拿
+  `/v1/test/getcrumb` 的 crumb 帶在每個請求上就是 200（2026-10-19 probe）。`YahooClient` 自動做這件事，遇 429／401／403
+  會重拿 crumb 並指數退避（最多 5 次）；每檔 2 次請求（日 K、60 分 K），節流 5 次/秒、4 個執行緒。
+- **價格**：Yahoo 原始報價（已還原分割、**未還原權息**），與 TradingView 台股預設相同；所以除權息當天會有缺口。網站與 Discord
+  一律顯示台幣兩位小數。
+- **只用已收盤 K 線**：台北 13:30 收盤＋30 分緩衝（`CLOSE_BUFFER`）之後才算收盤。時間一律存 UTC：日 K 時間＝當天 09:00 台北
+  （01:00 UTC），週 K＝該週週一 09:00 台北，週 K 要等週五 13:30＋緩衝之後才算收盤（週五放假也一樣）。
+- **週線**＝由日 K 重採樣（週一為一週開始，開＝第一個交易日開盤、收＝最後一個交易日收盤），不多打一次 API。
+- **4 小時線的特性**：台股一天只交易 4.5 小時，所以照 TradingView 台股的切法，一天兩根：**09:00–13:00（4 小時）與
+  13:00–13:30（半小時）**，長短不一；一週約 10 根、730 天約 980 根。Yahoo 60 分 K 有兩個毛病，用同一天的日 K 修正：
+  (1) 09:00 那小時的量常常是 0、13:25–13:30 收盤集合競價的量也不在小時資料裡 → 日量 − 小時量合計的差額，
+  第一小時量為 0 時補到 09:00 那根，否則補到 13:00 那根；(2) 最後一小時的收盤是集合競價前的價格 → 13:00 那根的收盤改成日 K 收盤
+  （高低點必要時放寬）。因為午盤那根只有半小時，4h 的 pivot 窗、`max_bars_after_rs`（30 根≈3 週）等根數門檻在台股代表的時間比加密貨幣長。
+- **部分成功**同 D18：個別股票失敗記 `failures`，失敗率 >20% 才非零退出且不覆寫舊的 `site/data/tw/`；上市或上櫃其中一邊清單抓不到
+  記在 `source_errors`，另一邊照掃。
+- **輸出**：`scan.json` 頂層 `"market": "tw"`、`settings.universe`（`common` 或 `common+etf`）、`settings.currency` `TWD`；
+  每筆多 `name`（中文簡稱），`exchange` 為 `twse`／`tpex`、`market` 為 `stock`、`tv_symbol` 為 `TWSE:2330`／`TPEX:6488`，
+  `pattern_key`／`pattern_id` 以 `twse|stock|…`、`tpex|stock|…` 開頭，不會和加密貨幣撞號。
+- **排程**：`.github/workflows/scan-tw.yml`，平日 UTC 06:10（台北 14:10，收盤後 40 分），也可手動（`dry_run`、`notify_all`）。
+  國定假日照跑，只是沒有新 K 線。
+- **實測**（2026-10-19，本機）：1973 檔、5863／5919 組 K 線、3946 次 Yahoo 請求、0 次 429；抓取 793 秒（5 次/秒節流決定）＋
+  偵測約 110 秒＝約 15 分鐘。失敗的 56 組都是 4h：上市未滿約 2.4 年的股票對 `range=730d` 回 HTTP 422，已改成自動退回 `2y`／`1y`。
+  結果 663 個型態（4h 299、1d 258、1w 106；形成中 380、右肩已確認 228、已突破 55），scan.json 約 3 MB、bars 約 10 MB。
+- **Discord**：同一個 webhook；標題「台股 2330 台積電 日線 右肩形成中」、欄位「市場：台股上市／台股上櫃」、價格 `NT$1,005.00`；
+  狀態檔獨立 `state_tw.json`（scan-state 分支），第一次執行只發一則「台股頭肩底掃描」摘要。
+
 ## 定時掃描與 Discord 通知
 
 `.github/workflows/scan-and-notify.yml`：每 4 小時（UTC，`7 */4 * * *`，4h 收盤後 7 分鐘；也涵蓋 1d、1w 收盤）
-跑 pytest → `build_site.py --scheduled` → `notify_discord.py` → 把 `state.json` 與 `site/data/` 推到 `scan-state` 分支
-→ 上傳 `site/` artifact（保留 7 天）。build_site 失敗率 >20% 時整個流程中止，不通知、不改 state。
+跑 pytest → `build_site.py --scheduled` → `notify_discord.py` → 上傳 `site/` 與 `state.json` artifact（保留 7 天）
+→ publish job 把 `state.json` 與 `site/data/` 推到 `scan-state` 分支、把 `site/` 推到公開網站 repo。build_site 失敗率 >20% 時整個流程中止，
+不通知、不改 state。台股是另一個 workflow `scan-tw.yml`（平日 UTC 06:10，見「台股」一節）。
+
+**兩個市場共用發布（D29）**：公開網站 repo 與 `scan-state` 都是 force push 單一 commit，所以兩個 workflow 都改用共用的
+`.github/workflows/publish.yml`：先 clone 目前公開的網站（或抓目前的 `scan-state`），用 `scripts/merge_published.py`
+只換掉**自己市場**的檔案、保留另一個市場的（網站：加密貨幣＝`data/scan.json`＋`data/bars/`，台股＝`data/tw/`；
+scan-state：加密貨幣＝`state.json`＋`site/data/scan.json`＋`site/data/bars/`，台股＝`state_tw.json`＋`site/data/tw/`），再推上去。
+讀不到目前公開的內容時寧可失敗也不推（避免另一邊資料消失）。publish job 用共用的 concurrency group `publish-site`，
+兩邊的發布不會同時進行（掃描本身可以同時跑）。
 
 通知規則（`notify_discord.py`）：分數 ≥ 50（`--min-score` 或環境變數 `NOTIFY_MIN_SCORE`；template 形成中範例 53–71 分）時通知
 (1) 新出現的「右肩形成中」(2) 新出現、直接以已確認右肩出現的「觀察中」(3) 任何狀態變成「已突破」。
@@ -260,6 +329,7 @@ Bybit 403；MEXC、Bitget 200。
 gh workflow run scan-and-notify.yml --repo chasen8/head-shoulders-scanner -f dry_run=true     # 只印內容，不送、不更新 scan-state
 gh workflow run scan-and-notify.yml --repo chasen8/head-shoulders-scanner                      # 正式（有 secret 才會發）
 gh run list --repo chasen8/head-shoulders-scanner --workflow scan-and-notify.yml --limit 3
+gh workflow run scan-tw.yml --repo chasen8/head-shoulders-scanner -f dry_run=true             # 台股
 ```
 `-f notify_all=true`：沒有 state 時逐筆通知。本機試跑：`python notify_discord.py --dry-run`（讀 `site/data/scan.json` 與 `state.json`）。
 
@@ -267,12 +337,13 @@ gh run list --repo chasen8/head-shoulders-scanner --workflow scan-and-notify.yml
 
 ```
 git fetch origin scan-state
-git checkout origin/scan-state -- site/data      # 覆蓋本機 site/data（scan.json + bars/）
+git checkout origin/scan-state -- site/data      # 覆蓋本機 site/data（scan.json + bars/，以及台股的 tw/）
 python -m http.server --directory site 8000      # 開 http://localhost:8000
 ```
-（`scan-state` 每次是全新的單一 commit、force push，不累積歷史；只含 `state.json` 與 `site/data/`。）
+（`scan-state` 每次是全新的單一 commit、force push，不累積歷史；只含 `state.json`、`state_tw.json` 與 `site/data/`。）
 
 ### Actions 用量估算
 
 私有 repo 免費方案每月 2000 分鐘。每 4 小時一次（每月約 180 次）× 約 4–5 分鐘 ≈ 每月 700–900 分鐘，在額度內。
+台股（D29）每個平日一次 × 約 20 分鐘（含測試與發布）× 每月約 22 天 ≈ 每月 440 分鐘；合計約 1150–1350 分鐘，仍在額度內。
 實際耗時以 Actions 頁面為準；若接近額度，可改成每 8 小時（同時改 `build_site.py` 的 `SCAN_EVERY_HOURS`）。

@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>頭肩底掃描</title>
-  <meta name="description" content="幣安、OKX、Gate 的 USDT 交易對（現貨與永續）4 小時、日線、週線頭肩底型態掃描結果。型態偵測工具，不是投資建議。">
+  <meta name="description" content="加密貨幣（幣安、OKX、Gate 的 USDT 交易對）與台股（上市＋上櫃普通股）4 小時、日線、週線頭肩底型態掃描結果。型態偵測工具，不是投資建議。">
   <meta name="theme-color" content="#FFFFFF">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23FFFFFF'/%3E%3Cpolyline points='3,12 8,18 12,10 16,25 20,10 24,18 29,8' fill='none' stroke='%232962FF' stroke-width='2.5' stroke-linejoin='round'/%3E%3C/svg%3E">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -22,6 +22,10 @@
       </button>
       <div class="topbar__inner">
         <h1 class="brand">頭肩底掃描</h1>
+        <div class="mtabs" role="group" aria-label="市場">
+          <button type="button" class="chip mtab" data-market="crypto" aria-pressed="true">加密貨幣</button>
+          <button type="button" class="chip mtab" data-market="tw" aria-pressed="false">台股</button>
+        </div>
         <p class="topbar__scope" id="scope">幣安、OKX、Gate 的 USDT 交易對，4 小時、日線、週線</p>
         <p class="topbar__warn">型態偵測工具，不是投資建議。</p>
       </div>
@@ -34,7 +38,7 @@
       <div class="panel__head">
         <h2 class="panel__title" id="panel-title">型態清單</h2>
         <div class="search">
-          <label class="vh" for="q">搜尋幣種</label>
+          <label class="vh" for="q" id="q-label">搜尋幣種</label>
           <svg class="search__icon" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><circle cx="7" cy="7" r="4.5"/><line x1="10.5" y1="10.5" x2="14" y2="14"/></svg>
           <input id="q" type="search" placeholder="搜尋幣種，例如 BTC" autocomplete="off" spellcheck="false">
         </div>
@@ -108,7 +112,7 @@
     </section>
     <section class="fineprint">
       <p><strong>這是型態偵測工具，不是投資建議。</strong>型態成立不代表價格會上漲，請自行判斷風險。</p>
-      <p>K 線資料來自幣安、OKX、Gate 的公開行情。圖表由 <a href="https://www.tradingview.com/" rel="noopener">TradingView</a> 的 Lightweight Charts 繪製（Apache-2.0）。</p>
+      <p>加密貨幣 K 線來自幣安、OKX、Gate 的公開行情；台股清單與名稱來自臺灣證券交易所與證券櫃檯買賣中心 OpenAPI，K 線來自 Yahoo Finance（未還原權息）。圖表由 <a href="https://www.tradingview.com/" rel="noopener">TradingView</a> 的 Lightweight Charts 繪製（Apache-2.0）。</p>
     </section>
   </footer>
 

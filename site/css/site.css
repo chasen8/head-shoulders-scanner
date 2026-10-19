@@ -83,6 +83,10 @@ button, input, select { font: inherit; color: inherit; }
 .menu-btn svg, .drawer__close svg { width: 24px; height: 24px; fill: none; stroke: var(--text); stroke-width: 2; stroke-linecap: round; }
 .topbar__inner { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 16px; min-width: 0; }
 .brand { font-size: 18px; font-weight: 700; letter-spacing: 0.02em; }
+/* D29 market switch: same chip look as the filters, one step larger */
+.mtabs { display: inline-flex; gap: 4px; align-self: center; }
+.mtab { min-height: 30px; padding: 2px 12px; font-size: 14px; }
+.meta__mkt { margin-right: 6px; color: var(--text); font-weight: 600; }
 .topbar__scope { color: var(--muted); }
 .topbar__warn { font-weight: 500; }
 .meta { margin-top: 2px; color: var(--muted); font-size: 13px; max-width: 46em; }
@@ -197,6 +201,7 @@ select {
 .row__name { grid-column: 2; grid-row: 1; display: flex; align-items: baseline; gap: 8px; min-width: 0; }
 .sym { font-size: 14px; font-weight: 600; line-height: 1.4; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sym small { font-size: 12px; font-weight: 400; color: var(--muted); }
+.sym .sym__name { margin-left: 6px; font-size: 13px; font-weight: 500; color: var(--text); }
 .tf { font-size: 12px; color: var(--muted); white-space: nowrap; }
 .mkt { font-size: 11px; color: var(--muted); white-space: nowrap; padding: 0 5px; border: 1px solid var(--line); border-radius: 3px; line-height: 16px; }
 
@@ -376,6 +381,9 @@ body.nav-open { overflow: hidden; }
   background: none; text-align: left; font-size: 15px; cursor: pointer;
 }
 .dnav__btn:hover { background: var(--surface); }
+.dnav__btn--mkt { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.dnav__btn--mkt[aria-current="page"] { color: var(--accent); font-weight: 600; box-shadow: inset 3px 0 0 var(--accent); }
+.dnav__sub { font-size: 12px; font-weight: 400; color: var(--muted); }
 .dback { display: block; min-height: 44px; padding: 0 16px; border: 0; background: none; color: var(--accent); font-weight: 500; cursor: pointer; }
 .dback:hover { background: var(--surface); }
 .dh { margin-top: 20px; margin-bottom: 6px; font-size: 13px; font-weight: 600; }
@@ -412,6 +420,8 @@ body.nav-open { overflow: hidden; }
 .wl__top { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
 .wl__sub { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 8px; }
 .wl__chg, .wl__note, .gone { color: var(--muted); }
+.mtag { flex: none; font-size: 11px; line-height: 16px; padding: 0 5px; border-radius: 3px; color: var(--muted); background: var(--grid); }
+.mtag--tw { color: var(--accent); background: var(--accent-wash); }
 
 /* ---------- footer ---------- */
 .colophon {

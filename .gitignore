@@ -8,4 +8,5 @@ data/
 *.csv
 .env
 state.json
+state_tw.json
 !tests/fixtures/*.csv

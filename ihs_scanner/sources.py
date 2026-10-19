@@ -21,7 +21,7 @@ from .data_binance import COLUMNS, EXCLUDED_BASE_ASSETS, _rows_to_frame, is_leve
 TIMEFRAME_MS = {"4h": 4 * 3600 * 1000, "1d": 24 * 3600 * 1000, "1w": 7 * 24 * 3600 * 1000}
 
 # Exchange prefix TradingView uses in "EXCHANGE:SYMBOL".
-TV_EXCHANGE = {"binance": "BINANCE", "okx": "OKX", "gate": "GATEIO"}
+TV_EXCHANGE = {"binance": "BINANCE", "okx": "OKX", "gate": "GATEIO", "twse": "TWSE", "tpex": "TPEX"}
 
 # Dedup priority (first wins): a base coin is scanned from exactly one source.
 SOURCE_PRIORITY = ("binance-spot", "binance-perp", "okx-spot", "okx-perp", "gate-perp")
@@ -38,8 +38,9 @@ class Instrument:
     base: str          # e.g. "HMSTR", "1000PEPE"
     symbol: str        # unified display symbol: base + "USDT"; unique across merged sources
     native: str        # the exchange's own id (BTCUSDT / BTC-USDT-SWAP / BTC_USDT)
-    exchange: str      # binance | okx | gate
-    market: str        # spot | perp
+    exchange: str      # binance | okx | gate | twse | tpex (D29: Taiwan listed / OTC stocks)
+    market: str        # spot | perp | stock
+    name: str = ""     # display name (Taiwan stocks: short Chinese name, e.g. 台積電); empty for crypto
 
     @property
     def source(self) -> str:
