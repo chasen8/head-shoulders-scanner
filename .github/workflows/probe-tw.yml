@@ -1,0 +1,46 @@
+# 暫時的可達性測試（D29）：台股資料來源在 GitHub runner（美國 IP）上能不能用。跑完就刪。
+name: Probe TW sources
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Single requests
+        run: |
+          UA="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36"
+          for u in \
+            "https://openapi.twse.com.tw/v1/exchangeReport/STOCK_DAY_ALL" \
+            "https://openapi.twse.com.tw/v1/opendata/t187ap03_L" \
+            "https://www.tpex.org.tw/openapi/v1/tpex_mainboard_quotes" \
+            "https://www.tpex.org.tw/openapi/v1/mopsfin_t187ap03_O" \
+            "https://query1.finance.yahoo.com/v8/finance/chart/2330.TW?interval=1d&range=10y" \
+            "https://query1.finance.yahoo.com/v8/finance/chart/2330.TW?interval=60m&range=730d" \
+            "https://query1.finance.yahoo.com/v8/finance/chart/6488.TWO?interval=1d&range=10y" \
+            "https://query1.finance.yahoo.com/v8/finance/chart/6488.TWO?interval=60m&range=730d" \
+            "https://query2.finance.yahoo.com/v8/finance/chart/2330.TW?interval=1d&range=5y" ; do
+            r=$(curl -s -o body.bin -A "$UA" -w "%{http_code} %{size_download}B %{time_total}s" --max-time 90 "$u" || echo "curl-failed")
+            echo "$r  $u  head=$(head -c 80 body.bin | tr -d '\n')"
+          done
+      - name: Yahoo burst (200 requests, about 5 per second)
+        run: |
+          UA="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36"
+          start=$(date +%s)
+          : > codes.txt
+          for i in $(seq 1 100); do
+            code=$((1100 + i * 37 % 8000))
+            for iv in "1d&range=10y" "60m&range=730d"; do
+              curl -s -o /dev/null -A "$UA" -w "%{http_code}\n" --max-time 30 \
+                "https://query1.finance.yahoo.com/v8/finance/chart/${code}.TW?interval=${iv}" >> codes.txt &
+              sleep 0.2
+            done
+          done
+          wait
+          echo "elapsed $(( $(date +%s) - start ))s"
+          sort codes.txt | uniq -c
