@@ -11,3 +11,10 @@ def pattern_key(r: Mapping[str, Any]) -> str:
     """exchange|market|symbol|timeframe|LS_time|H_time"""
     return "|".join(str(x) for x in (r.get("exchange") or "binance", r.get("market") or "spot", r["symbol"],
                                      r["timeframe"], r.get("LS_time"), r.get("H_time")))
+
+
+def triangle_key(r: Mapping[str, Any]) -> str:
+    """D38 triangles: tri|exchange|market|symbol|timeframe|start_time (the "tri" prefix never collides with
+    pattern_key, whose first field is an exchange)."""
+    return "|".join(str(x) for x in ("tri", r.get("exchange") or "binance", r.get("market") or "spot", r["symbol"],
+                                     r["timeframe"], r.get("start_time")))

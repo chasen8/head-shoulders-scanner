@@ -561,3 +561,23 @@ html[data-theme="dark"] .acct svg { fill: #8C95F7; }
 .chk--radio input { flex: none; margin-top: 1px; }
 .chk--radio input:disabled + span { opacity: 0.55; }
 .chk__sub { display: block; font-size: 12px; color: var(--muted); line-height: 1.5; }
+
+/* ---------- D38 converging triangles ---------- */
+.status--breakout_up { color: var(--ok-text); background: var(--ok-wash); }
+.status--breakout_down { color: var(--down-text); background: var(--down-wash); }
+.ttag { display: inline-block; padding: 0 6px; border-radius: 3px; font-size: 12px; font-weight: 500; line-height: 18px; white-space: nowrap;
+  color: var(--text); border: 1px solid var(--line); }
+.detail__title .ttag { font-size: 13px; line-height: 20px; }
+.glyph .g-res { stroke: var(--down); stroke-width: 1.4; }
+.glyph .g-sup { stroke: var(--up); stroke-width: 1.4; }
+.glyph .g-last { fill: var(--text); }
+.glyph .g-tbrk { fill: var(--bg); stroke: var(--accent); stroke-width: 1.4; }
+.lg--res::before { border-top: 2px solid var(--down); }
+.lg--sup::before { border-top: 2px solid var(--up); }
+.lg--ext::before { border-top: 2px dashed var(--faint); }
+.lg--touch::before { width: 8px; height: 8px; border-radius: 50%; background: linear-gradient(90deg, var(--down) 50%, var(--up) 50%); }
+.lg--tbrk::before { width: 0; height: 0; border-left: 5px solid transparent; border-right: 5px solid transparent; border-bottom: 9px solid var(--accent); }
+.tri-nostar { margin-top: 4px; font-size: 12px; color: var(--muted); }
+.points td.tside { font-weight: 600; }
+.points td.tside--resistance { color: var(--down-text); }
+.points td.tside--support { color: var(--ok-text); }

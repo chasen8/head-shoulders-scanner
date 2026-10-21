@@ -2,6 +2,7 @@
 
 純 OHLCV 數學規則的頭肩底（Inverse Head and Shoulders）掃描器，支援多 symbol × 4h/1d/1w；
 兩個市場：加密貨幣（多交易所，D22）與台股（上市＋上櫃普通股，D29，見「台股」一節）。
+另有收斂三角（上升／下降／對稱三角，D38，見「收斂三角」一節），在同一次掃描中產生，網站從 ☰ 選單進入。
 規格：`docs/spec.md`；規格詮釋與補充：`docs/project-charter.md` 決策 D3–D12。
 資料來源是各交易所**公開**行情端點（不需金鑰；見下方「資料來源」），只用已收盤 K 線，不 repaint。
 
@@ -82,6 +83,26 @@ bars 先寫到 `bars.tmp/` 再整個換上，舊檔不會殘留。
   頁首顯示該市場的更新時間與範圍；觀察名單同時收兩個市場、每筆標市場；預設篩選兩個市場共用。
 
 設計與維護規則：`docs/site-design.md`。GitHub Actions：`.github/workflows/scan-and-notify.yml`（定時掃描＋Discord 通知，見下節）。
+
+## 收斂三角（D38）
+
+`ihs_scanner/triangles.py`（偵測）＋`config.TRIANGLE_CONFIG`（與頭肩底設定分開，`triangle_config(overrides, market)` 合併；
+台股 4h 長度上限 120）。規則與數值：`docs/current-rules.md`「收斂三角」；設計依據：`docs/triangle-research.md`。
+
+- `build_site.py`（含 `--market tw`）在頭肩底寫完後，用**同一批 K 線**跑三角形（`run_triangles`），輸出
+  `site/data/triangles.json`＋`site/data/tri_bars/`（台股 `site/data/tw/triangles.json`＋`tri_bars/`）。三角形這一步
+  **永遠不會讓頭肩底失敗**：例外只印 `[triangles FAIL]`；個別序列失敗記在 triangles.json `failures`（stage `triangle`）；
+  失敗超過 20% 或整步出錯就不覆寫舊的 triangles.json／tri_bars。`detect_seconds`、`detect_ms_per_series`（mean／p95／max）記錄耗時。
+- 每筆欄位：`pattern_type`="triangle"、`triangle_type`（ascending／descending／symmetrical）、`bias`（up／down／neutral，只是標籤）、
+  `status`（forming／breakout_up／breakout_down／stale）、`breakout_direction`、起訖時間、阻力／支撐線兩端（time, price）、
+  `touches`（time, price, side）、`apex_time`／`apex_price`／`apex_progress`、`height_start(_pct)`、目前價與距兩線 %、
+  `breakout_time`／`breakout_price`、`target`、`target_conservative`（Bulkowski 達標比例）、`invalidation_price`、`score` 與六個分項、
+  `pattern_key`＝`tri|交易所|市場|代號|週期|起點時間`。
+- tri_bars 檔：K 線、`resistance_line`／`support_line`（型態內）與 `*_ext`（延伸到頂點，最多一個型態長度）、`future_times`（延伸用的未來 K 線時間）、
+  觸碰點、突破、`levels`（目標／保守目標／失效）。
+- 發布：`scripts/merge_published.py` 把 `data/triangles.json`、`data/tri_bars` 歸加密貨幣（台股的在 `data/tw/` 內），兩個市場互不覆蓋。
+- 網站：☰ →「收斂三角」（依目前市場），網址 `?view=triangles[&market=tw]`，篩選類型／狀態／週期、排序、搜尋；
+  詳細頁畫阻力線（紅）、支撐線（綠）延伸到頂點、觸碰點、突破、目標與失效價。**暫不提供**觀察名單星號與 Discord 通知。
 
 ## config 參數（`ihs_scanner/config.py`，可部分覆寫）
 
@@ -208,6 +229,7 @@ V3b、V3c 不判形狀，只把狀態改成 `stale`（`stale_reason`）：
 ihs_scanner/  config.py  swings.py  neckline.py  scoring.py  detector.py  scanner.py  data_binance.py
               sources.py  data_binance_futures.py  data_okx.py  data_gate.py   （多交易所來源）
               validation.py  templates.py   （D26 形狀驗證 V1–V4；templates.py 由腳本產生）
+              triangles.py                   （D38 收斂三角，設定在 config.TRIANGLE_CONFIG）
 scan.py       CLI
 scripts/fetch_golden_fixtures.py   下載黃金範例 K 線到 tests/fixtures/（公開端點：幣安現貨／USDT-M、OKX）
 scripts/build_templates.py         從黃金範例產生 ihs_scanner/templates.py（V4 模板）；--check 只比對

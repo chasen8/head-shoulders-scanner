@@ -9,6 +9,8 @@ Output (front end only draws these values; every number it shows is computed her
   site/data/scan.json            metadata + one summary row per pattern (no bars)
   site/data/bars/<file>.json     chart data for one pattern (bars, five points, neckline, breakout,
                                  TP1/TP2/invalidation levels), loaded by the page only when opened
+  site/data/triangles.json + tri_bars/   D38 converging triangles on the same K lines (run_triangles; a triangle
+                                 failure never fails this build)
 
 Partial success: a symbol/timeframe that fails to fetch or scan is listed in scan.json `failures`.
 Only when more than MAX_FAILURE_RATIO of the series fail does the build exit non-zero and leave
@@ -403,6 +405,262 @@ def write_payload(payload: Mapping[str, Any], out: Path) -> Path:
     return out
 
 
+# ------------------------------------------------------------------------------------------------------------------
+# D38 converging triangles: run in the same build on the same K lines, written NEXT TO scan.json:
+#   <market dir>/triangles.json        metadata + one row per triangle (no bars)
+#   <market dir>/tri_bars/<file>.json  chart data for one triangle (bars, both lines out to the apex, touches,
+#                                      breakout, target / conservative target / invalidation levels)
+# A triangle failure never fails the IHS build: run_triangles() catches everything, records per-series errors in
+# triangles.json `failures`, and leaves the previous triangles.json / tri_bars untouched when more than
+# MAX_FAILURE_RATIO of the series fail or the whole step crashes.
+TRI_JSON = "triangles.json"
+TRI_BARS_DIRNAME = "tri_bars"
+TRI_SCHEMA_VERSION = 1
+TRI_LINE_SAMPLES = 12  # points per line segment: lines are straight in log price, so they bend a little on the chart
+TRI_MAX_EXTENSION_OF_LENGTH = 1.0  # lines run to the apex, but at most this x pattern length past the pattern end
+TRI_LEVELS = (("target", "目標"), ("target_conservative", "保守目標"), ("invalidation_price", "失效"))
+
+
+def tri_chart_file_name(row: Mapping[str, Any]) -> str:
+    safe_sym = re.sub(r"[^A-Za-z0-9]", "_", str(row["symbol"])).strip("_") or "SYM"
+    src = f"{row.get('exchange', 'binance')}_{row.get('market', 'spot')}"
+    digest = hashlib.sha1(str(row["pattern_id"]).encode("utf-8")).hexdigest()[:10]
+    return f"tri_{src}_{safe_sym}_{row['timeframe']}_{_unix(row['start_time'])}_{digest}.json"
+
+
+def _sample_x(a: int, b: int, n: int) -> list[int]:
+    if b <= a:
+        return [a]
+    return sorted({int(round(a + (b - a) * i / n)) for i in range(n + 1)})
+
+
+def tri_chart_for(row: Mapping[str, Any], df: pd.DataFrame) -> dict[str, Any]:
+    """Chart data for one triangle, times in UNIX seconds (UTC); every price is computed here (D17).
+
+    bars: [[time, o, h, l, c, v]] from BARS_BEFORE_LS bars before the first pivot to the last closed bar.
+    resistance / support: [{time, price}] along each line (log-linear between the row's start and end prices),
+      split into `*_line` (first pivot -> pattern end) and `*_ext` (pattern end -> apex, dashed on the chart).
+    future_times: one time per bar after the last closed bar that the extensions reach (the chart's time axis is
+      bar-indexed, so the front end adds them as empty bars); spacing = the pattern's mean bar duration.
+    apex: {time, price, shown}: shown=False when the extension stops TRI_MAX_EXTENSION_OF_LENGTH x the pattern
+      length past the pattern end before reaching the apex."""
+    ts = get_timestamps(df)
+    s = int(ts.get_loc(pd.Timestamp(row["start_time"])))
+    end = int(ts.get_loc(pd.Timestamp(row["end_time"])))
+    last = len(df) - 1
+    start = max(0, s - BARS_BEFORE_LS)
+    seg = df.iloc[start:last + 1]
+    bars = [[_unix(t), _num(o), _num(h), _num(lo), _num(c), _num(v)]
+            for t, o, h, lo, c, v in zip(ts[start:last + 1], seg["open"], seg["high"], seg["low"], seg["close"],
+                                         seg["volume"])]
+    span = max(1, end - s)
+    lines = {}
+    for side in ("resistance", "support"):
+        p0, p1 = math.log(float(row[f"{side}_start_price"])), math.log(float(row[f"{side}_end_price"]))
+        lines[side] = (p0, (p1 - p0) / span)
+    apex_x = last + float(row["apex_bars_ahead"])
+    limit = end + int(math.ceil(TRI_MAX_EXTENSION_OF_LENGTH * span))
+    x_end = max(end, min(int(round(apex_x)), limit))
+    shown = int(round(apex_x)) <= limit
+    step = (ts[last] - ts[s]) / max(1, last - s)
+
+    def t_at(x: int) -> int:
+        return _unix(ts[x]) if x <= last else _unix(ts[last] + step * (x - last))
+
+    def price(side: str, x: int) -> float:
+        if shown and x == x_end and x_end > end:
+            return float(row["apex_price"])  # both lines meet at the apex
+        a, b = lines[side]
+        return math.exp(a + b * (x - s))
+
+    out = {}
+    for side in ("resistance", "support"):
+        out[f"{side}_line"] = [{"time": t_at(x), "price": _num(price(side, x))} for x in _sample_x(s, end, TRI_LINE_SAMPLES)]
+        out[f"{side}_ext"] = ([{"time": t_at(x), "price": _num(price(side, x))}
+                               for x in _sample_x(end, x_end, TRI_LINE_SAMPLES)] if x_end > end else [])
+    touches = [{"time": _unix(t["time"]), "price": _num(t["price"]), "side": t["side"]} for t in row["touches"]]
+    breakout = None
+    if row.get("breakout_time"):
+        breakout = {"time": _unix(row["breakout_time"]), "price": _num(row["breakout_price"]),
+                    "direction": row["breakout_direction"]}
+    levels = [{"key": key, "label": label, "price": _num(row[key])}
+              for key, label in TRI_LEVELS if row.get(key) is not None]
+    return {
+        "bars": bars,
+        **out,
+        "future_times": [t_at(x) for x in range(last + 1, x_end + 1)],
+        "touches": touches,
+        "breakout": breakout,
+        "levels": levels,
+        "levels_estimated": bool(row.get("target_estimated")),
+        "apex": {"time": t_at(x_end) if shown else _unix(row["apex_time"]), "price": _num(row["apex_price"]),
+                 "shown": shown},
+    }
+
+
+def tri_shape_for(chart: Mapping[str, Any]) -> dict[str, Any]:
+    """List silhouette: each line's two ends ([time, price]), the breakout and the last close."""
+    def ends(side):
+        pts = chart[f"{side}_line"] + chart[f"{side}_ext"]
+        return [[pts[0]["time"], pts[0]["price"]], [pts[-1]["time"], pts[-1]["price"]]]
+    last = chart["bars"][-1]
+    brk = chart["breakout"]
+    return {"resistance": ends("resistance"), "support": ends("support"),
+            "breakout": [brk["time"], brk["price"]] if brk else None, "last": [last[0], last[4]]}
+
+
+def build_triangle_payload(symbol_data: Mapping[str, Mapping[str, pd.DataFrame]], tri_cfg: Mapping[str, Any], *,
+                           symbols: list[str], timeframes: list[str], generated_at: datetime,
+                           scheduled: bool = False, symbols_source: str = "list",
+                           instruments: Mapping[str, Instrument] | None = None,
+                           sources: Sequence[str] | None = None, market: str = "crypto",
+                           next_scan: Callable[[datetime], datetime] | None = None,
+                           detect: Callable | None = None) -> tuple[dict[str, Any], dict[str, dict[str, Any]]]:
+    """(triangles.json payload, {tri_bars file name: chart}). A detector exception on one series is recorded in
+    `failures` (stage "triangle") and the other series continue."""
+    from ihs_scanner.keys import triangle_key
+    from ihs_scanner.triangles import detect_triangles, sort_triangles
+    detect = detect or detect_triangles
+    next_scan = next_scan or next_scan_time
+    instruments = instruments or {}
+
+    def inst_of(sym: str) -> Instrument:
+        return instruments.get(sym) or _default_instrument(sym)
+
+    rows_raw: list[dict[str, Any]] = []
+    failures: list[dict[str, Any]] = []
+    t0 = time.perf_counter()
+    per_series_ms: list[float] = []
+    for sym, by_tf in symbol_data.items():
+        for tf, df in by_tf.items():
+            t1 = time.perf_counter()
+            try:
+                rows_raw.extend(detect(df, tf, tri_cfg, symbol=sym))
+            except Exception as exc:  # one bad series must not sink the others
+                inst = inst_of(sym)
+                failures.append({"symbol": sym, "timeframe": tf, "stage": "triangle", "exchange": inst.exchange,
+                                 "market": inst.market, "error": _short_error(exc)})
+            per_series_ms.append((time.perf_counter() - t1) * 1000)
+    detect_seconds = time.perf_counter() - t0
+    per_series_ms.sort()
+    timing = ({"mean": round(sum(per_series_ms) / len(per_series_ms), 2),
+               "p95": round(per_series_ms[int(0.95 * (len(per_series_ms) - 1))], 2),
+               "max": round(per_series_ms[-1], 2)} if per_series_ms else None)
+    for r in rows_raw:
+        inst = inst_of(r["symbol"])
+        r["exchange"], r["market"], r["tv_symbol"] = inst.exchange, inst.market, inst.tv_symbol
+        if inst.name:
+            r["name"] = inst.name
+        r["pattern_id"] = f"{inst.exchange}|{inst.market}|{r['pattern_id']}"
+    rows, charts = [], {}
+    for r in sort_triangles(rows_raw):
+        try:
+            chart = tri_chart_for(r, symbol_data[r["symbol"]][r["timeframe"]])
+        except Exception as exc:
+            failures.append({"symbol": r["symbol"], "timeframe": r["timeframe"], "stage": "triangle_chart",
+                             "exchange": r["exchange"], "market": r["market"], "error": _short_error(exc)})
+            continue
+        row = {k: _to_jsonable(v) if not isinstance(v, (list, dict)) else v for k, v in r.items()}
+        row["rank"] = len(rows) + 1
+        row["pattern_key"] = triangle_key(row)
+        name = tri_chart_file_name(row)
+        row["chart_file"] = f"{TRI_BARS_DIRNAME}/{name}"
+        row["shape"] = tri_shape_for(chart)
+        charts[name] = {"schema_version": TRI_SCHEMA_VERSION, "pattern_id": row["pattern_id"], "symbol": row["symbol"],
+                        "exchange": row["exchange"], "market": row["market"], "timeframe": row["timeframe"],
+                        "triangle_type": row["triangle_type"], **({"name": row["name"]} if row.get("name") else {}),
+                        **chart}
+        rows.append(row)
+    last_closed: dict[str, str | None] = {}
+    for tf in timeframes:
+        stamps = [get_timestamps(by_tf[tf])[-1] for by_tf in symbol_data.values() if tf in by_tf and len(by_tf[tf])]
+        last_closed[tf] = _iso(max(stamps)) if stamps else None
+    cfg_json = json.loads(json.dumps(dict(tri_cfg), default=str))
+    payload = {
+        "schema_version": TRI_SCHEMA_VERSION,
+        "kind": "triangles",
+        "market": market,
+        "generated_at": generated_at.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "next_scan_at": next_scan(generated_at).strftime("%Y-%m-%dT%H:%M:%SZ") if scheduled else None,
+        "settings": {
+            "symbols_source": symbols_source,
+            "timeframes": list(timeframes),
+            "sources": list(sources) if sources else [],
+            "include_stale": bool(tri_cfg["include_stale"]),
+            "breakout_price": str(tri_cfg["breakout_price"]),
+            "config": cfg_json,  # every threshold in effect (config.TRIANGLE_CONFIG + market overrides)
+        },
+        "requested_symbols": len(symbols),
+        "scanned_symbols": sum(1 for by_tf in symbol_data.values() if by_tf),
+        "series_total": len(symbols) * len(timeframes),
+        "series_scanned": sum(len(by_tf) for by_tf in symbol_data.values()),
+        "detect_seconds": round(detect_seconds, 3),
+        "detect_ms_per_series": timing,  # {mean, p95, max} milliseconds
+        "failures": failures,
+        "last_closed": last_closed,
+        "results": rows,
+    }
+    return payload, charts
+
+
+def write_triangles(payload: Mapping[str, Any], charts: Mapping[str, Mapping[str, Any]], out_dir: Path) -> dict[str, Any]:
+    """Same swap-in-at-the-end order as write_site: tri_bars.tmp/ first, then triangles.json."""
+    out_dir.mkdir(parents=True, exist_ok=True)
+    tmp_dir = out_dir / (TRI_BARS_DIRNAME + ".tmp")
+    if tmp_dir.exists():
+        shutil.rmtree(tmp_dir)
+    tmp_dir.mkdir()
+    total = 0
+    for name, chart in charts.items():
+        path = tmp_dir / name
+        _dump(chart, path)
+        total += path.stat().st_size
+    out = out_dir / TRI_JSON
+    tmp = out.with_suffix(out.suffix + ".tmp")
+    _dump(payload, tmp)
+    _replace_dir(tmp_dir, out_dir / TRI_BARS_DIRNAME)
+    tmp.replace(out)
+    return {"json": out.stat().st_size, "bars": total, "bars_files": len(charts)}
+
+
+def run_triangles(symbol_data: Mapping[str, Mapping[str, pd.DataFrame]], *, scan_out: Path, market: str,
+                  include_stale: bool, generated_at: str, scheduled: bool, symbols: list[str],
+                  timeframes: list[str], instruments: Mapping[str, Instrument] | None = None,
+                  sources: Sequence[str] | None = None, symbols_source: str = "list",
+                  next_scan: Callable[[datetime], datetime] | None = None) -> dict[str, Any] | None:
+    """Detect + write triangles next to scan_out. Never raises (D38: triangles must not fail the IHS build);
+    returns a small summary, or None when nothing was written."""
+    from ihs_scanner.config import triangle_config
+    try:
+        cfg = triangle_config({"include_stale": bool(include_stale)}, market=market)
+        gen = datetime.strptime(generated_at, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
+        payload, charts = build_triangle_payload(
+            symbol_data, cfg, symbols=symbols, timeframes=timeframes, generated_at=gen, scheduled=scheduled,
+            symbols_source=symbols_source, instruments=instruments, sources=sources, market=market,
+            next_scan=next_scan)
+        failed = {(f["symbol"], f["timeframe"]) for f in payload["failures"] if f["stage"] == "triangle"}
+        scanned = payload["series_scanned"]
+        if scanned and len(failed) / scanned > MAX_FAILURE_RATIO:
+            print(f"[triangles FAIL] {len(failed)} of {scanned} series failed; {TRI_JSON} NOT updated "
+                  f"(first error: {payload['failures'][0]['error']})", file=sys.stderr)
+            return None
+        sizes = write_triangles(payload, charts, Path(scan_out).parent)
+    except Exception as exc:  # noqa: BLE001 -- isolation is the point
+        print(f"[triangles FAIL] {_short_error(exc)}; {TRI_JSON} NOT updated (head-and-shoulders output is fine)",
+              file=sys.stderr)
+        return None
+    counts: dict[str, dict[str, int]] = {"type": {}, "status": {}, "timeframe": {}}
+    for r in payload["results"]:
+        for key, field in (("type", "triangle_type"), ("status", "status"), ("timeframe", "timeframe")):
+            counts[key][r[field]] = counts[key].get(r[field], 0) + 1
+    print(f"[triangles] {len(payload['results'])} triangles in {payload['detect_seconds']:.1f}s detect over "
+          f"{scanned} series (ms per series {payload['detect_ms_per_series']}); failures={len(payload['failures'])}; by type {counts['type']}, status "
+          f"{counts['status']}, timeframe {counts['timeframe']}; wrote {TRI_JSON} ({sizes['json'] / 1024:.0f} KB) + "
+          f"{sizes['bars_files']} {TRI_BARS_DIRNAME} files ({sizes['bars'] / 1024:.0f} KB)")
+    return {"count": len(payload["results"]), "counts": counts, "detect_seconds": payload["detect_seconds"],
+            "failures": len(payload["failures"])}
+
+
 Fetcher = Callable[[Instrument, str, int, Any], pd.DataFrame]
 
 
@@ -656,6 +914,9 @@ def main(argv=None) -> int:
     print(f"wrote {args.out} ({sizes['scan_json'] / 1024:.0f} KB) + {sizes['bars_files']} bars files "
           f"({sizes['bars'] / 1024:.0f} KB): {len(payload['results'])} patterns {counts}; "
           f"next scan ~{payload['next_scan_at'] or 'not scheduled'}")
+    run_triangles(symbol_data, scan_out=Path(args.out), market="crypto", include_stale=bool(args.include_stale),
+                  generated_at=payload["generated_at"], scheduled=scheduled, symbols=symbols, timeframes=timeframes,
+                  instruments=instruments, sources=source_keys, symbols_source="all" if use_all else "list")
     return 0
 
 

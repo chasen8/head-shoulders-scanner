@@ -11,9 +11,10 @@ would delete the other market's data, so each publish step:
   4. writes the result to `--out` (which the workflow commits and pushes).
 
 Ownership (relative paths; a directory owns everything under it):
-  site  : crypto -> data/scan.json, data/bars        tw -> data/tw
-  state : crypto -> state.json, site/data/scan.json, site/data/bars
+  site  : crypto -> data/scan.json, data/bars, data/triangles.json, data/tri_bars     tw -> data/tw
+  state : crypto -> state.json, site/data/scan.json, site/data/bars, site/data/triangles.json, site/data/tri_bars
           tw     -> state_tw.json, site/data/tw
+  (D38 triangles: crypto's triangles.json + tri_bars/ sit next to its scan.json; Taiwan's are inside data/tw.)
 
 If --prev is given but missing, the step fails (exit 1) instead of publishing a tree without the other
 market; pass --allow-missing-prev only for the very first publish.
@@ -31,8 +32,9 @@ from pathlib import Path, PurePosixPath
 from typing import Mapping, Sequence
 
 OWNED: Mapping[str, Mapping[str, Sequence[str]]] = {
-    "site": {"crypto": ("data/scan.json", "data/bars"), "tw": ("data/tw",)},
-    "state": {"crypto": ("state.json", "site/data/scan.json", "site/data/bars"),
+    "site": {"crypto": ("data/scan.json", "data/bars", "data/triangles.json", "data/tri_bars"), "tw": ("data/tw",)},
+    "state": {"crypto": ("state.json", "site/data/scan.json", "site/data/bars", "site/data/triangles.json",
+                         "site/data/tri_bars"),
               "tw": ("state_tw.json", "site/data/tw")},
 }
 SKIP_NAMES = {".git"}

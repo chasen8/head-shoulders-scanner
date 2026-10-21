@@ -56,8 +56,24 @@
   };
   var C = PALETTE.light;
 
+  // D38 converging triangles: a second list view ("tri") per market, data/triangles.json + data/tri_bars/
+  // (data/tw/... for Taiwan), opened from the ☰ drawer; ?view=triangles in the URL. No stars / notifications yet.
+  function triUrl(m) { return MARKETS[m].dir + "triangles.json"; }
+  var TRI_STATUS_LABEL = { forming: "收斂中", breakout_up: "向上突破", breakout_down: "向下突破", stale: "已過期" };
+  var TRI_STATUS_ORDER = ["forming", "breakout_up", "breakout_down", "stale"];
+  var TRI_TYPE_LABEL = { ascending: "上升三角", descending: "下降三角", symmetrical: "對稱三角" };
+  var TRI_TYPE_ORDER = ["ascending", "descending", "symmetrical"];
+  var TRI_BIAS_LABEL = { up: "傳統上偏多", down: "傳統上偏空", neutral: "中性（看突破方向）" };
+  var TRI_SIDE_LABEL = { resistance: "阻力線", support: "支撐線" };
+  var TRI_SORT_OPTIONS = [["score", "分數高到低"], ["near", "離突破最近"], ["recent", "最新訊號"], ["name", "名稱"]];
+  var TRI_NOSTAR = "收斂三角暫不提供觀察名單星號與 Discord 通知（目前只支援頭肩底）。";
+
   var state = { data: null, market: "crypto", q: "", tf: "all", status: "all", neck: "all", sort: "score", shown: PAGE,
-    selected: null, minScore: 0, onlyWl: false };
+    selected: null, minScore: 0, onlyWl: false,
+    view: "ihs", tdata: null, ttf: "all", tst: "all", ttype: "all", tsort: "score", tselected: null };
+  var triCache = {}; // market -> triangles.json payload
+  var triErr = {};
+  var triChartCache = {};
   var dataCache = {}; // market -> scan.json payload (loaded on demand)
   var loadErr = {}; // market -> last load error
   var chartApi = null;
@@ -101,6 +117,7 @@
     return Math.min(12, Math.ceil(-Math.log10(a)) + 3);
   }
   function isTw() { return state.market === "tw"; }
+  function isTri() { return state.view === "tri"; }
   function rowMarket(r) { return r && (r.market === "stock" || r.exchange === "twse" || r.exchange === "tpex") ? "tw" : "crypto"; }
   // Taiwan stocks: always two decimals (NT$); crypto: by magnitude
   function fmtPrice(p, ref) {
@@ -161,7 +178,7 @@
       (s.symbols_source === "all" ? " 全部 USDT 交易對" : " USDT 交易對") + "，" + tfs;
   }
   function renderMeta() {
-    var d = state.data, s = d.settings;
+    var d = isTri() ? state.tdata : state.data, s = d.settings;
     var scanned = d.scanned_symbols !== undefined ? d.scanned_symbols : s.symbols.length;
     var next = d.next_scan_at, nextText;
     var every = isTw() ? "每個交易日收盤後（台北 14:10 左右）掃描一次" : "每 4 小時掃描一次";
@@ -171,7 +188,7 @@
     var fails = (d.failures || []).length;
     $("scope").textContent = scopeText(d);
     $("meta").innerHTML =
-      "<b class=\"meta__mkt\">" + esc(MARKETS[state.market].label) + "</b>資料更新於 <time datetime=\"" + esc(d.generated_at) + "\">" +
+      "<b class=\"meta__mkt\">" + esc(MARKETS[state.market].label + (isTri() ? "・收斂三角" : "")) + "</b>資料更新於 <time datetime=\"" + esc(d.generated_at) + "\">" +
       fmtStamp(d.generated_at) + "</time>（" + tzLabel() + "），掃描了 " + scanned + " " + unitWord() + "。" +
       (fails ? "有 " + fails + " 組 K 線抓取失敗，已略過。" : "") + nextText +
       (s.include_stale ? "這份資料包含已過期的型態（預覽用）。" : "");
@@ -560,8 +577,18 @@
       color: C.accentSoft, lineWidth: 1, lineStyle: LW.LineStyle.Dashed, priceLineVisible: false,
       lastValueVisible: false, crosshairMarkerVisible: false, autoscaleInfoProvider: noScale
     });
+    // D38 triangle lines: solid inside the pattern, dashed extension to the apex (empty while a head-and-shoulders
+    // pattern is shown, and the IHS series are empty while a triangle is shown)
+    var triLine = function (color, dashed) {
+      return chart.addSeries(LW.LineSeries, {
+        color: color, lineWidth: 2, lineStyle: dashed ? LW.LineStyle.Dashed : LW.LineStyle.Solid, priceLineVisible: false,
+        lastValueVisible: false, crosshairMarkerVisible: false, autoscaleInfoProvider: noScale
+      });
+    };
     var markers = LW.createSeriesMarkers(candles, []);
     chartApi = { chart: chart, candles: candles, volume: volume, shape: shape, shapeProv: shapeProv, neck: neck,
+      triRes: triLine(C.down, false), triResExt: triLine(C.down, true),
+      triSup: triLine(C.up, false), triSupExt: triLine(C.up, true),
       markers: markers, levelLines: [], LW: LW };
     initPriceAxisZoom(chartApi);
     return chartApi;
@@ -629,6 +656,19 @@
     api.shape.applyOptions({ color: C.shape });
     api.neck.applyOptions({ color: C.accent });
     api.shapeProv.applyOptions({ color: C.accentSoft });
+    api.triRes.applyOptions({ color: C.down }); api.triResExt.applyOptions({ color: C.down });
+    api.triSup.applyOptions({ color: C.up }); api.triSupExt.applyOptions({ color: C.up });
+    if (isTri()) {
+      var tr = state.tdata && state.tdata.results.find(function (x) { return x.pattern_id === state.tselected; });
+      var tc = tr && triChartCache[tr.pattern_id];
+      if (!tr || !tc) return;
+      var tts = api.chart.timeScale(), tlr = tts.getVisibleLogicalRange();
+      var tscale = api.candles.priceScale(), tpr = tscale.options().autoScale === false ? tscale.getVisibleRange() : null;
+      drawTriChart(tr, tc);
+      if (tlr) tts.setVisibleLogicalRange(tlr);
+      if (tpr) { tscale.setVisibleRange(tpr); if (api.syncAutoscaleBtn) api.syncAutoscaleBtn(); }
+      return;
+    }
     var r = state.data && state.data.results.find(function (x) { return x.pattern_id === state.selected; });
     var c = r && chartCache[r.pattern_id];
     if (!r || !c) return;
@@ -659,6 +699,8 @@
     if (api.syncAutoscaleBtn) api.syncAutoscaleBtn();
     var prov = !!c.rs_provisional;
     var line = function (p) { return { time: p.time, value: p.price }; };
+    [api.triRes, api.triResExt, api.triSup, api.triSupExt].forEach(function (s) { s.setData([]); });
+    $("tri-legend").hidden = true;
     api.shape.setData((prov ? c.points.slice(0, 4) : c.points).map(line));
     api.shapeProv.setData(prov ? c.points.slice(3).map(line) : []);
     api.neck.setData(c.neckline.map(line));
@@ -730,8 +772,397 @@
     note.hidden = !prov && !tw4h;
   }
 
+  /* ---------- D38 converging triangles (data/triangles.json; every number comes from build_site.py) ---------- */
+  function triPass(r, skip) {
+    return matchQ(r) &&
+      (skip === "ttf" || state.ttf === "all" || r.timeframe === state.ttf) &&
+      (skip === "tst" || state.tst === "all" || r.status === state.tst) &&
+      (skip === "ttype" || state.ttype === "all" || r.triangle_type === state.ttype);
+  }
+  function triNear(r) { // breakouts first, then the nearer of the two lines (JSON distances)
+    if (r.breakout_direction) return -1;
+    return Math.min(Math.abs(r.distance_to_resistance), Math.abs(r.distance_to_support));
+  }
+  var TRI_SORTS = {
+    score: function (a, b) { return a.rank - b.rank; },
+    near: function (a, b) { return (triNear(a) - triNear(b)) || (a.rank - b.rank); },
+    recent: function (a, b) { return (Date.parse(b.signal_time) - Date.parse(a.signal_time)) || (a.rank - b.rank); },
+    name: function (a, b) { return a.symbol < b.symbol ? -1 : a.symbol > b.symbol ? 1 : a.rank - b.rank; }
+  };
+  function triFiltered() {
+    return state.tdata.results.filter(function (r) { return triPass(r); }).sort(TRI_SORTS[state.tsort] || TRI_SORTS.score);
+  }
+  function renderTriFilters() {
+    var res = state.tdata.results, s = state.tdata.settings;
+    var byTf = {}, bySt = {}, byTy = {}, nTf = 0, nSt = 0, nTy = 0, hasStale = false;
+    res.forEach(function (r) {
+      if (r.status === "stale") hasStale = true;
+      if (triPass(r, "ttf")) { byTf[r.timeframe] = (byTf[r.timeframe] || 0) + 1; nTf++; }
+      if (triPass(r, "tst")) { bySt[r.status] = (bySt[r.status] || 0) + 1; nSt++; }
+      if (triPass(r, "ttype")) { byTy[r.triangle_type] = (byTy[r.triangle_type] || 0) + 1; nTy++; }
+    });
+    $("filter-tf").innerHTML = chip("ttf", "all", "全部", nTf) + s.timeframes.map(function (tf) {
+      return chip("ttf", tf, tfName(tf), byTf[tf] || 0);
+    }).join("");
+    $("filter-status").innerHTML = chip("tst", "all", "全部", nSt) + TRI_STATUS_ORDER.filter(function (st) {
+      return st !== "stale" || hasStale;
+    }).map(function (st) { return chip("tst", st, TRI_STATUS_LABEL[st], bySt[st] || 0); }).join("");
+    $("filter-ttype").innerHTML = chip("ttype", "all", "全部", nTy) + TRI_TYPE_ORDER.map(function (k) {
+      return chip("ttype", k, TRI_TYPE_LABEL[k], byTy[k] || 0);
+    }).join("");
+  }
+  function triGlyph(r) {
+    var W = 52, H = 30, P = 3, sh = r.shape;
+    var pts = sh.resistance.concat(sh.support, [sh.last]);
+    if (sh.breakout) pts.push(sh.breakout);
+    var t0 = Math.min.apply(null, pts.map(function (p) { return p[0]; }));
+    var t1 = Math.max.apply(null, pts.map(function (p) { return p[0]; }));
+    var lo = Math.min.apply(null, pts.map(function (p) { return p[1]; }));
+    var hi = Math.max.apply(null, pts.map(function (p) { return p[1]; }));
+    var x = function (t) { return (P + (t - t0) / ((t1 - t0) || 1) * (W - 2 * P)).toFixed(1); };
+    var y = function (p) { return (H - P - (p - lo) / ((hi - lo) || 1) * (H - 2 * P)).toFixed(1); };
+    var seg = function (cls, a) {
+      return "<line class=\"" + cls + "\" x1=\"" + x(a[0][0]) + "\" y1=\"" + y(a[0][1]) + "\" x2=\"" + x(a[1][0]) + "\" y2=\"" + y(a[1][1]) + "\"/>";
+    };
+    var svg = "<svg class=\"glyph\" viewBox=\"0 0 " + W + " " + H + "\" aria-hidden=\"true\" focusable=\"false\">" +
+      seg("g-res", sh.resistance) + seg("g-sup", sh.support) +
+      "<circle class=\"g-last\" r=\"2\" cx=\"" + x(sh.last[0]) + "\" cy=\"" + y(sh.last[1]) + "\"/>";
+    if (sh.breakout) svg += "<circle class=\"g-tbrk\" r=\"2.2\" cx=\"" + x(sh.breakout[0]) + "\" cy=\"" + y(sh.breakout[1]) + "\"/>";
+    return svg + "</svg>";
+  }
+  function signedPct2(x) { return (x < 0 ? "−" : "") + pct(Math.abs(x), 1); }
+  function triDistText(r) {
+    if (r.status === "breakout_up" || r.status === "breakout_down") {
+      return (r.bars_since_breakout === 0 ? "最新一根" : r.bars_since_breakout + " 根前") + TRI_STATUS_LABEL[r.status];
+    }
+    return "距阻力 " + signedPct2(r.distance_to_resistance) + "，距支撐 " + signedPct2(r.distance_to_support);
+  }
+  function triRowHtml(r) {
+    return "<li class=\"rowwrap\"><button type=\"button\" class=\"row row--tri\" data-id=\"" + esc(r.pattern_id) + "\" aria-current=\"" +
+      (state.tselected === r.pattern_id) + "\" aria-label=\"" + esc(symText(r) + " " + tfName(r.timeframe) + "，" + marketText(r) + "，" +
+      TRI_TYPE_LABEL[r.triangle_type] + "，" + TRI_STATUS_LABEL[r.status] + "，" + triDistText(r) + "，分數 " + r.score.toFixed(1)) + "\">" +
+      triGlyph(r) +
+      "<span class=\"row__name\"><span class=\"sym\">" + symHtml(r) + "</span>" +
+      "<span class=\"tf\">" + esc(tfName(r.timeframe)) + "</span>" +
+      "<span class=\"mkt\">" + esc(marketText(r)) + "</span></span>" +
+      "<span class=\"row__score\">" + r.score.toFixed(1) + "<small>分</small></span>" +
+      "<span class=\"row__sub\"><span class=\"ttag ttag--" + esc(r.triangle_type) + "\">" + TRI_TYPE_LABEL[r.triangle_type] + "</span>" +
+      "<span class=\"status status--" + esc(r.status) + "\">" + TRI_STATUS_LABEL[r.status] + "</span>" +
+      "<span class=\"dist\">" + esc(triDistText(r)) + "</span></span></button></li>";
+  }
+  function clearTriFilters() {
+    state.q = ""; state.ttf = "all"; state.tst = "all"; state.ttype = "all"; state.shown = PAGE;
+    $("q").value = "";
+    update();
+  }
+  function renderTriList() {
+    var all = state.tdata.results, rows = triFiltered(), d = state.tdata;
+    $("notice").hidden = true;
+    $("more").hidden = true;
+    if (!all.length) {
+      $("count").textContent = "目前沒有收斂三角";
+      $("list").innerHTML = "";
+      showNotice("empty", "目前沒有符合條件的收斂三角",
+        "最近一次掃描（" + fmtStamp(d.generated_at) + "）在 " + d.scanned_symbols + " " + unitWord() + "的 " +
+        esc(d.settings.timeframes.map(tfName).join("、")) + " K 線上，沒有找到收斂中或剛突破的三角形。");
+      return rows;
+    }
+    if (!rows.length) {
+      $("count").textContent = "沒有符合的三角形";
+      $("list").innerHTML = "";
+      showNotice("empty", "沒有符合的三角形",
+        (state.q ? "找不到代號或名稱含「" + esc(state.q) + "」的" + (isTw() ? "股票" : "幣種") : "這個篩選下沒有三角形") +
+        "。換一個週期、狀態或類型看看，或清除篩選看全部 " + all.length + " 個。", { label: "清除篩選", run: clearTriFilters });
+      return rows;
+    }
+    var shown = Math.min(rows.length, state.shown);
+    var sel = rows.findIndex(function (r) { return r.pattern_id === state.tselected; });
+    if (sel >= shown) shown = sel + 1;
+    $("count").textContent = "共 " + rows.length + " 個三角形" + (rows.length < all.length ? "（全部 " + all.length + " 個）" : "");
+    $("list").innerHTML = rows.slice(0, shown).map(triRowHtml).join("");
+    if (shown < rows.length) {
+      var n = Math.min(PAGE, rows.length - shown);
+      $("more").textContent = "再顯示 " + n + " 個（還有 " + (rows.length - shown) + " 個）";
+      $("more").hidden = false;
+    }
+    return rows;
+  }
+  function triCrossText(r) { return r.breakout_basis === "high" ? "最高價／最低價（含影線）" : "收盤價"; }
+  function triSummary(r) {
+    var tf = r.timeframe, type = TRI_TYPE_LABEL[r.triangle_type];
+    var touch = "阻力線 " + r.touches_resistance + " 次、支撐線 " + r.touches_support + " 次觸碰";
+    var close = "最新收盤 " + fmtPrice(r.current_close) + "。";
+    if (r.status === "breakout_up" || r.status === "breakout_down") {
+      return type + "，" + fmtBar(r.breakout_time, tf) + " 那根 K 線的" + triCrossText(r) +
+        (r.status === "breakout_up" ? "站上阻力線" : "跌破支撐線") + "（" + TRI_STATUS_LABEL[r.status] + "），到現在過了 " +
+        r.bars_since_breakout + " 根。" + touch + "，突破時已走到頂點的 " + pct(r.apex_progress, 0) + "。" + close;
+    }
+    if (r.status === "stale") {
+      return type + "，已過期，只供回顧" + (r.stale_reason === "apex" ? "：走到頂點都沒有突破。" :
+        r.stale_reason === "failed_breakout" ? "：突破後又跌回三角形內。" : "：突破已久。") + close;
+    }
+    return type + "，收斂中：" + touch + "，已走到頂點的 " + pct(r.apex_progress, 0) + (r.near_apex ? "（接近頂點）" : "") +
+      "。" + close + "距阻力線 " + signedPct2(r.distance_to_resistance) + "、距支撐線 " + signedPct2(r.distance_to_support) + "。";
+  }
+  var TRI_SCORE_PARTS = [["touch_score", "觸碰次數", 20], ["fit_score", "貼線程度", 15], ["convergence_score", "收斂程度", 20],
+    ["fill_score", "型態填滿", 15], ["breakout_score", "突破／接近突破", 20], ["clarity_score", "類型明確", 10]];
+  function renderTriDetail(r) {
+    var tf = r.timeframe;
+    var px = function (p) { return fmtPrice(p, r.current_close); };
+    var up = r.target_direction === "up";
+    var est = r.target_estimated ? "（預估）" : "";
+    $("detail").hidden = false;
+    $("detail-head").innerHTML =
+      "<div class=\"detail__title\"><h2>" + symHtml(r) + "</h2>" +
+      "<span class=\"tf\">" + esc(tfName(tf)) + "</span>" +
+      "<span class=\"mkt mkt--lg\">" + esc(marketText(r)) + "</span>" +
+      "<span class=\"ttag ttag--" + esc(r.triangle_type) + "\">" + TRI_TYPE_LABEL[r.triangle_type] + "</span>" +
+      "<span class=\"status status--" + esc(r.status) + "\">" + TRI_STATUS_LABEL[r.status] + "</span>" +
+      "<span class=\"score\">分數 <b>" + r.score.toFixed(1) + "</b></span>" +
+      "<a class=\"tvlink\" href=\"" + esc(tvUrl(r)) + "\" target=\"_blank\" rel=\"noopener\">在 TradingView 開啟</a></div>" +
+      "<p class=\"summary\">" + esc(triSummary(r)) + "</p>" +
+      "<p class=\"tri-nostar\">" + esc(TRI_NOSTAR) + "</p>";
+    var touches = (r.touches || []).map(function (t) {
+      return "<tr><td class=\"tside tside--" + esc(t.side) + "\">" + TRI_SIDE_LABEL[t.side] + "</td><td>" + fmtBar(t.time, tf) +
+        "</td><td>" + px(t.price) + "</td></tr>";
+    }).join("");
+    $("detail-body").innerHTML =
+      "<section><h3>目標與失效</h3><dl class=\"facts\">" +
+      "<dt>" + (r.target_estimated ? "預估突破價（目前" + (up ? "阻力線" : "支撐線") + "）" : "突破價（突破那根的" + (up ? "阻力線" : "支撐線") + "價）") +
+      "</dt><dd>" + px(r.target_basis_price) + "</dd>" +
+      "<dt><span class=\"key key--tp\" aria-hidden=\"true\"></span>目標價" + est + "</dt><dd>" + px(r.target) + "</dd>" +
+      "<dt><span class=\"key key--tp2\" aria-hidden=\"true\"></span>保守目標" + est + "</dt><dd>" + px(r.target_conservative) + "</dd>" +
+      "<dt><span class=\"key key--stop\" aria-hidden=\"true\"></span>失效價</dt><dd>" + px(r.invalidation_price) + "</dd>" +
+      "</dl><p class=\"note\">目標價＝突破價" + (up ? "＋" : "−") + "三角形高度 " + px(r.target_height) + "（" +
+      (up ? "向上" : "向下") + (r.target_estimated ? "，還沒突破，依" + (r.bias === "neutral" ? "較常見的向上方向" : "型態偏向") + "預估" : "") +
+      "）；保守目標＝高度 × " + pct(r.target_hit_rate, 0) + "（Bulkowski 統計的" + TRI_TYPE_LABEL[r.triangle_type] +
+      (up ? "向上" : "向下") + "突破達標比例，美股日線，僅供參考）。失效價：" +
+      (up ? "跌破型態內最後一個低點" : r.triangle_type === "ascending" ? "站回阻力線" : "站上型態內最後一個高點") +
+      "，突破就不成立。</p></section>" +
+      "<section><h3>量測</h3><dl class=\"facts\">" +
+      "<dt>類型</dt><dd>" + TRI_TYPE_LABEL[r.triangle_type] + "</dd>" +
+      "<dt>偏向</dt><dd>" + esc(TRI_BIAS_LABEL[r.bias] || r.bias) + "</dd>" +
+      "<dt>觸碰次數</dt><dd>阻力 " + r.touches_resistance + "／支撐 " + r.touches_support + "</dd>" +
+      "<dt>收斂進度（到頂點）</dt><dd>" + pct(r.apex_progress, 0) + (r.near_apex ? "（接近頂點）" : "") + "</dd>" +
+      "<dt>起點寬度</dt><dd>" + pct(r.height_start_pct, 1) + "</dd>" +
+      "<dt>型態長度</dt><dd>" + r.pattern_bars + " 根</dd>" +
+      "<dt>頂點</dt><dd>" + fmtBar(r.apex_time, tf) + (r.apex_bars_ahead > 0 ? "（約 " + Math.round(r.apex_bars_ahead) + " 根後）" : "") + "</dd>" +
+      "<dt>目前價</dt><dd>" + px(r.current_close) + "</dd>" +
+      "<dt>目前阻力線價</dt><dd>" + px(r.current_resistance) + "（" + signedPct2(r.distance_to_resistance) + "）</dd>" +
+      "<dt>目前支撐線價</dt><dd>" + px(r.current_support) + "（" + signedPct2(r.distance_to_support) + "）</dd>" +
+      "<dt>最後一根 K 線</dt><dd>" + fmtBar(r.as_of_time, tf) + (tf === "1w" ? " 當週" : "") + "</dd>" +
+      "</dl>" + (r.triangle_type === "descending"
+        ? "<p class=\"note\">下降三角傳統上偏空，但 Bulkowski 的統計裡有 53% 向上突破；方向請以實際突破為準。</p>" : "") +
+      "</section>" +
+      "<section><h3>分數拆解</h3><div class=\"scorebars\">" + TRI_SCORE_PARTS.map(function (p) {
+        return scoreBar(p[1], r[p[0]], p[2]);
+      }).join("") + "</div></section>" +
+      "<section><h3>觸碰點</h3><table class=\"points\"><thead><tr><th scope=\"col\">線</th><th scope=\"col\">K 線</th><th scope=\"col\">價格</th></tr></thead><tbody>" +
+      touches + "</tbody></table></section>";
+    loadTriChart(r);
+  }
+  function loadTriChart(r) {
+    var id = r.pattern_id, url = MARKETS[rowMarket(r)].dir + r.chart_file;
+    if (triChartCache[id]) { drawTriChart(r, triChartCache[id]); return; }
+    chartState("loading", "<p>正在載入 K 線…</p>");
+    fetch(url, { cache: "no-store" })
+      .then(function (res) { if (!res.ok) throw new Error("HTTP " + res.status); return res.json(); })
+      .then(function (c) {
+        if (!c || !Array.isArray(c.bars) || !c.bars.length) throw new Error("檔案格式不對");
+        triChartCache[id] = c;
+        if (isTri() && state.tselected === id) drawTriChart(r, c);
+      })
+      .catch(function (err) {
+        if (!isTri() || state.tselected !== id) return;
+        chartState("error", "<p>這個三角形的 K 線檔 <code>" + esc(url) + "</code> 讀不到（" +
+          esc(err && err.message ? err.message : err) + "）。可能是掃描剛好在更新，重新整理通常就好；右側數據仍可參考。</p>" +
+          "<button type=\"button\" id=\"chart-retry\">再試一次</button>");
+        $("chart-retry").addEventListener("click", function () { loadTriChart(r); });
+      });
+  }
+  function drawTriChart(r, c) {
+    var api = initChart();
+    if (!api) {
+      chartState("error", "<p>圖表程式庫（cdn.jsdelivr.net 上的 Lightweight Charts）載入失敗，所以畫不出 K 線；清單與數據仍可使用。檢查網路後重新整理。</p>");
+      return;
+    }
+    chartState(null);
+    var d = rowMarket(r) === "tw" ? 2 : Math.abs(r.current_close) >= 10000 ? 0 : decimalsFor(r.current_close);
+    api.candles.applyOptions({ priceFormat: { type: "price", precision: d, minMove: Math.pow(10, -d) } });
+    var future = Array.isArray(c.future_times) ? c.future_times : [];
+    // future_times: empty bars so the dashed extensions reach the apex on the bar-indexed time axis
+    api.candles.setData(c.bars.map(function (b) {
+      return { time: b[0], open: b[1], high: b[2], low: b[3], close: b[4] };
+    }).concat(future.map(function (t) { return { time: t }; })));
+    api.volume.setData(c.bars.map(function (b) {
+      return { time: b[0], value: b[5], color: b[4] >= b[1] ? C.volUp : C.volDown };
+    }));
+    api.candles.priceScale().setAutoScale(true);
+    if (api.syncAutoscaleBtn) api.syncAutoscaleBtn();
+    var line = function (p) { return { time: p.time, value: p.price }; };
+    api.shape.setData([]); api.shapeProv.setData([]); api.neck.setData([]);
+    api.triRes.setData(c.resistance_line.map(line)); api.triResExt.setData((c.resistance_ext || []).map(line));
+    api.triSup.setData(c.support_line.map(line)); api.triSupExt.setData((c.support_ext || []).map(line));
+    api.levelLines.forEach(function (pl) { api.candles.removePriceLine(pl); });
+    var LS_ = api.LW.LineStyle;
+    var levels = settings.showLevels && Array.isArray(c.levels) ? c.levels : [];
+    var LEVEL_STYLE = { target: { color: C.tp, style: LS_.Dashed }, target_conservative: { color: C.tp2, style: LS_.LargeDashed },
+      invalidation_price: { color: C.stop, style: LS_.Dashed } };
+    api.levelLines = levels.map(function (lv) {
+      var st = LEVEL_STYLE[lv.key] || { color: C.faint, style: LS_.Dotted };
+      return api.candles.createPriceLine({
+        price: lv.price, color: st.color, lineWidth: 1, lineStyle: st.style, axisLabelVisible: true,
+        title: lv.label + (lv.key !== "invalidation_price" && c.levels_estimated ? " 預估" : "")
+      });
+    });
+    var lvPrices = levels.map(function (lv) { return lv.price; });
+    api.candles.applyOptions({
+      autoscaleInfoProvider: function (orig) {
+        var res = orig();
+        if (!res || !res.priceRange || !lvPrices.length) return res;
+        return { priceRange: {
+          minValue: Math.min.apply(null, lvPrices.concat([res.priceRange.minValue])),
+          maxValue: Math.max.apply(null, lvPrices.concat([res.priceRange.maxValue]))
+        }, margins: res.margins };
+      }
+    });
+    var ms = (c.touches || []).map(function (t) {
+      var res = t.side === "resistance";
+      return { time: t.time, position: res ? "aboveBar" : "belowBar", shape: "circle", color: res ? C.down : C.up, size: 0.6 };
+    });
+    if (c.breakout) {
+      var bu = c.breakout.direction === "up";
+      ms.push({ time: c.breakout.time, position: bu ? "aboveBar" : "belowBar", shape: bu ? "arrowUp" : "arrowDown",
+        color: C.accent, text: bu ? "向上突破" : "向下突破", size: 1 });
+    }
+    ms.sort(function (a, b) { return a.time - b.time; });
+    api.markers.setMarkers(ms);
+    var startIdx = 0;
+    for (var i = 0; i < c.bars.length; i++) { if (c.bars[i][0] === c.resistance_line[0].time) { startIdx = i; break; } }
+    api.chart.timeScale().applyOptions({ rightOffset: 4 });
+    api.chart.timeScale().setVisibleLogicalRange({ from: Math.max(-2, startIdx - 10), to: c.bars.length - 1 + future.length + 3 });
+    $("chart").setAttribute("aria-label", symText(r) + " " + tfName(r.timeframe) + " K 線圖，標出" + TRI_TYPE_LABEL[r.triangle_type] +
+      "的阻力線、支撐線與觸碰點" + (c.breakout ? "，以及突破點" : "") + (levels.length ? "，目標價與失效價水平線" : ""));
+    $("chart-legend").hidden = true;
+    $("tri-legend").hidden = false;
+    var toggle = function (sel, show) { var el = document.querySelector(sel); if (el) el.hidden = !show; };
+    toggle(".lg--tbrk", !!c.breakout);
+    toggle("#tri-legend .lg--tp", levels.length > 0);
+    toggle("#tri-legend .lg--stop", levels.length > 0);
+    toggle(".lg--ext", (c.resistance_ext || []).length > 0);
+    var note = $("chart-note");
+    var tw4h = rowMarket(r) === "tw" && r.timeframe === "4h";
+    var apexNote = c.apex && c.apex.shown === false
+      ? "頂點約在 " + fmtBar(c.apex.time, r.timeframe) + "，離得太遠，虛線只畫到型態長度一倍處。" : "";
+    note.textContent = apexNote + (tw4h ? (apexNote ? " " : "") + TW_4H_NOTE : "");
+    note.hidden = !apexNote && !tw4h;
+  }
+  function selectTri(id, fromUser) {
+    var r = state.tdata.results.find(function (x) { return x.pattern_id === id; });
+    if (!r) return;
+    state.tselected = id;
+    Array.prototype.forEach.call(document.querySelectorAll(".row"), function (b) {
+      b.setAttribute("aria-current", String(b.getAttribute("data-id") === id));
+    });
+    renderTriDetail(r);
+    if (fromUser) {
+      try { history.replaceState(null, "", location.pathname + location.search + "#" + encodeURIComponent(id)); } catch (e) { /* file:// */ }
+      if (narrow.matches) $("detail").scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "start" });
+    }
+  }
+  function updateTri(keepScroll) {
+    renderTriFilters();
+    var rows = renderTriList();
+    if (!keepScroll) $("scroller").scrollTop = 0;
+    if (!rows.length) { $("detail").hidden = true; return; }
+    var keep = rows.some(function (r) { return r.pattern_id === state.tselected; });
+    if (!keep || !chartApi) selectTri(keep ? state.tselected : rows[0].pattern_id, false);
+  }
+  var IHS_SORT_HTML = null;
+  // Show the controls of the current view: type filter + triangle sorts, or neckline filter + IHS sorts and the star toggle.
+  function renderViewChrome() {
+    var tri = isTri();
+    if (IHS_SORT_HTML === null) IHS_SORT_HTML = $("sort").innerHTML;
+    $("grp-ttype").hidden = !tri;
+    $("grp-neck").hidden = tri;
+    $("sort").innerHTML = tri ? TRI_SORT_OPTIONS.map(function (o) { return opt(o[0], o[1], state.tsort); }).join("") : IHS_SORT_HTML;
+    $("sort").value = tri ? state.tsort : state.sort;
+    $("only-wl").hidden = tri;
+    var howIhs = document.querySelector("[aria-labelledby=\"howto-title\"]");
+    if (howIhs) howIhs.hidden = tri;
+    $("howto-tri").hidden = !tri;
+    $("chart-legend").hidden = true;
+    $("tri-legend").hidden = true;
+    document.documentElement.setAttribute("data-view", tri ? "tri" : "ihs");
+  }
+  function loadTri(m) {
+    if (triCache[m]) return Promise.resolve(triCache[m]);
+    return fetch(triUrl(m), { cache: "no-store" })
+      .then(function (res) { if (!res.ok) throw new Error("HTTP " + res.status); return res.json(); })
+      .then(function (data) {
+        if (!data || !Array.isArray(data.results) || !data.settings) throw new Error("檔案格式不對");
+        triCache[m] = data; delete triErr[m];
+        return data;
+      }, function (err) { triErr[m] = err; throw err; });
+  }
+  function triFail(m, err) {
+    var missing = err && /HTTP 404/.test(String(err.message || err));
+    $("meta").innerHTML = "<b class=\"meta__mkt\">" + esc(MARKETS[m].label) + "・收斂三角</b>" +
+      (missing ? "收斂三角資料還沒產生。" : "讀不到收斂三角資料。");
+    showControls(false);
+    $("detail").hidden = true;
+    $("count").textContent = "";
+    $("list").innerHTML = "";
+    $("more").hidden = true;
+    showNotice(missing ? "empty" : "error", missing ? "收斂三角資料還沒產生" : "讀不到收斂三角資料",
+      missing ? "下一次掃描完成後，這裡就會出現" + esc(MARKETS[m].label) + "的上升、下降與對稱三角形。現在可以先看頭肩底。"
+        : "<code>" + esc(triUrl(m)) + "</code> 載入失敗（" + esc(err && err.message ? err.message : err) + "）。",
+      { label: "回到頭肩底", run: function () { showIhs(m); } });
+  }
+  // Open the triangle list of market m (selectId: a triangle to open).
+  function showTriangles(m, selectId) {
+    if (!MARKETS[m]) m = "crypto";
+    var changed = m !== state.market || !isTri();
+    state.view = "tri"; state.market = m;
+    if (changed) {
+      state.q = ""; $("q").value = ""; state.shown = PAGE; state.tselected = null;
+      state.onlyWl = false; $("only-wl").setAttribute("aria-pressed", "false");
+    }
+    if (settings.market !== m) { settings.market = m; saveSettings(); }
+    setUrlMarket(m, !!selectId);
+    renderMarketChrome();
+    renderViewChrome();
+    $("meta").textContent = "正在讀取" + MARKETS[m].label + "收斂三角資料…";
+    return loadTri(m).then(function (data) {
+      if (!isTri() || state.market !== m) return;
+      state.tdata = data;
+      showControls(true);
+      if (selectId && data.results.some(function (r) { return r.pattern_id === selectId; })) state.tselected = selectId;
+      renderMeta();
+      update();
+      if (selectId && state.tselected === selectId) selectTri(selectId, false);
+      if (drawerEl().classList.contains("is-open")) renderDrawer();
+    }, function (err) {
+      if (!isTri() || state.market !== m) return;
+      state.tdata = null;
+      triFail(m, err);
+      if (drawerEl().classList.contains("is-open")) renderDrawer();
+    });
+  }
+  // Back to the head-and-shoulders list of market m.
+  function showIhs(m) {
+    var prev = state.selected;
+    state.view = "ihs";
+    state.selected = null;
+    renderViewChrome();
+    state.q = ""; $("q").value = ""; state.shown = PAGE;
+    setUrlMarket(m, false);
+    return switchMarket(m, prev);
+  }
+
   /* ---------- wiring ---------- */
   function select(id, fromUser) {
+    if (isTri()) { selectTri(id, fromUser); return; }
     var r = state.data.results.find(function (x) { return x.pattern_id === id; });
     if (!r) return;
     state.selected = id;
@@ -748,6 +1179,7 @@
   }
 
   function update(keepScroll) {
+    if (isTri()) { updateTri(keepScroll); return; }
     renderFilters();
     var rows = renderList();
     if (!keepScroll) $("scroller").scrollTop = 0;
@@ -776,12 +1208,12 @@
       update();
     });
     $("sort").addEventListener("change", function () {
-      state.sort = this.value;
+      if (isTri()) state.tsort = this.value; else state.sort = this.value;
       state.shown = PAGE;
       update();
     });
     $("more").addEventListener("click", function () {
-      var firstNew = Math.min(state.shown, filtered().length);
+      var firstNew = Math.min(state.shown, (isTri() ? triFiltered() : filtered()).length);
       state.shown += PAGE;
       update(true);
       var rows = document.querySelectorAll(".row");
@@ -1203,6 +1635,12 @@
     setInert(true);
     focusFirst();
     if (drawer.view === "watchlist") loadAllMarkets();
+    var tm = state.market;
+    if (drawer.view === "menu" && !triCache[tm] && !triErr[tm]) { // D38: the count next to 「收斂三角」
+      loadTri(tm).then(null, function () { /* shown as 尚無資料 */ }).then(function () {
+        if (drawerEl().classList.contains("is-open") && drawer.view === "menu" && state.market === tm) renderDrawer();
+      });
+    }
   }
   function closeDrawer(focusTarget) {
     var d = drawerEl();
@@ -1221,15 +1659,24 @@
 
   function menuHtml() {
     return "<ul class=\"dnav\">" + MARKET_ORDER.map(function (m) {
-      var cur = m === state.market, d = dataCache[m];
+      var cur = m === state.market && !isTri(), d = dataCache[m];
       var n = d ? d.results.length + " 個型態" : (loadErr[m] ? "尚無資料" : "");
       return "<li><button type=\"button\" class=\"dnav__btn dnav__btn--mkt\" data-act=\"market\" data-market=\"" + m + "\"" +
         (cur ? " aria-current=\"page\"" : "") + "><span>" + esc(MARKETS[m].label) + "</span>" +
         "<span class=\"dnav__sub\">" + (cur ? "目前" + (n ? "・" : "") : "") + esc(n) + "</span></button></li>";
     }).join("") +
+      triMenuItem() +
       "<li><button type=\"button\" class=\"dnav__btn\" data-act=\"view\" data-view=\"watchlist\">觀察名單（" + watch.length + "）</button></li>" +
       "<li><button type=\"button\" class=\"dnav__btn\" data-act=\"view\" data-view=\"settings\">設定</button></li>" +
       "<li><button type=\"button\" class=\"dnav__btn\" data-act=\"view\" data-view=\"about\">關於</button></li></ul>";
+  }
+  // D38: one entry for the triangle list of the current market (switch markets with the header tabs)
+  function triMenuItem() {
+    var d = triCache[state.market], cur = isTri();
+    var n = d ? d.results.length + " 個" : (triErr[state.market] ? "尚無資料" : "");
+    return "<li><button type=\"button\" class=\"dnav__btn dnav__btn--mkt dnav__btn--tri\" data-act=\"tri\"" +
+      (cur ? " aria-current=\"page\"" : "") + "><span>收斂三角</span><span class=\"dnav__sub\">" +
+      esc(MARKETS[state.market].label + (n ? "・" + n : "")) + "</span></button></li>";
   }
   function watchHtml() {
     var h = "<button type=\"button\" class=\"dback\" data-act=\"back\">‹ 選單</button>";
@@ -1422,13 +1869,18 @@
     else if (act === "market") {
       state.onlyWl = false; $("only-wl").setAttribute("aria-pressed", "false");
       closeDrawer();
-      switchMarket(t.getAttribute("data-market"));
+      if (isTri()) showIhs(t.getAttribute("data-market"));
+      else switchMarket(t.getAttribute("data-market"));
+    } else if (act === "tri") {
+      closeDrawer();
+      showTriangles(state.market);
     } else if (act === "open") {
       var r = keyIndex[t.getAttribute("data-key")];
       if (!r) return;
       state.q = ""; $("q").value = ""; state.tf = "all"; state.status = "all"; state.neck = "all"; state.onlyWl = false; state.shown = PAGE;
       $("only-wl").setAttribute("aria-pressed", "false");
       closeDrawer($("detail"));
+      if (isTri()) { state.view = "ihs"; state.selected = null; renderViewChrome(); setUrlMarket(rowMarket(r), false); }
       switchMarket(rowMarket(r), r.pattern_id);
     } else if (act === "export-file") {
       try {
@@ -1472,6 +1924,12 @@
     saveSettings();
     if (k === "minScore") $("s-min-out").textContent = v;
     if (k === "theme") { applyTheme(); return; }
+    if (isTri()) { // the triangle view only uses showLevels; IHS defaults apply when going back
+      var tr = k === "showLevels" && state.tdata && state.tdata.results.find(function (x) { return x.pattern_id === state.tselected; });
+      if (tr) renderTriDetail(tr);
+      if (k !== "showLevels" && k !== "showChecks") state[k] = v;
+      return;
+    }
     if (!state.data) return;
     if (k === "showLevels" || k === "showChecks") {
       var r = state.data.results.find(function (x) { return x.pattern_id === state.selected; });
@@ -1569,7 +2027,7 @@
   function showControls(on) {
     document.querySelector(".panel__head .filters").hidden = !on;
     document.querySelector(".panel__head .search").hidden = !on;
-    $("only-wl").hidden = !on;
+    $("only-wl").hidden = !on || isTri();
   }
   function fail(m, err) {
     var missing = err && /HTTP 404/.test(String(err.message || err));
@@ -1625,17 +2083,18 @@
     Array.prototype.forEach.call(document.querySelectorAll(".mtab"), function (b) {
       b.setAttribute("aria-pressed", String(b.getAttribute("data-market") === m));
     });
-    $("panel-title").textContent = MARKETS[m].label + "型態清單";
+    $("panel-title").textContent = MARKETS[m].label + (isTri() ? "收斂三角" : "型態清單");
     $("q-label").textContent = m === "tw" ? "搜尋股票" : "搜尋幣種";
     $("q").placeholder = m === "tw" ? "搜尋代號或名稱，例如 2330、台積電" : "搜尋幣種，例如 BTC";
     $("wl-n").textContent = watchInMarket(m);
-    document.title = (m === "tw" ? "台股" : "") + "頭肩底掃描";
+    document.title = isTri() ? (m === "tw" ? "台股" : "") + "收斂三角｜頭肩底掃描" : (m === "tw" ? "台股" : "") + "頭肩底掃描";
   }
 
   function setUrlMarket(m, keepHash) {
     try {
       var qs = new URLSearchParams(location.search);
       if (m === "crypto") qs.delete("market"); else qs.set("market", m);
+      if (isTri()) qs.set("view", "triangles"); else qs.delete("view");
       var q = qs.toString();
       history.replaceState(null, "", location.pathname + (q ? "?" + q : "") + (keepHash ? location.hash : ""));
     } catch (e) { /* file:// etc. */ }
@@ -1643,6 +2102,7 @@
 
   // Switch the list, filters, counts and detail to market m. selectId: a pattern to open after loading.
   function switchMarket(m, selectId) {
+    if (isTri()) return showTriangles(m, selectId);
     if (!MARKETS[m]) m = "crypto";
     var changed = m !== state.market;
     state.market = m;
@@ -1681,6 +2141,20 @@
     var m = qs && MARKETS[qs.get("market")] ? qs.get("market")
       : /^(twse|tpex)\|/.test(hash) ? "tw" : /^[a-z]+\|/.test(hash) ? "crypto" : settings.market;
     state.market = MARKETS[m] ? m : "crypto";
+    if (qs && qs.get("view") === "triangles") { // D38: ?view=triangles[&market=tw][&tf=1d&status=forming&type=ascending&q=BTC]
+      state.view = "tri";
+      if (TF_LABEL[qs.get("tf")]) state.ttf = qs.get("tf");
+      if (TRI_STATUS_LABEL[qs.get("status")]) state.tst = qs.get("status");
+      if (TRI_TYPE_LABEL[qs.get("type")]) state.ttype = qs.get("type");
+      if (TRI_SORTS[qs.get("sort")]) state.tsort = qs.get("sort");
+      if (qs.get("q")) { state.q = qs.get("q").trim().toUpperCase().replace(/\s+/g, ""); $("q").value = qs.get("q"); }
+      showTriangles(state.market, hash || null).then(function () {
+        try { applyTestParams(qs); } catch (e) { /* ignore */ }
+      });
+      if (loginNotice) showToast(loginNotice, loginOk);
+      if (loggedIn()) syncAll();
+      return;
+    }
     renderMarketChrome();
     loadMarket(state.market)
       .then(function (data) {

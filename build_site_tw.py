@@ -183,4 +183,10 @@ def main_tw(args, t0: float | None = None, *, client: data_tw.YahooClient | None
     print(f"wrote {out} ({sizes['scan_json'] / 1024:.0f} KB) + {sizes['bars_files']} bars files "
           f"({sizes['bars'] / 1024:.0f} KB): {len(payload['results'])} patterns {counts}; "
           f"next scan ~{payload['next_scan_at'] or 'not scheduled'}")
+    # D38: triangles on the same K lines -> site/data/tw/triangles.json + tri_bars/ (never fails this build)
+    bs.run_triangles(symbol_data, scan_out=out, market="tw", include_stale=bool(args.include_stale),
+                     generated_at=payload["generated_at"], scheduled=scheduled, symbols=[i.symbol for i in insts],
+                     timeframes=timeframes, instruments={i.symbol: i for i in insts},
+                     sources=[f"{ex}-stock" for ex in TW_EXCHANGES], symbols_source="all" if use_all else "list",
+                     next_scan=next_tw_scan_time)
     return 0

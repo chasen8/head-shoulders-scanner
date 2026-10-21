@@ -64,7 +64,11 @@
             <span class="filters__name" id="f-st">狀態</span>
             <div class="chips" id="filter-status"></div>
           </div>
-          <div class="filters__group" role="group" aria-labelledby="f-nk">
+          <div class="filters__group" role="group" aria-labelledby="f-tt" id="grp-ttype" hidden>
+            <span class="filters__name" id="f-tt">類型</span>
+            <div class="chips" id="filter-ttype"></div>
+          </div>
+          <div class="filters__group" role="group" aria-labelledby="f-nk" id="grp-neck">
             <span class="filters__name" id="f-nk">頸線斜率</span>
             <div class="chips" id="filter-neck"></div>
           </div>
@@ -109,6 +113,16 @@
         <span class="lg lg--stop">失效價</span>
         <span class="lg lg--vol">成交量（綠漲紅跌）</span>
       </p>
+      <p class="chart-legend" id="tri-legend" hidden>
+        <span class="lg lg--res">阻力線</span>
+        <span class="lg lg--sup">支撐線</span>
+        <span class="lg lg--ext">虛線＝延伸到頂點</span>
+        <span class="lg lg--touch">觸碰點</span>
+        <span class="lg lg--tbrk">突破</span>
+        <span class="lg lg--tp">目標價／保守目標</span>
+        <span class="lg lg--stop">失效價</span>
+        <span class="lg lg--vol">成交量（綠漲紅跌）</span>
+      </p>
       <p class="chart-note" id="chart-note" hidden></p>
       <div class="detail__body" id="detail-body"></div>
     </section>
@@ -122,6 +136,12 @@
       <p>TP1＝以頭部低點為 0、頸線中點（N1 與 N2 時間中點的頸線價）為 1，畫對數斐波那契取 1.414；TP2＝突破價 ×（1＋頭到頸線漲幅），還沒突破時用目前頸線價當突破價，所以 TP2 是預估。失效價是頭部低點。</p>
       <p>分數滿分 100：左右肩對稱 30、頭部深度 25、頸線平緩 25、突破或接近頸線 20。只用已收盤的 K 線計算；除了暫定的右肩，結果不會事後改寫。</p>
       <p>每個型態還要通過「形狀驗證」才會列出：五點之間沒有夾著更大的轉折（V1）、走勢貼著五點骨架（V2）、頸線之前沒有收盤站上（V3a），以及整體形狀檢查。已經漲過頭（V3b）或突破後又跌回（V3c）的標為已過期。數值、門檻與白話說明都在詳細頁的「形狀驗證」區。</p>
+    </section>
+    <section class="howto" id="howto-tri" aria-labelledby="howto-tri-title" hidden>
+      <h2 id="howto-tri-title">怎麼讀收斂三角</h2>
+      <p>收斂三角由兩條趨勢線組成：連接波段高點的阻力線（紅）與連接波段低點的支撐線（綠），兩條線往右收斂、交會在頂點（虛線是延伸到頂點的部分）。上升三角＝阻力線水平、支撐線上升；下降三角＝支撐線水平、阻力線下降；對稱三角＝阻力線下降、支撐線上升。兩條線合計至少 5 個觸碰點（每條至少 2 個），價格要一直被兩條線包住。</p>
+      <p>「收斂中」是還沒突破的三角形；收盤價超出阻力線（再加一點緩衝）叫「向上突破」，跌破支撐線叫「向下突破」。走過頂點還沒突破、或突破已久的標為已過期、不列出。上升三角傳統上偏多、下降三角偏空、對稱三角中性，但這只是標籤：Bulkowski 的統計裡下降三角反而有 53% 向上突破，方向請以實際突破為準。</p>
+      <p>目標價＝三角形高度（型態內最高點與最低點的距離，上升三角用阻力線價、下降三角用支撐線價當一邊）從突破價往突破方向量出去；保守目標＝高度 × Bulkowski 統計的達標比例（美股日線，僅供參考）。還沒突破時用目前的阻力線（或支撐線）價當突破價，所以是預估。只用已收盤的 K 線計算。</p>
     </section>
     <section class="fineprint">
       <p><strong>這是型態偵測工具，不是投資建議。</strong>型態成立不代表價格會上漲，請自行判斷風險。</p>

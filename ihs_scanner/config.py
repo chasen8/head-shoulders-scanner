@@ -395,3 +395,86 @@ def market_config(market: str, overrides: Mapping[str, Any] | None = None) -> di
     """Config for one market: profile defaults + MARKET_OVERRIDES[market] + caller overrides."""
     base = merge_config(MARKET_OVERRIDES.get(market, {}))
     return merge_config(overrides, base=base) if overrides else base
+
+
+# ---------------------------------------------------------------------------------------------------------------
+# D38 converging triangles (ihs_scanner/triangles.py). A separate config: nothing here is read by the IHS detector
+# and no IHS key is read by the triangle detector. Values = the starting values of docs/triangle-research.md
+# sections 5-6 (marked "建議" there: engineering assumptions, not literature numbers, to be calibrated with the
+# user's examples). Notation: log prices; H0 = log width R(s) - S(s) at the first pivot s; drift = a line's change
+# between its first and last touch, in units of H0; p = apex progress (x - s) / (x_apex - s); rho = 1 - p.
+TRIANGLE_CONFIG: dict[str, Any] = {
+    # pivots: swings.pivot_mask, strict, confirmed N bars later (D4); same N as the IHS default
+    "pivot_window_by_timeframe": {"4h": 5, "1d": 5, "1w": 3},
+    "atr_length": 14,
+    # touches (report 5.2): >= 2 pivots on each line and >= 5 in total (Bulkowski 3+2; Lo 2000: 5 extrema)
+    "min_touches_per_line": 2,
+    "min_touches_total": 5,
+    # fit (report 5.2): least squares through a line's pivots in log price; a pivot whose residual exceeds
+    # eps = max(touch_atr_mult * ATR / close, touch_min_pct) (ATR / close at the bar the newest pivot is confirmed)
+    # is dropped and the line refitted, at most max_fit_removals times per line; the first pivot must stay a touch.
+    # The fitted line is then moved so no touch sticks out by more than the wick tolerance (enclosure below).
+    "touch_atr_mult": 0.3,
+    "touch_min_pct": 0.005,
+    "max_fit_removals": 2,
+    # classification (report 5.3), drift in units of H0:
+    #   ascending:    |drift_R| <= horizontal_max_drift and drift_S >= sloped_min_drift
+    #   descending:   drift_R <= -sloped_min_drift and |drift_S| <= horizontal_max_drift
+    #   symmetrical:  drift_R <= -sym_min_drift and drift_S >= sym_min_drift and
+    #                 max(|sR|, |sS|) / min(|sR|, |sS|) <= sym_max_slope_ratio
+    #   anything else (wedges, channels, rectangles, in-between slopes) is not output
+    "horizontal_max_drift": 0.15,
+    "sloped_min_drift": 0.30,
+    "sym_min_drift": 0.20,
+    "sym_max_slope_ratio": 3.0,
+    # convergence (report 5.4): lines must meet to the right (sS > sR); valid while
+    # min_apex_progress <= p < 1 (rho <= 0.75: at least 25% converged); p >= near_apex_progress (rho < 0.20) only
+    # sets near_apex; reaching p = 1 without a breakout -> stale "apex"
+    "min_apex_progress": 0.25,
+    "near_apex_progress": 0.80,
+    # width (report 5.4.4): H0 >= min_height_atr * ATR/close (log) and exp(H0) - 1 <= max_height_pct
+    "min_height_atr": 2.0,
+    "max_height_pct": 0.80,
+    # start alignment (report 5.4.5): |first high touch - first low touch| <= value * (last touch - first pivot)
+    "max_start_offset_of_width": 0.5,
+    # length in bars from the first pivot to now (forming) or to the breakout bar (report 5.5)
+    "min_pattern_bars_by_timeframe": {"4h": 24, "1d": 20, "1w": 10},
+    "max_pattern_bars_by_timeframe": {"4h": 200, "1d": 120, "1w": 60},
+    # enclosure (report 5.6; IHS V3a / T4 values): bars from the first pivot to the newest pivot's confirmation
+    # need close <= R*(1+close_tol), close >= S*(1-close_tol), high <= R*(1+wick_tol), low >= S*(1-wick_tol)
+    "enclosure_close_tol": 0.005,
+    "enclosure_wick_tol": 0.01,
+    # breakout (report 5.7): after the newest pivot's confirmation, the first bar with
+    # close > R*(1+buffer) (up) or close < S*(1-buffer) (down); "high" = the bar's high / low (wick) instead
+    "breakout_buffer_by_timeframe": {"4h": 0.005, "1d": 0.01, "1w": 0.01},
+    "breakout_price": "close",
+    # freshness (IHS D15 values): breakout_up / breakout_down for <= this many bars after the breakout bar
+    "max_breakout_age": {"4h": 6, "1d": 5, "1w": 3},
+    # failed breakout (report 5.7, like IHS V3c): a later close back inside the broken line by more than
+    # value * H0 (log) -> stale "failed_breakout"
+    "max_fallback_of_height": 0.25,
+    # conservative target = breakout price +- target height * Bulkowski "meets price target" rate
+    # (thepatternsite.com at.html / dt.html / st.html, US daily stocks in bull markets; docs/triangle-research.md B1)
+    "target_hit_rate": {
+        "ascending": {"up": 0.70, "down": 0.44},
+        "descending": {"up": 0.64, "down": 0.50},
+        "symmetrical": {"up": 0.58, "down": 0.36},
+    },
+    # score: convergence ratio giving full marks (report 7.3: near Bulkowski's median breakout point)
+    "ideal_converge_ratio": 0.40,
+    "include_stale": False,
+    "min_score": 0.0,
+}
+
+# Taiwan stocks: a "4h" series has 2 bars per day (D29 / D33), so cap 4h triangles at 120 bars (report 5.5)
+TRIANGLE_MARKET_OVERRIDES: dict[str, dict[str, Any]] = {
+    "crypto": {},
+    "tw": {"max_pattern_bars_by_timeframe": {"4h": 120}},
+}
+
+
+def triangle_config(overrides: Mapping[str, Any] | None = None, market: str | None = None) -> dict[str, Any]:
+    """TRIANGLE_CONFIG + TRIANGLE_MARKET_OVERRIDES[market] + overrides (dicts merged one level deep, unknown keys
+    raise KeyError). Merging a full triangle config again is a no-op."""
+    base = merge_config(TRIANGLE_MARKET_OVERRIDES.get(market or "crypto", {}), base=TRIANGLE_CONFIG)
+    return merge_config(overrides, base=base) if overrides else base
