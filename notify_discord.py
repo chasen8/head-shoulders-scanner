@@ -540,8 +540,42 @@ def save_previews(messages: list[Message], preview_dir: Path) -> None:
 
 
 def run_test_message(rows: Mapping[str, Mapping[str, Any]], market: str, *, dry_run: bool, webhook: str | None,
+                     image_for: Callable[[Mapping[str, Any]], bytes | None], preview_dir: Path,
+                     bot_token: str | None = None, main_channel: str | None = None,
+                     now: datetime | None = None) -> int:
+    """--test-message: one message with the best-scoring pattern, chart attached; reads and writes no state.
+    D34: with the bot configured, also one test table (best 3 right-shoulder-confirmed rows) with the
+    watch_select menu in the main channel, so clicking a row can be tried end to end."""
+    rc = _run_test_single(rows, market, dry_run=dry_run, webhook=webhook, image_for=image_for, preview_dir=preview_dir)
+    if not (bot_token and main_channel):
+        return rc
+    picks = sorted((r for r in rows.items() if r[1].get("status") == "watchlist"),
+                   key=lambda kv: -float(kv[1].get("pattern_score") or 0))[:3]
+    if not picks:
+        print("[notify] test table: no right-shoulder-confirmed patterns in this scan")
+        return rc
+    from ihs_scanner.table_image import cjk_font
+    msgs = build_table_messages([{"kind": "table", "key": k, "row": r, "previous": None} for k, r in picks],
+                                market=market, now=now or datetime.now(timezone.utc), with_select=True,
+                                font=cjk_font())
+    for m in msgs:
+        m.payload["content"] = "測試：" + str(m.payload.get("content", ""))
+    if dry_run:
+        save_previews(msgs, preview_dir)
+        return rc
+    try:
+        for m in msgs:
+            send_message(BOT_MESSAGES_URL.format(channel_id=main_channel), m, sleep=time.sleep,
+                         pause=PAUSE_BETWEEN_MESSAGES, headers=bot_headers(bot_token))
+    except NotifyError as exc:
+        print(f"[notify] test table send failed: {exc}", file=sys.stderr)
+        return 1
+    print(f"[notify] test table sent by the bot ({len(picks)} row(s), select menu attached)")
+    return rc
+
+
+def _run_test_single(rows: Mapping[str, Mapping[str, Any]], market: str, *, dry_run: bool, webhook: str | None,
                      image_for: Callable[[Mapping[str, Any]], bytes | None], preview_dir: Path) -> int:
-    """--test-message: one message with the best-scoring pattern, chart attached; reads and writes no state."""
     if not rows:
         print("[notify] test message: scan has no patterns", file=sys.stderr)
         return 1
@@ -584,7 +618,8 @@ def run(scan_path: Path, state_path: Path, *, min_score: float, statuses: set[st
         image_for = lambda r: make_chart_png(r, scan_path.parent)  # noqa: E731 - bars files sit next to scan.json
     if test_message:
         return run_test_message(rows, market, dry_run=dry_run, webhook=webhook, image_for=image_for,
-                                preview_dir=preview_dir or DEFAULT_PREVIEW_DIR)
+                                preview_dir=preview_dir or DEFAULT_PREVIEW_DIR,
+                                bot_token=bot_token if main_channel else None, main_channel=main_channel, now=now)
     use_bot = bool(bot_token and main_channel)
     state = load_state(state_path)
     first_run = state is None

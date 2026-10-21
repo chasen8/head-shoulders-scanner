@@ -480,3 +480,17 @@ def test_empty_scan_does_not_mark_everything_gone(tmp_path, net):
     r = row("STARUSDT", "watchlist")
     run_watch(tmp_path, [], [item(r, "watchlist")], net)
     assert net.posts == []
+
+
+def test_test_message_also_sends_bot_test_table(tmp_path, net):  # D34 setup check
+    rows = [row("AAAUSDT", score=80), row("BBBUSDT", score=90), row("CCCUSDT", score=70), row("DDDUSDT", score=60),
+            row("EEEUSDT", status="forming", score=95)]
+    scan, st = write_scan(tmp_path, rows)
+    assert go(scan, st, test_message=True, bot_token=BOT, main_channel=MAIN) == 0
+    assert net.posts[0]["url"] == WEBHOOK                       # the usual single test (best overall: EEE)
+    t = net.posts[1]
+    assert t["url"] == f"https://discord.com/api/v10/channels/{MAIN}/messages"
+    assert t["payload"]["content"].startswith("測試：右肩確認（加密貨幣）")
+    opts = t["payload"]["components"][0]["components"][0]
+    assert [o["value"] for o in opts["options"]] == [key_of(rows[1]), key_of(rows[0]), key_of(rows[2])]
+    assert json.loads(st.read_text(encoding="utf-8")) == {} or nd.load_state(st) == {}  # state untouched
