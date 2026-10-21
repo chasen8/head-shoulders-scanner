@@ -1,7 +1,7 @@
-# Temporary helper (D34/D35 setup): list the servers and text channels the bot can see, with their IDs, set the
-# interactions endpoint and register the slash commands (/watchlist, /notify).
-# Channel IDs are not secret. The bot token is read from secrets and never printed. Delete after setup.
-name: Discord channel IDs (setup)
+# Discord bot setup (D34/D35): set the interactions endpoint URL and register the slash commands
+# (/watchlist, /notify). The bot token is read from secrets and never printed. The channel-listing step
+# was removed before the repo went public, so run logs show no server or channel names.
+name: Discord bot setup
 
 on:
   workflow_dispatch:
@@ -20,43 +20,6 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v7  # for bot/register-commands.mjs
-      - name: List guilds and channels
-        env:
-          DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
-          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
-        run: |
-          python3 - <<'EOF'
-          import json, os, sys, urllib.request
-          tok = os.environ.get("DISCORD_BOT_TOKEN", "")
-          if not tok:
-              sys.exit("DISCORD_BOT_TOKEN is not set")
-          def get(path):
-              req = urllib.request.Request("https://discord.com/api/v10" + path,
-                                           headers={"Authorization": "Bot " + tok, "User-Agent": "ihs-setup (github actions, 1.0)"})
-              try:
-                  with urllib.request.urlopen(req, timeout=20) as r:
-                      return json.load(r)
-              except urllib.error.HTTPError as e:
-                  sys.exit(f"Discord API {path} -> HTTP {e.code} (token invalid or bot not in a server?)")
-          me = get("/users/@me")
-          print(f"bot user: {me.get('username')} (id {me.get('id')})")
-          guilds = get("/users/@me/guilds")
-          if not guilds:
-              print("the bot is not in any server yet")
-          for g in guilds:
-              print(f"\nserver: {g['name']}  (id {g['id']})")
-              for c in sorted(get(f"/guilds/{g['id']}/channels"), key=lambda c: c.get("position", 0)):
-                  if c.get("type") in (0, 5):  # text / announcement channels
-                      print(f"  #{c['name']}  ->  {c['id']}")
-          wh = os.environ.get("DISCORD_WEBHOOK_URL", "")
-          if wh:
-              try:
-                  with urllib.request.urlopen(urllib.request.Request(wh, headers={"User-Agent": "ihs-setup (github actions, 1.0)"}), timeout=20) as r:
-                      info = json.load(r)
-                  print(f"webhook channel id: {info.get('channel_id')} (webhook name: {info.get('name')})")
-              except Exception as e:
-                  print(f"webhook lookup failed: {type(e).__name__}")
-          EOF
       - name: Set the interactions endpoint URL (D34 setup)
         env:
           DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
