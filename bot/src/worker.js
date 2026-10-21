@@ -561,7 +561,6 @@ async function handleLogin(url, env) {
     scope: "identify",
     redirect_uri: `${url.origin}/auth/callback`,
     state,
-    prompt: "none", // skip the consent screen after the first authorization
   });
   // The nonce cookie binds the state to this browser (login CSRF: a callback link made by someone else fails).
   return redirect(`https://discord.com/oauth2/authorize?${q}`, {
