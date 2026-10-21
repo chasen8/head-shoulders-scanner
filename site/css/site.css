@@ -26,13 +26,52 @@
   --star: #C97700;         /* watchlist star on (3.4:1 on white, non-text); off state uses --faint */
   --star-wash: rgba(201, 119, 0, 0.12);
   --scrim: rgba(19, 23, 34, 0.45);
+  --line-strong: #C9CCD6;  /* input hover border */
+  --veil: rgba(255, 255, 255, 0.92); /* chart loading / error overlay */
+  --accent-line: rgba(41, 98, 255, 0.6); /* pattern polyline (legend swatch) */
+  --shadow: rgba(19, 23, 34, 0.18);
   --drawer-w: 360px;
+  color-scheme: light;
 
   --font: "Inter", "Noto Sans TC", -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang TC",
     "Microsoft JhengHei", sans-serif;
   --gutter: 16px;
   --panel-w: 380px;
   --topbar-h: 0px;
+}
+
+/* Night mode: TradingView dark. Same roles as above; app.js PALETTE.dark must match. */
+html[data-theme="dark"] {
+  --bg: #131722;
+  --surface: #1E222D;
+  --text: #D1D4DC;
+  --muted: #9598A1;        /* 6.2:1 on --bg */
+  --faint: #787B86;
+  --line: #2A2E39;
+  --grid: #1E222D;
+  --accent: #5B8CFF;       /* lighter blue so it reads as text on dark (5.6:1) */
+  --accent-wash: rgba(91, 140, 255, 0.14);
+  --up: #089981;
+  --down: #F23645;
+  --down-text: #F7525F;    /* 5.4:1 */
+  --down-wash: rgba(242, 54, 69, 0.16);
+  --forming: #FF9800;
+  --forming-text: #FFA726;
+  --forming-wash: rgba(255, 152, 0, 0.16);
+  --tp: #089981;
+  --tp2: #22AB94;
+  --stop: #868993;
+  --accent-soft: rgba(91, 140, 255, 0.55);
+  --ok-text: #26A69A;      /* 5.9:1 */
+  --ok-wash: rgba(38, 166, 154, 0.14);
+  --star: #F0A30A;
+  --star-wash: rgba(240, 163, 10, 0.14);
+  --scrim: rgba(0, 0, 0, 0.55);
+  --line-strong: #434651;
+  --veil: rgba(19, 23, 34, 0.92);
+  --accent-line: rgba(91, 140, 255, 0.65);
+  --shadow: rgba(0, 0, 0, 0.5);
+  color-scheme: dark;
 }
 
 *, *::before, *::after { box-sizing: border-box; }
@@ -81,6 +120,16 @@ button, input, select { font: inherit; color: inherit; }
 .menu-btn:hover { background: var(--surface); }
 .menu-btn[aria-expanded="true"] { background: var(--accent-wash); }
 .menu-btn svg, .drawer__close svg { width: 24px; height: 24px; fill: none; stroke: var(--text); stroke-width: 2; stroke-linecap: round; }
+/* night-mode toggle: moon in light mode, sun in dark mode */
+.theme-btn {
+  flex: none; display: grid; place-items: center; width: 44px; height: 44px; margin: 0 -8px 0 auto;
+  border: 0; border-radius: 6px; background: none; color: var(--text); cursor: pointer;
+}
+.theme-btn:hover { background: var(--surface); }
+.theme-btn svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.theme-btn .i-sun { display: none; }
+html[data-theme="dark"] .theme-btn .i-sun { display: block; }
+html[data-theme="dark"] .theme-btn .i-moon { display: none; }
 .topbar__inner { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 16px; min-width: 0; }
 .brand { font-size: 18px; font-weight: 700; letter-spacing: 0.02em; }
 /* D29 market switch: same chip look as the filters, one step larger */
@@ -133,7 +182,7 @@ button, input, select { font: inherit; color: inherit; }
   font-size: 14px;
 }
 .search input::placeholder { color: var(--faint); }
-.search input:hover { border-color: #C9CCD6; }
+.search input:hover { border-color: var(--line-strong); }
 .search input:focus-visible { outline: none; border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
 
 .filters { display: grid; gap: 6px; margin-top: 10px; }
@@ -275,7 +324,7 @@ select {
 .chart { width: 100%; height: min(62vh, 600px); min-height: 360px; }
 .chart-state {
   position: absolute; inset: 0; display: grid; place-content: center; gap: 8px; padding: 24px;
-  background: rgba(255, 255, 255, 0.92); text-align: center; color: var(--muted);
+  background: var(--veil); text-align: center; color: var(--muted);
 }
 .chart-state--error { color: var(--down-text); }
 /* TradingView-style auto-scale toggle in the price-axis / time-axis corner */
@@ -294,7 +343,7 @@ select {
 
 .chart-legend { display: flex; flex-wrap: wrap; gap: 4px 20px; margin-top: 8px; font-size: 12px; color: var(--muted); }
 .lg::before { content: ""; display: inline-block; width: 18px; height: 0; margin-right: 6px; vertical-align: middle; }
-.lg--shape::before { border-top: 1.5px solid rgba(41, 98, 255, 0.6); }
+.lg--shape::before { border-top: 1.5px solid var(--accent-line); }
 .lg--neck::before { border-top: 2px dashed var(--accent); }
 .lg--brk::before { width: 8px; height: 8px; border-radius: 50%; background: var(--down); }
 .lg--prov::before { border-top: 1.5px dashed var(--accent-soft); }
@@ -363,7 +412,7 @@ select {
   display: flex; flex-direction: column;
   width: min(var(--drawer-w), calc(100vw - 48px));
   background: var(--bg); border-right: 1px solid var(--line);
-  box-shadow: 0 8px 32px rgba(19, 23, 34, 0.18);
+  box-shadow: 0 8px 32px var(--shadow);
   transform: translateX(-100%); transition: transform 0.2s ease;
 }
 .drawer.is-open { transform: none; }
@@ -399,7 +448,7 @@ body.nav-open { overflow: hidden; }
 .fld label { font-size: 14px; }
 .fld select { height: 40px; min-width: 9em; font-size: 14px; }
 .fld input[type="range"] { width: 100%; height: 32px; accent-color: var(--accent); }
-.fld textarea { width: 100%; padding: 8px; border: 1px solid var(--line); border-radius: 6px; font: 12px/1.5 ui-monospace, Consolas, monospace; resize: vertical; }
+.fld textarea { width: 100%; padding: 8px; border: 1px solid var(--line); border-radius: 6px; font: 12px/1.5 ui-monospace, Consolas, monospace; resize: vertical; background: var(--bg); }
 .chk { display: flex; align-items: center; gap: 10px; min-height: 44px; cursor: pointer; }
 .chk input { width: 20px; height: 20px; accent-color: var(--accent); }
 .btnrow { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; margin-bottom: 8px; }

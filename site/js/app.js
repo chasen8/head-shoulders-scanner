@@ -32,12 +32,27 @@
   var SET_KEY = "ihs.settings.v1";
   // Filter defaults are shared by both markets; `market` remembers the market viewed last (D29).
   var DEFAULT_SETTINGS = { tf: "all", status: "all", neck: "all", sort: "score", minScore: 0, showLevels: true, showChecks: true,
-    market: "crypto" };
-  var C = {
-    bg: "#FFFFFF", text: "#131722", muted: "#6A6D78", faint: "#787B86", line: "#E0E3EB", grid: "#F0F3FA",
-    accent: "#2962FF", up: "#089981", down: "#F23645", forming: "#FF9800",
-    tp: "#089981", tp2: "#22AB94", stop: "#787B86", accentSoft: "rgba(41,98,255,0.5)"
+    market: "crypto", theme: "auto" };
+  // Night mode: "auto" follows the OS setting. index.html applies the saved theme before first paint.
+  var THEME_LABEL = { light: "淺色", dark: "夜間", auto: "跟隨系統" };
+  // Chart colours: keep in sync with the :root / html[data-theme="dark"] tokens in css/site.css
+  var PALETTE = {
+    light: {
+      bg: "#FFFFFF", text: "#131722", muted: "#6A6D78", faint: "#787B86", line: "#E0E3EB", grid: "#F0F3FA",
+      accent: "#2962FF", up: "#089981", down: "#F23645", forming: "#FF9800",
+      tp: "#089981", tp2: "#22AB94", stop: "#787B86", accentSoft: "rgba(41,98,255,0.5)",
+      shape: "rgba(41,98,255,0.6)", cross: "#9598A1", crossLabel: "#131722",
+      volUp: "rgba(8,153,129,0.32)", volDown: "rgba(242,54,69,0.32)"
+    },
+    dark: {
+      bg: "#131722", text: "#D1D4DC", muted: "#9598A1", faint: "#787B86", line: "#2A2E39", grid: "#1E222D",
+      accent: "#5B8CFF", up: "#089981", down: "#F23645", forming: "#FF9800",
+      tp: "#089981", tp2: "#22AB94", stop: "#868993", accentSoft: "rgba(91,140,255,0.55)",
+      shape: "rgba(91,140,255,0.65)", cross: "#758696", crossLabel: "#363A45",
+      volUp: "rgba(8,153,129,0.4)", volDown: "rgba(242,54,69,0.4)"
+    }
   };
+  var C = PALETTE.light;
 
   var state = { data: null, market: "crypto", q: "", tf: "all", status: "all", neck: "all", sort: "score", shown: PAGE,
     selected: null, minScore: 0, onlyWl: false };
@@ -503,8 +518,8 @@
         } },
       crosshair: {
         mode: LW.CrosshairMode.Normal,
-        vertLine: { color: "#9598A1", width: 1, style: LW.LineStyle.Dashed, labelBackgroundColor: C.text },
-        horzLine: { color: "#9598A1", width: 1, style: LW.LineStyle.Dashed, labelBackgroundColor: C.text }
+        vertLine: { color: C.cross, width: 1, style: LW.LineStyle.Dashed, labelBackgroundColor: C.crossLabel },
+        horzLine: { color: C.cross, width: 1, style: LW.LineStyle.Dashed, labelBackgroundColor: C.crossLabel }
       },
       localization: { locale: "zh-TW", timeFormatter: function (t) { return fmtStamp(t); } },
       handleScale: { mouseWheel: true, pinch: true },
@@ -526,7 +541,7 @@
     }
     var noScale = function () { return null; };
     var shape = chart.addSeries(LW.LineSeries, {
-      color: "rgba(41,98,255,0.6)", lineWidth: 1, priceLineVisible: false, lastValueVisible: false,
+      color: C.shape, lineWidth: 1, priceLineVisible: false, lastValueVisible: false,
       crosshairMarkerVisible: false, autoscaleInfoProvider: noScale
     });
     var neck = chart.addSeries(LW.LineSeries, {
@@ -586,6 +601,37 @@
     api.syncAutoscaleBtn = syncBtn;
   }
 
+  // Night mode switch: recolour the live chart. Price lines, markers and volume colours are set per pattern,
+  // so the open pattern is redrawn, keeping the user's time range and manual price zoom.
+  function restyleChart() {
+    var api = chartApi;
+    if (!api) return;
+    var LW = api.LW;
+    api.chart.applyOptions({
+      layout: { background: { type: LW.ColorType.Solid, color: C.bg }, textColor: C.text,
+        panes: { separatorColor: C.line, separatorHoverColor: C.grid } },
+      grid: { vertLines: { color: C.grid }, horzLines: { color: C.grid } },
+      rightPriceScale: { borderColor: C.line },
+      timeScale: { borderColor: C.line },
+      crosshair: { vertLine: { color: C.cross, labelBackgroundColor: C.crossLabel },
+        horzLine: { color: C.cross, labelBackgroundColor: C.crossLabel } }
+    });
+    api.candles.applyOptions({ upColor: C.bg, downColor: C.text, borderUpColor: C.text, borderDownColor: C.text,
+      wickUpColor: C.text, wickDownColor: C.text });
+    api.volume.priceScale().applyOptions({ borderColor: C.line });
+    api.shape.applyOptions({ color: C.shape });
+    api.neck.applyOptions({ color: C.accent });
+    api.shapeProv.applyOptions({ color: C.accentSoft });
+    var r = state.data && state.data.results.find(function (x) { return x.pattern_id === state.selected; });
+    var c = r && chartCache[r.pattern_id];
+    if (!r || !c) return;
+    var ts = api.chart.timeScale(), lr = ts.getVisibleLogicalRange();
+    var scale = api.candles.priceScale(), pr = scale.options().autoScale === false ? scale.getVisibleRange() : null;
+    drawChart(r, c);
+    if (lr) ts.setVisibleLogicalRange(lr);
+    if (pr) { scale.setVisibleRange(pr); if (api.syncAutoscaleBtn) api.syncAutoscaleBtn(); }
+  }
+
   function drawChart(r, c) {
     var api = initChart();
     if (!api) {
@@ -599,7 +645,7 @@
       return { time: b[0], open: b[1], high: b[2], low: b[3], close: b[4] };
     }));
     api.volume.setData(c.bars.map(function (b) {
-      return { time: b[0], value: b[5], color: b[4] >= b[1] ? "rgba(8,153,129,0.32)" : "rgba(242,54,69,0.32)" };
+      return { time: b[0], value: b[5], color: b[4] >= b[1] ? C.volUp : C.volDown };
     }));
     // a newly opened pattern always starts auto-scaled (manual Y zoom is per view)
     api.candles.priceScale().setAutoScale(true);
@@ -778,11 +824,38 @@
       if (typeof raw.showLevels === "boolean") s.showLevels = raw.showLevels;
       if (typeof raw.showChecks === "boolean") s.showChecks = raw.showChecks;
       if (typeof raw.market === "string" && MARKETS[raw.market]) s.market = raw.market;
+      if (typeof raw.theme === "string" && THEME_LABEL[raw.theme]) s.theme = raw.theme;
     }
     return s;
   }
   var settings = loadSettings();
   function saveSettings() { return writeStore(SET_KEY, settings); }
+
+  /* ---------- night mode ---------- */
+  var darkMq = window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)") : null;
+  function resolvedTheme() {
+    if (settings.theme === "auto") return darkMq && darkMq.matches ? "dark" : "light";
+    return settings.theme === "dark" ? "dark" : "light";
+  }
+  function applyTheme() {
+    var t = resolvedTheme();
+    document.documentElement.setAttribute("data-theme", t);
+    C = PALETTE[t];
+    var mc = document.querySelector("meta[name=\"theme-color\"]");
+    if (mc) mc.setAttribute("content", C.bg);
+    var b = $("theme-btn");
+    if (b) {
+      var label = t === "dark" ? "切換到淺色模式" : "切換到夜間模式";
+      b.setAttribute("aria-label", label); b.title = label;
+    }
+    restyleChart();
+  }
+  applyTheme();
+  if (darkMq) {
+    var onOsTheme = function () { if (settings.theme === "auto") applyTheme(); };
+    if (darkMq.addEventListener) darkMq.addEventListener("change", onOsTheme);
+    else if (darkMq.addListener) darkMq.addListener(onOsTheme);
+  }
   function applySettingsToState() {
     state.tf = settings.tf; state.status = settings.status; state.neck = settings.neck;
     state.sort = settings.sort; state.minScore = settings.minScore;
@@ -973,6 +1046,9 @@
     var tfs = (state.data ? state.data.settings.timeframes : ["4h", "1d", "1w"]);
     return "<button type=\"button\" class=\"dback\" data-act=\"back\">‹ 選單</button>" +
       (storageOk ? "" : "<p class=\"dwarn\">這個瀏覽器停用了網站儲存，設定只在這次開啟期間有效。</p>") +
+      "<h3 class=\"dh\">外觀</h3>" +
+      "<div class=\"fld\"><label for=\"s-theme\">佈景主題</label><select id=\"s-theme\" data-set=\"theme\">" +
+      ["light", "dark", "auto"].map(function (t) { return opt(t, THEME_LABEL[t], settings.theme); }).join("") + "</select></div>" +
       "<h3 class=\"dh\">預設篩選與排序</h3><p class=\"dnote\">改了立刻套用，也會記住，下次打開時還是這樣。加密貨幣與台股共用這組預設；網站也會記住你上次看的市場。</p>" +
       "<div class=\"fld\"><label for=\"s-tf\">週期</label><select id=\"s-tf\" data-set=\"tf\">" + opt("all", "全部", settings.tf) +
       tfs.map(function (t) { return opt(t, tfName(t), settings.tf); }).join("") + "</select></div>" +
@@ -1097,6 +1173,7 @@
     settings[k] = v;
     saveSettings();
     if (k === "minScore") $("s-min-out").textContent = v;
+    if (k === "theme") { applyTheme(); return; }
     if (!state.data) return;
     if (k === "showLevels" || k === "showChecks") {
       var r = state.data.results.find(function (x) { return x.pattern_id === state.selected; });
@@ -1115,6 +1192,11 @@
     });
     $("scrim").addEventListener("click", function () { closeDrawer(); });
     $("drawer-close").addEventListener("click", function () { closeDrawer(); });
+    $("theme-btn").addEventListener("click", function () {
+      settings.theme = resolvedTheme() === "dark" ? "light" : "dark";
+      saveSettings();
+      applyTheme();
+    });
     $("drawer-body").addEventListener("click", onDrawerClick);
     $("drawer-body").addEventListener("change", function (e) {
       if (e.target.id === "imp-file") {
