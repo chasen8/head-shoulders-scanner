@@ -50,3 +50,23 @@ jobs:
               except Exception as e:
                   print(f"webhook lookup failed: {type(e).__name__}")
           EOF
+      - name: Set the interactions endpoint URL (D34 setup)
+        env:
+          DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+          WATCHLIST_API_URL: ${{ secrets.WATCHLIST_API_URL }}
+        run: |
+          python3 - <<'EOF'
+          import json, os, sys, urllib.request
+          url = os.environ["WATCHLIST_API_URL"].rstrip("/") + "/interactions"
+          req = urllib.request.Request("https://discord.com/api/v10/applications/@me", method="PATCH",
+                                       data=json.dumps({"interactions_endpoint_url": url}).encode(),
+                                       headers={"Authorization": "Bot " + os.environ["DISCORD_BOT_TOKEN"],
+                                                "Content-Type": "application/json",
+                                                "User-Agent": "ihs-setup (github actions, 1.0)"})
+          try:
+              with urllib.request.urlopen(req, timeout=30) as r:
+                  print("interactions endpoint set:", json.load(r).get("interactions_endpoint_url"))
+          except urllib.error.HTTPError as e:
+              body = e.read().decode("utf-8", "replace")[:300]
+              sys.exit(f"PATCH /applications/@me -> HTTP {e.code}: {body}")
+          EOF
