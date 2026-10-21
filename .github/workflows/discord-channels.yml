@@ -16,6 +16,7 @@ jobs:
       - name: List guilds and channels
         env:
           DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
         run: |
           python3 - <<'EOF'
           import json, os, sys, urllib.request
@@ -40,4 +41,14 @@ jobs:
               for c in sorted(get(f"/guilds/{g['id']}/channels"), key=lambda c: c.get("position", 0)):
                   if c.get("type") in (0, 5):  # text / announcement channels
                       print(f"  #{c['name']}  ->  {c['id']}")
+          wh = os.environ.get("DISCORD_WEBHOOK_URL", "")
+          if wh:
+              try:
+                  with urllib.request.urlopen(urllib.request.Request(wh, headers={"User-Agent": "ihs-setup (github actions, 1.0)"}), timeout=20) as r:
+                      info = json.load(r)
+                  print(f"
+webhook channel id: {info.get('channel_id')} (webhook name: {info.get('name')})")
+              except Exception as e:
+                  print(f"
+webhook lookup failed: {type(e).__name__}")
           EOF
