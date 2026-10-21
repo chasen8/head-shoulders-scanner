@@ -46,9 +46,7 @@ jobs:
               try:
                   with urllib.request.urlopen(urllib.request.Request(wh, headers={"User-Agent": "ihs-setup (github actions, 1.0)"}), timeout=20) as r:
                       info = json.load(r)
-                  print(f"
-webhook channel id: {info.get('channel_id')} (webhook name: {info.get('name')})")
+                  print(f"webhook channel id: {info.get('channel_id')} (webhook name: {info.get('name')})")
               except Exception as e:
-                  print(f"
-webhook lookup failed: {type(e).__name__}")
+                  print(f"webhook lookup failed: {type(e).__name__}")
           EOF
