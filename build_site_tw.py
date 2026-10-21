@@ -27,7 +27,7 @@ import requests
 
 import build_site as bs
 from ihs_scanner import data_tw
-from ihs_scanner.config import TIMEFRAMES, merge_config
+from ihs_scanner.config import TIMEFRAMES, market_config
 from ihs_scanner.sources import Instrument, SourceFetchError
 
 # Must match .github/workflows/scan-tw.yml: cron "10 6 * * 1-5"
@@ -148,7 +148,7 @@ def main_tw(args, t0: float | None = None, *, client: data_tw.YahooClient | None
                                                   workers=args.workers, fetch=fetch)
     t_fetch = time.perf_counter() - t0
 
-    cfg = merge_config({"include_stale": bool(args.include_stale)})
+    cfg = market_config("tw", {"include_stale": bool(args.include_stale)})  # D33: TW 4h max 300 bars
     scheduled = bool(args.scheduled) or os.environ.get("GITHUB_EVENT_NAME") == "schedule"
     universe = "common+etf" if args.tw_include_etf else "common"
     payload, charts = bs.build_payload(

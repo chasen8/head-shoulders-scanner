@@ -517,3 +517,11 @@ def test_merge_cli_refuses_missing_previous_tree(tmp_path, capsys):
     assert "refusing" in capsys.readouterr().err
     assert mp.main(args + ["--prev", str(tmp_path / "missing"), "--allow-missing-prev"]) == 0
     assert tree(tmp_path / "out") == {"data/tw/scan.json": "tw"}
+
+
+def test_tw_market_config_caps_4h_patterns():  # D33
+    from ihs_scanner.config import DEFAULT_CONFIG, market_config
+    tw = market_config("tw", {"include_stale": True})
+    assert tw["max_pattern_bars_by_timeframe"] == {"4h": 300, "1d": 600, "1w": 200}
+    assert tw["include_stale"] is True
+    assert market_config("crypto")["max_pattern_bars_by_timeframe"] == DEFAULT_CONFIG["max_pattern_bars_by_timeframe"]

@@ -334,3 +334,18 @@ def tf_value(config: Mapping[str, Any], key: str, timeframe: str) -> Any:
             raise ValueError(f"config[{key!r}] has no value for timeframe {timeframe!r}")
         return value[timeframe]
     return value
+
+
+# D33 per-market overrides on top of the profile. Taiwan stocks trade 4.5 h a day, so a TW "4h" series has
+# only 2 bars per day (09:00-13:00, 13:00-13:30; D29): 1000 bars would be ~2 years. Cap TW 4h patterns at
+# 300 bars (~6 months) and leave longer structures to 1d / 1w.
+MARKET_OVERRIDES: dict[str, dict[str, Any]] = {
+    "crypto": {},
+    "tw": {"max_pattern_bars_by_timeframe": {"4h": 300}},
+}
+
+
+def market_config(market: str, overrides: Mapping[str, Any] | None = None) -> dict[str, Any]:
+    """Config for one market: profile defaults + MARKET_OVERRIDES[market] + caller overrides."""
+    base = merge_config(MARKET_OVERRIDES.get(market, {}))
+    return merge_config(overrides, base=base) if overrides else base
