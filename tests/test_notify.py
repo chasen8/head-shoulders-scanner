@@ -353,3 +353,10 @@ def test_main_reads_env_and_never_echoes(tmp_path, monkeypatch, capsys, post):
     monkeypatch.delenv(nd.ENV_WEBHOOK)
     assert nd.main(["--scan", str(scan), "--state", str(st)]) == 0
     assert "未設定" in capsys.readouterr().out
+
+
+@pytest.fixture(autouse=True)
+def _clean_notify_env(monkeypatch):
+    """CI sets TEST_MESSAGE / NOTIFY_* at job level; tests must not inherit them."""
+    for name in (nd.ENV_TEST_MESSAGE, nd.ENV_MAX_EVENTS, nd.ENV_MIN_SCORE):
+        monkeypatch.delenv(name, raising=False)
