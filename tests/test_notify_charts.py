@@ -90,12 +90,12 @@ def test_multipart_structure_and_attachment_names(tmp_path, post):
 
 
 def test_missing_bars_sends_without_image(tmp_path, post, capsys):
-    good, bad = row("GOODUSDT", score=90), row("BADUSDT", score=80, chart_file="bars/nope.json")
+    good, bad = row("GOODUSDT", "forming", score=90), row("BADUSDT", "forming", score=80, chart_file="bars/nope.json")
     write_chart(tmp_path, good, bars_doc())
     scan, st = setup(tmp_path, [good, bad], state={})
     assert go(scan, st) == 0
     es = post.calls[0]["embeds"]
-    assert [e["title"] for e in es] == ["GOODUSDT 日線 右肩已確認", "BADUSDT 日線 右肩已確認"]
+    assert [e["title"] for e in es] == ["GOODUSDT 日線 右肩形成中", "BADUSDT 日線 右肩形成中"]
     assert "image" in es[0] and "image" not in es[1]
     assert len(post.raw[0]["files"]) == 1
     assert "no chart for BADUSDT" in capsys.readouterr().err
@@ -103,7 +103,7 @@ def test_missing_bars_sends_without_image(tmp_path, post, capsys):
 
 
 def test_no_bars_at_all_uses_plain_json(tmp_path, post):
-    scan, st = setup(tmp_path, [row("AAAUSDT")], state={})
+    scan, st = setup(tmp_path, [row("AAAUSDT", "forming")], state={})
     go(scan, st)
     assert post.raw[0]["json"] is not None and post.raw[0]["files"] is None
 
@@ -150,13 +150,13 @@ def test_multipart_429_retry_and_resend_files(tmp_path, post):
 
 
 def test_rejected_attachment_falls_back_to_plain_embeds(tmp_path, post):
-    r = row("AAAUSDT")
+    r = row("AAAUSDT", "forming")
     write_chart(tmp_path, r, bars_doc())
     post.queue.extend([Resp(400), Resp(204)])
     scan, st = setup(tmp_path, [r], state={})
     assert go(scan, st) == 0
     assert post.raw[1]["files"] is None and "image" not in post.calls[1]["embeds"][0]
-    assert nd.load_state(st)[key("AAAUSDT")]["notified_status"] == "watchlist"
+    assert nd.load_state(st)[key("AAAUSDT")]["notified_status"] == "forming"
 
 
 def test_multipart_error_never_contains_url(tmp_path, monkeypatch, capsys):

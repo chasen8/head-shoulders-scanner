@@ -303,8 +303,8 @@ scan-state：加密貨幣＝`state.json`＋`site/data/scan.json`＋`site/data/ba
 兩邊的發布不會同時進行（掃描本身可以同時跑）。
 
 通知規則（`notify_discord.py`）：分數 ≥ 50（`--min-score` 或環境變數 `NOTIFY_MIN_SCORE`；template 形成中範例 53–71 分）時通知
-(1) 新出現的「右肩形成中」(2) 新出現、直接以已確認右肩出現的「觀察中」(3) 任何狀態變成「已突破」。
-「右肩形成中 → 觀察中」（右肩被確認）不通知。去重鍵是**不含 RS** 的 `exchange|market|symbol|tf|LS_time|H_time`
+(1) 新出現的「右肩形成中」(2) 任何狀態變成「已突破」——這兩種逐筆附圖；(3) **新變成「右肩確認」**（新出現，或形成中 → 右肩確認）
+不再逐筆，改成每次掃描一則**表格**訊息（D34，見下節）。去重鍵是**不含 RS** 的 `exchange|market|symbol|tf|LS_time|H_time`
 （形成中的 RS 會隨新低移動，用含 RS 的 pattern_id 會一直重發）；state（`version: 2`）存每個鍵的最後狀態、
 最後通知時間與 `notified_status`（最後通知過的狀態）。低於門檻時只記錄不通知，之後分數過門檻會補發一次。
 首次執行（沒有 state，或讀到舊版／沒有 version 的 state）只發一則「開始追蹤，目前 N 個型態（各狀態筆數）」摘要並建立基準
@@ -326,6 +326,28 @@ embed：標題「GRAMUSDT 日線 右肩形成中／已突破」、交易所與�
 （未突破標「預估」）、失效價（頭部低點）、左右肩跌幅、頭到頸線漲幅；顏色 形成中橘、觀察中藍、已突破紅；標題連到 TradingView
 （用 `tv_symbol`）。價格依數量級顯示位數（0.0001750）。型態從掃描結果消失超過 14 天才會從 state 清掉。
 
+### 右肩確認表格與關注清單（D34）
+
+設計與介面：`docs/watchlist-bot-design.md`（Discord 機器人＋Cloudflare Worker `bot/`）。
+
+- **表格**（`ihs_scanner/table_image.py`）：每次掃描（加密貨幣每 4 小時、台股每日）把「新變成右肩確認」的型態畫成一張表（#、標的、
+  週期、分數、目前價、距頸線%、頸線斜率%/根、TP1、TP2；依分數排序；每張最多 25 列，超過分多張），訊息標題
+  「右肩確認（加密貨幣）2026-10-22 08:00 共 N 筆」／「右肩確認（台股）…」。沒有新的右肩確認就不發。圖內文字英數；runner 有 CJK 字型時
+  台股會加中文名。
+- **有機器人**（`DISCORD_BOT_TOKEN` ＋ `DISCORD_MAIN_CHANNEL_ID`）：用 `POST /api/v10/channels/{id}/messages` 發到主頻道，表格圖下方附
+  下拉選單（`custom_id=watch_select`，每個最多 25 選項、每則最多 5 個選單；選項如「#3 STARUSDT 4h 83分」，value＝`pattern_key`），
+  可多選，點選後 Worker 把它們加入關注清單。超過 125 筆分多則訊息。同一則訊息內 custom_id 必須唯一，所以第 2 個起的選單是
+  `watch_select_2`、`watch_select_3`…。
+- **沒有機器人**：同一張表格圖改用 webhook 發（沒有選單）。兩者都沒有：只記錄 state。
+- **關注通知**（`notify_watchlist.py`，workflow 的「Notify watchlist changes」步驟，失敗只警告）：需要 `WATCHLIST_API_URL`、
+  `WATCHLIST_SYNC_KEY`（讀 `GET /api/watchlist`）與 `DISCORD_BOT_TOKEN`、`DISCORD_WATCH_CHANNEL_ID`。只看該市場的項目，用
+  `pattern_key` 在本次 scan.json 找目前狀態：與 `last_status` 不同（形成中→右肩確認→已突破、任何→已過期）就發一則 embed＋型態圖＋
+  「取消關注」按鈕（`custom_id=unwatch:<pattern_key>`，超過 100 字元改 `unwatch:`＋sha1 前 16 碼）；型態從 scan.json 消失視為
+  `gone`，只通知一次；第一次看到（`last_status` 為 null）只記錄；台股缺中文名時順便補。送出後 `POST /api/watchlist {"update":[…]}`
+  回寫。缺機器人設定→略過並 log（不記錄，補上設定後才會補發）；缺 API 設定→整個略過。
+- 密鑰只從環境變數讀（GitHub secrets），不會出現在任何輸出；`--dry-run` 不送、不 POST，預覽圖存到 `--preview-dir`。
+  本機預覽關注通知：`python notify_watchlist.py --dry-run --items-file items.json`（`{"items":[…]}`，不連 API）。
+
 ### 你要做的步驟（一次性）
 
 1. Discord：頻道設定 → 整合 → Webhook → 新增 Webhook → 複製 Webhook 網址。
@@ -335,6 +357,8 @@ embed：標題「GRAMUSDT 日線 右肩形成中／已突破」、交易所與�
    ```
    或 GitHub 網頁：repo → Settings → Secrets and variables → Actions → New repository secret，名稱 `DISCORD_WEBHOOK_URL`。
 3. 沒設 secret 也能跑：只更新 state，log 印「未設定 webhook，略過通知」。
+4. （D34，選配）機器人與關注清單：`DISCORD_BOT_TOKEN`、`DISCORD_MAIN_CHANNEL_ID`、`DISCORD_WATCH_CHANNEL_ID`、`WATCHLIST_API_URL`、
+   `WATCHLIST_SYNC_KEY` 同樣用 `gh secret set` 設定；沒設就自動降級（見上節）。
 
 ### 手動觸發測試
 

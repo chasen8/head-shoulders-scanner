@@ -12,9 +12,8 @@ State file (state.json), version 2:
 
 Events (only when pattern_score >= --min-score and the status is in --statuses):
   * forming   (右肩形成中) and never notified before                       -> "new"
-  * watchlist (右肩已確認) and never notified before (appeared with a confirmed RS) -> "new"
+  * watchlist (右肩確認) that just became watchlist (new, or forming -> watchlist) -> "table" (D34, see below)
   * confirmed (已突破) and no confirmed notification yet for this key       -> "new" (unseen) / "upgraded"
-  forming -> watchlist (the right shoulder got confirmed) is NOT notified.
 First run (no state file, or a state older than version 2): one summary message only, every current pattern
 becomes the baseline (no per-pattern spam, D20); --notify-all overrides. A message that failed to send leaves
 its patterns un-notified, so the next run retries them.
@@ -30,6 +29,13 @@ missing, render error) only drops the picture, never the notification. Every eve
 message, as many messages as needed (no "N more not listed" summary); NOTIFY_MAX_EVENTS (default 200, 0 = no limit)
 is only a safety net: events beyond it are not sent AND not recorded, so the next run picks them up.
 --test-message sends one message with the best-scoring pattern and touches no state.
+
+Right-shoulder table (D34): "table" events are NOT sent one by one. Each scan sends ONE table message (per 125 rows):
+a PNG table (ihs_scanner/table_image.py, <= 25 rows per picture) plus, when DISCORD_BOT_TOKEN and
+DISCORD_MAIN_CHANNEL_ID are set, string selects under it (custom_id "watch_select", <= 25 options each, <= 5 per
+message) that put the picked patterns on the watchlist (Cloudflare Worker, bot/). Without the bot the same picture goes
+out through the webhook (no select). forming / confirmed events stay one embed each with a chart (webhook).
+Watchlist change notifications live in notify_watchlist.py.
 
 Example:
     python notify_discord.py --dry-run
@@ -63,6 +69,15 @@ ENV_WEBHOOK = "DISCORD_WEBHOOK_URL"
 ENV_MIN_SCORE = "NOTIFY_MIN_SCORE"
 ENV_MAX_EVENTS = "NOTIFY_MAX_EVENTS"
 ENV_TEST_MESSAGE = "TEST_MESSAGE"
+ENV_BOT_TOKEN = "DISCORD_BOT_TOKEN"  # D34
+ENV_MAIN_CHANNEL = "DISCORD_MAIN_CHANNEL_ID"
+BOT_MESSAGES_URL = "https://discord.com/api/v10/channels/{channel_id}/messages"
+BOT_USER_AGENT = "DiscordBot (https://github.com/chasen8/head-shoulders-scanner, 1.0)"
+SELECT_ID = "watch_select"
+SELECT_MAX_OPTIONS = 25
+SELECTS_PER_MESSAGE = 5
+TABLE_ROWS_PER_IMAGE = 25  # = SELECT_MAX_OPTIONS: one picture, one select
+TABLE_ROWS_PER_MESSAGE = SELECT_MAX_OPTIONS * SELECTS_PER_MESSAGE  # 125
 DEFAULT_MIN_SCORE = 50.0  # template forming patterns score ~50-70 (the user's five examples: 53-71)
 DEFAULT_STATUSES = "forming,watchlist,confirmed"
 STATE_VERSION = 2
@@ -145,7 +160,7 @@ def unique_rows(results: list[Mapping[str, Any]]) -> dict[str, Mapping[str, Any]
 
 def event_kind(row: Mapping[str, Any], old: Mapping[str, Any] | None, *, min_score: float,
                statuses: set[str]) -> str | None:
-    """"new" / "upgraded" / None for one row against its previous state entry."""
+    """"new" / "upgraded" / "table" (D34) / None for one row against its previous state entry."""
     status = row.get("status")
     if status not in statuses or float(row.get("pattern_score") or 0) < min_score:
         return None
@@ -154,8 +169,12 @@ def event_kind(row: Mapping[str, Any], old: Mapping[str, Any] | None, *, min_sco
         if notified == "confirmed":
             return None
         return "new" if old is None else "upgraded"
-    if status in ("forming", "watchlist"):
-        return "new" if notified is None else None  # forming -> watchlist is not an event
+    if status == "watchlist":  # D34: goes into the table, once (new, or forming -> watchlist)
+        if notified in ("watchlist", "confirmed"):
+            return None
+        return "table" if (notified is None or (old or {}).get("status") == "forming") else None
+    if status == "forming":
+        return "new" if notified is None else None
     return None
 
 
@@ -291,6 +310,7 @@ class Message:
     payload: dict[str, Any]
     files: list[tuple[str, bytes]] = field(default_factory=list)
     keys: list[str] = field(default_factory=list)
+    table: bool = False  # D34: right-shoulder table (bot channel when configured, else webhook)
 
 
 def attachment_name(row: Mapping[str, Any], key: str) -> str:
@@ -341,6 +361,72 @@ def build_messages(events: list[Mapping[str, Any]], *, extra_summary: str | None
     return messages
 
 
+def table_title(market: str, now: datetime, n: int) -> str:
+    """"右肩確認（加密貨幣）2026-10-22 08:00 共 12 筆" (UTC for crypto, Taipei time for the Taiwan scan)."""
+    tw = market == "tw"
+    t = now.astimezone(timezone(timedelta(hours=8)) if tw else timezone.utc)
+    return f"右肩確認（{'台股' if tw else '加密貨幣'}）{t:%Y-%m-%d %H:%M} 共 {n} 筆"
+
+
+def select_option(index: int, row: Mapping[str, Any], key: str) -> dict[str, str] | None:
+    """One option of the watch_select menu; None (logged) when pattern_key does not fit Discord's 100-char value."""
+    if len(key) > 100:
+        print(f"[notify] select option skipped (pattern_key {len(key)} chars > 100): "
+              f"{row.get('symbol')} {row.get('timeframe')}", file=sys.stderr)
+        return None
+    name = f" {row['name']}" if is_tw_row(row) and row.get("name") else ""
+    label = f"#{index} {row.get('symbol')}{name} {row.get('timeframe')} {float(row.get('pattern_score') or 0):.0f}分"
+    return {"label": label[:100], "value": key}
+
+
+def build_table_messages(events: list[Mapping[str, Any]], *, market: str, now: datetime, with_select: bool,
+                         font: str | None = None) -> list[Message]:
+    """D34: the "table" events (best score first) as table pictures, 25 rows per picture and 125 rows per message
+    (one string select per picture when `with_select`). Discord needs unique custom_ids inside a message, so the
+    selects are watch_select, watch_select_2, ... A picture that cannot be drawn falls back to text lines."""
+    if not events:
+        return []
+    from ihs_scanner.table_image import render_table  # lazy, like the chart image
+    tw = market == "tw"
+    chunks = [events[i:i + TABLE_ROWS_PER_MESSAGE] for i in range(0, len(events), TABLE_ROWS_PER_MESSAGE)]
+    messages: list[Message] = []
+    number = 0
+    for ci, chunk in enumerate(chunks, 1):
+        title = table_title(market, now, len(events)) + (f"（{ci}/{len(chunks)}）" if len(chunks) > 1 else "")
+        msg = Message(payload={"content": title}, table=True)
+        rows_components: list[dict[str, Any]] = []
+        fallback: list[str] = []
+        for gi in range(0, len(chunk), TABLE_ROWS_PER_IMAGE):
+            group = chunk[gi:gi + TABLE_ROWS_PER_IMAGE]
+            items = [(number + j + 1, e["row"]) for j, e in enumerate(group)]
+            number += len(group)
+            part = f"{items[0][0]}-{items[-1][0]} of {len(events)}"
+            ascii_title = f"IHS right shoulder confirmed - {'TW stocks' if tw else 'crypto'}  ({part})"
+            try:
+                png = render_table(items, ascii_title, tw=tw, font=font)
+                msg.files.append((f"watch_table_{market}_{len(msg.files) + 1}.png", png))
+            except Exception as exc:  # noqa: BLE001 - never lose the notification over a picture
+                print(f"[notify] table picture failed ({type(exc).__name__}: {str(exc)[:100]}); text instead",
+                      file=sys.stderr)
+                fallback += [f"#{n} {r['symbol']} {r['timeframe']} {float(r.get('pattern_score') or 0):.0f}"
+                             for n, r in items]
+            if with_select:
+                options = [o for e, (n, r) in zip(group, items)
+                           if (o := select_option(n, r, e.get("key") or notify_key(r)))]
+                if options:
+                    cid = SELECT_ID if not rows_components else f"{SELECT_ID}_{len(rows_components) + 1}"
+                    rows_components.append({"type": 1, "components": [{
+                        "type": 3, "custom_id": cid, "placeholder": "選擇要加入關注的標的（可多選）",
+                        "min_values": 1, "max_values": len(options), "options": options}]})
+        if fallback:
+            msg.payload["content"] = (title + "\n```\n" + "\n".join(fallback) + "\n```")[:2000]
+        if rows_components:
+            msg.payload["components"] = rows_components
+        msg.keys = [e.get("key") or notify_key(e["row"]) for e in chunk]
+        messages.append(msg)
+    return messages
+
+
 def summary_message(text: str, market: str = "crypto") -> dict[str, Any]:
     title = f"{TW_PREFIX}頭肩底掃描" if market == "tw" else "頭肩底掃描"
     return {"embeds": [{"title": title, "description": text, "color": COLOR_SUMMARY}]}
@@ -367,19 +453,22 @@ def first_run_text(rows: Mapping[str, Mapping[str, Any]], min_score: float, mark
 
 
 def post_message(url: str, payload: Mapping[str, Any], *, files: list[tuple[str, bytes]] | None = None,
-                 sleep: Callable[[float], None] = time.sleep, max_retries: int = MAX_RETRIES) -> None:
-    """POST one webhook payload (JSON, or multipart payload_json + files[n] when `files` is given).
-    429 waits retry_after; 5xx / network errors back off; bounded retries. Errors never contain the URL."""
+                 sleep: Callable[[float], None] = time.sleep, max_retries: int = MAX_RETRIES,
+                 headers: Mapping[str, str] | None = None) -> None:
+    """POST one webhook / bot payload (JSON, or multipart payload_json + files[n] when `files` is given).
+    429 waits retry_after; 5xx / network errors back off; bounded retries. Errors never contain the URL or the
+    headers (bot token)."""
     last = "unknown error"
+    extra = {"headers": dict(headers)} if headers else {}
     for attempt in range(max_retries + 1):
         try:
             if files:
                 resp = requests.post(
                     url, data={"payload_json": json.dumps(payload, ensure_ascii=False)},
                     files=[(f"files[{i}]", (name, data, "image/png")) for i, (name, data) in enumerate(files)],
-                    timeout=60)
+                    timeout=60, **extra)
             else:
-                resp = requests.post(url, json=payload, timeout=20)
+                resp = requests.post(url, json=payload, timeout=20, **extra)
         except requests.RequestException as exc:  # message may embed the URL: keep only the type
             last = type(exc).__name__
             sleep(min(2.0 ** attempt, MAX_RETRY_WAIT))
@@ -408,29 +497,40 @@ def post_message(url: str, payload: Mapping[str, Any], *, files: list[tuple[str,
     raise NotifyError(f"gave up after {max_retries + 1} attempts ({last})")
 
 
-def send_message(url: str, msg: Message, *, sleep: Callable[[float], None], pause: float) -> None:
+def bot_headers(token: str) -> dict[str, str]:
+    return {"Authorization": f"Bot {token}", "User-Agent": BOT_USER_AGENT}
+
+
+def send_message(url: str, msg: Message, *, sleep: Callable[[float], None], pause: float,
+                 headers: Mapping[str, str] | None = None) -> None:
     """Send with its pictures; if Discord rejects that (4xx, e.g. a bad attachment) retry once as plain embeds so
     one bad picture can never block the patterns of this message forever."""
     try:
-        post_message(url, msg.payload, files=msg.files or None, sleep=sleep)
+        post_message(url, msg.payload, files=msg.files or None, sleep=sleep, headers=headers)
         return
     except NotifyError as exc:
-        if not msg.files or "gave up" in str(exc):
+        if not msg.files or "gave up" in str(exc) or not msg.payload.get("embeds"):
             raise
         print(f"[notify] {exc}; retrying this message without images", file=sys.stderr)
     plain = dict(msg.payload)
     plain["embeds"] = [{k: v for k, v in e.items() if k != "image"} for e in msg.payload["embeds"]]
     sleep(pause)
-    post_message(url, plain, sleep=sleep)
+    post_message(url, plain, sleep=sleep, headers=headers)
 
 
 def save_previews(messages: list[Message], preview_dir: Path) -> None:
     """Dry-run: write the PNGs that would be attached and list every message (titles + file names, no URL)."""
     preview_dir.mkdir(parents=True, exist_ok=True)
     for i, m in enumerate(messages, 1):
-        print(f"--- message {i}/{len(messages)} ({len(m.payload['embeds'])} embed(s), {len(m.files)} attachment(s)) ---")
+        embeds = m.payload.get("embeds") or []
+        print(f"--- message {i}/{len(messages)} ({len(embeds)} embed(s), {len(m.files)} attachment(s)) ---")
+        if m.payload.get("content"):
+            first = str(m.payload["content"]).splitlines()[0]
+            sels = [c for row in m.payload.get("components") or [] for c in row.get("components", [])]
+            print(f"  {first}" + (f"  [{len(sels)} select(s), {sum(len(c['options']) for c in sels)} option(s)]"
+                                  if sels else ""))
         names = {name for name, _ in m.files}
-        for e in m.payload["embeds"]:
+        for e in embeds:
             img = (e.get("image") or {}).get("url", "").removeprefix("attachment://")
             print(f"  {e.get('title')}" + (f"  [{img}]" if img in names else "  [no image]"))
         for name, data in m.files:
@@ -472,7 +572,8 @@ def run(scan_path: Path, state_path: Path, *, min_score: float, statuses: set[st
         webhook: str | None = None, now: datetime | None = None,
         sleep: Callable[[float], None] = time.sleep, pause: float = PAUSE_BETWEEN_MESSAGES,
         test_message: bool = False, preview_dir: Path | None = None,
-        image_for: Callable[[Mapping[str, Any]], bytes | None] | None = None) -> int:
+        image_for: Callable[[Mapping[str, Any]], bytes | None] | None = None,
+        bot_token: str | None = None, main_channel: str | None = None) -> int:
     now = now or datetime.now(timezone.utc)
     now_text = _utc_text(now)
     scan = json.loads(scan_path.read_text(encoding="utf-8"))
@@ -484,13 +585,15 @@ def run(scan_path: Path, state_path: Path, *, min_score: float, statuses: set[st
     if test_message:
         return run_test_message(rows, market, dry_run=dry_run, webhook=webhook, image_for=image_for,
                                 preview_dir=preview_dir or DEFAULT_PREVIEW_DIR)
+    use_bot = bool(bot_token and main_channel)
     state = load_state(state_path)
     first_run = state is None
     prev = dict(state or {})
     print(f"[notify] market={market}: {len(results)} patterns in scan ({len(rows)} keys), previous state: "
           f"{'none or old version (first run)' if first_run else str(len(prev)) + ' patterns'}; "
           f"min_score={min_score:g}, statuses={','.join(sorted(statuses))}; "
-          f"webhook {'已設定' if webhook else '未設定'}{'; dry-run' if dry_run else ''}")
+          f"webhook {'已設定' if webhook else '未設定'}, 機器人 {'已設定' if use_bot else '未設定'}"
+          f"{'; dry-run' if dry_run else ''}")
 
     baseline = first_run and not notify_all
     if baseline:
@@ -502,11 +605,17 @@ def run(scan_path: Path, state_path: Path, *, min_score: float, statuses: set[st
             print(f"[notify] {len(events)} events > {ENV_MAX_EVENTS}={max_events}: sending the best {max_events}; "
                   f"the rest stay un-notified and go out next run")
             events = events[:max_events]
-        messages = build_messages(events, market=market,
+        singles = [e for e in events if e["kind"] != "table"]
+        tables = [e for e in events if e["kind"] == "table"]
+        messages = build_messages(singles, market=market,
                                   image_for=image_for if (webhook or dry_run) else None)
+        if tables:
+            from ihs_scanner.table_image import cjk_font
+            messages += build_table_messages(tables, market=market, now=now, with_select=use_bot,
+                                             font=cjk_font() if (webhook or use_bot or dry_run) else None)
     kinds: dict[str, int] = {}
     for e in events:
-        label = "confirmed" if e["row"]["status"] == "confirmed" else e["row"]["status"]
+        label = "table" if e["kind"] == "table" else e["row"]["status"]
         kinds[label] = kinds.get(label, 0) + 1
     print(f"[notify] events: {len(events)} ({', '.join(f'{k} {v}' for k, v in sorted(kinds.items())) or 'none'}); "
           f"{len(messages)} message(s)")
@@ -520,21 +629,35 @@ def run(scan_path: Path, state_path: Path, *, min_score: float, statuses: set[st
     sent_ok = True
     notified: set[str] = set()
     if not webhook:
-        print("未設定 webhook，略過通知")
-        notified = {e["key"] for e in events}  # D20: not re-sent once a webhook is configured
-    else:
-        for i, m in enumerate(messages):
-            try:
-                if i:
-                    sleep(pause)
-                send_message(webhook, m, sleep=sleep, pause=pause)
-            except NotifyError as exc:
-                sent_ok = False
-                print(f"[notify] send failed: {exc}", file=sys.stderr)
-                break
-            notified.update(m.keys)
-        if sent_ok:
-            print(f"[notify] sent {len(messages)} message(s)")
+        print("未設定 webhook，略過通知" + ("（右肩確認表格仍由機器人發送）" if use_bot else ""))
+    if not use_bot and any(m.table for m in messages):
+        print("[notify] 機器人未設定：右肩確認表格改用 webhook 發送（沒有下拉選單）")
+    sent = 0
+    for m in messages:
+        if m.table and use_bot:
+            dest, headers = BOT_MESSAGES_URL.format(channel_id=main_channel), bot_headers(bot_token)
+        elif webhook:
+            dest, headers = webhook, None
+            if m.table:  # no select menu through a webhook
+                m = Message({k: v for k, v in m.payload.items() if k != "components"}, m.files, m.keys, True)
+        else:
+            notified.update(m.keys)  # D20: nothing configured for this message; not re-sent later
+            continue
+        try:
+            if sent:
+                sleep(pause)
+            send_message(dest, m, sleep=sleep, pause=pause, headers=headers)
+        except NotifyError as exc:
+            sent_ok = False
+            print(f"[notify] send failed: {exc}", file=sys.stderr)
+            break
+        sent += 1
+        notified.update(m.keys)
+    if sent_ok and sent:
+        print(f"[notify] sent {sent} message(s)")
+    if not webhook and not use_bot:
+        notified = {e["key"] for e in events}
+    unsent_tables = {e["key"] for e in events if e["kind"] == "table" and e["key"] not in notified}
 
     new_state: dict[str, Any] = {}
     for key, r in rows.items():
@@ -545,6 +668,8 @@ def run(scan_path: Path, state_path: Path, *, min_score: float, statuses: set[st
             entry["last_notified_at"], entry["notified_status"] = now_text, r["status"]
         elif key in notified:
             entry["last_notified_at"], entry["notified_status"] = now_text, r["status"]
+        elif key in unsent_tables and old:
+            entry["status"] = old.get("status", r["status"])  # keep "forming" so the table is retried next run
         new_state[key] = entry
     # patterns gone from the scan: keep for prune_days (so a flicker does not re-notify), then drop
     cutoff = now - timedelta(days=prune_days)
@@ -601,9 +726,12 @@ def main(argv=None) -> int:
         return 2
     statuses = {s.strip() for s in args.statuses.split(",") if s.strip()}
     webhook = os.environ.get(ENV_WEBHOOK, "").strip() or None
+    bot_token = os.environ.get(ENV_BOT_TOKEN, "").strip() or None
+    main_channel = os.environ.get(ENV_MAIN_CHANNEL, "").strip() or None
     return run(scan, Path(args.state), min_score=args.min_score, statuses=statuses, notify_all=args.notify_all,
                dry_run=args.dry_run, prune_days=args.prune_days, max_events=args.max_events, webhook=webhook,
-               test_message=args.test_message, preview_dir=Path(args.preview_dir))
+               test_message=args.test_message, preview_dir=Path(args.preview_dir), bot_token=bot_token,
+               main_channel=main_channel)
 
 
 if __name__ == "__main__":

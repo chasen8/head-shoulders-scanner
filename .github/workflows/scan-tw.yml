@@ -74,6 +74,12 @@ jobs:
       - name: Notify Discord
         env:
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          # D34：右肩確認表格由機器人發（未設定時退回 webhook）；關注清單由 Cloudflare Worker 提供。都沒設定也能跑。
+          DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+          DISCORD_MAIN_CHANNEL_ID: ${{ secrets.DISCORD_MAIN_CHANNEL_ID }}
+          DISCORD_WATCH_CHANNEL_ID: ${{ secrets.DISCORD_WATCH_CHANNEL_ID }}
+          WATCHLIST_API_URL: ${{ secrets.WATCHLIST_API_URL }}
+          WATCHLIST_SYNC_KEY: ${{ secrets.WATCHLIST_SYNC_KEY }}
         run: |
           args="--scan site/data/tw/scan.json --state state_tw.json"
           [ "$DRY_RUN" = "true" ] && args="$args --dry-run"
@@ -81,6 +87,22 @@ jobs:
           [ "$TEST_MESSAGE" = "true" ] && args="$args --test-message"
           args="$args --preview-dir output/notify-preview"
           python notify_discord.py $args
+
+      # D34：關注清單裡的標的狀態改變 -> 機器人發到關注頻道，並回寫 last_status。失敗只警告，不影響後面的存 state／發布。
+      # test_message 時不跑（那一次只驗證圖片上傳）。
+      - name: Notify watchlist changes
+        if: ${{ !cancelled() && github.event.inputs.test_message != 'true' }}
+        continue-on-error: true
+        env:
+          DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+          DISCORD_WATCH_CHANNEL_ID: ${{ secrets.DISCORD_WATCH_CHANNEL_ID }}
+          WATCHLIST_API_URL: ${{ secrets.WATCHLIST_API_URL }}
+          WATCHLIST_SYNC_KEY: ${{ secrets.WATCHLIST_SYNC_KEY }}
+        run: |
+          args="--scan site/data/tw/scan.json"
+          [ "$DRY_RUN" = "true" ] && args="$args --dry-run"
+          args="$args --preview-dir output/notify-preview"
+          python notify_watchlist.py $args
 
       # D32：dry-run 時把會附在 Discord 的圖存成 artifact，方便檢查（bars 檔與 scan.json 在 site/data 內，同一個 job）。
       - name: Upload notify preview images

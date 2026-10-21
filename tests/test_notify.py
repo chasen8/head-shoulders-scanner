@@ -78,7 +78,11 @@ def go(scan, st, **kw):
 
 
 def embeds(post):
-    return [e for m in post.calls for e in m["embeds"]]
+    return [e for m in post.calls for e in m.get("embeds", [])]
+
+
+def table_msgs(post):
+    return [m for m in post.calls if str(m.get("content", "")).startswith("右肩確認")]
 
 
 def titles(post):
@@ -95,16 +99,18 @@ def test_new_patterns_notified_and_recorded(tmp_path, post):
     rows = [row("AAAUSDT", "forming"), row("BBBUSDT"), row("CCCUSDT", "confirmed")]
     scan, st = setup(tmp_path, rows, state={})
     assert go(scan, st) == 0
-    assert titles(post) == ["AAAUSDT 日線 右肩形成中", "BBBUSDT 日線 右肩已確認", "CCCUSDT 日線 已突破"]
+    # D34: the watchlist pattern (BBB) is not an embed of its own, it goes into the table message
+    assert titles(post) == ["AAAUSDT 日線 右肩形成中", "CCCUSDT 日線 已突破"]
+    assert len(table_msgs(post)) == 1 and "共 1 筆" in table_msgs(post)[0]["content"]
     by = {e["title"]: e for e in embeds(post)}
     assert by["AAAUSDT 日線 右肩形成中"]["color"] == nd.COLOR_FORMING
-    assert by["BBBUSDT 日線 右肩已確認"]["color"] == nd.COLOR_WATCHLIST
     assert by["CCCUSDT 日線 已突破"]["color"] == nd.COLOR_CONFIRMED
     assert by["CCCUSDT 日線 已突破"]["url"] == \
         "https://www.tradingview.com/chart/?symbol=OKX%3ACCCUSDT.P&interval=1D"
     state = nd.load_state(st)
     assert set(state) == {key("AAAUSDT"), key("BBBUSDT"), key("CCCUSDT")}
     assert state[key("AAAUSDT")]["notified_status"] == "forming"
+    assert state[key("BBBUSDT")]["notified_status"] == "watchlist"
     assert state[key("AAAUSDT")]["last_notified_at"] == "2026-10-18T12:07:00Z"
     assert json.loads(st.read_text(encoding="utf-8"))["version"] == 2
 
@@ -160,12 +166,22 @@ def test_forming_rs_moves_no_resend(tmp_path, post):
     assert post.calls == []
 
 
-def test_forming_to_watchlist_not_notified(tmp_path, post):
+def test_forming_to_watchlist_goes_into_table_once(tmp_path, post):
     scan, st = setup(tmp_path, [row("AAAUSDT", "watchlist")], state={key("AAAUSDT"): entry("forming", "forming")})
     go(scan, st)
-    assert post.calls == []
+    assert embeds(post) == [] and len(table_msgs(post)) == 1
     s = nd.load_state(st)[key("AAAUSDT")]
-    assert s["status"] == "watchlist" and s["notified_status"] == "forming"
+    assert s["status"] == "watchlist" and s["notified_status"] == "watchlist"
+    post.calls.clear()
+    go(scan, st)  # still watchlist: not again
+    assert post.calls == []
+
+
+def test_long_standing_watchlist_with_old_forming_notification_not_in_table(tmp_path, post):
+    # state from before D34: status watchlist since long, notified_status "forming" -> no table spam after deploy
+    scan, st = setup(tmp_path, [row("AAAUSDT", "watchlist")], state={key("AAAUSDT"): entry("watchlist", "forming")})
+    go(scan, st)
+    assert post.calls == []
 
 
 @pytest.mark.parametrize("before", ["forming", "watchlist"])
@@ -237,7 +253,7 @@ def test_old_version_state_is_first_run(tmp_path, post):
 def test_first_run_notify_all(tmp_path, post):
     scan, st = setup(tmp_path, [row("AAAUSDT", "forming"), row("BBBUSDT")])
     go(scan, st, notify_all=True)
-    assert len(embeds(post)) == 2
+    assert len(embeds(post)) == 1 and len(table_msgs(post)) == 1
 
 
 def test_no_webhook_updates_state(tmp_path, post, capsys):
@@ -275,7 +291,7 @@ def test_retries_are_bounded_and_failure_not_recorded(tmp_path, post, capsys):
     post.calls.clear()
     post.queue.clear()
     assert go(scan, st) == 0
-    assert titles(post) == ["AAAUSDT 日線 右肩已確認"]
+    assert len(table_msgs(post)) == 1
 
 
 def test_failed_upgrade_is_retried(tmp_path, post):
@@ -358,5 +374,6 @@ def test_main_reads_env_and_never_echoes(tmp_path, monkeypatch, capsys, post):
 @pytest.fixture(autouse=True)
 def _clean_notify_env(monkeypatch):
     """CI sets TEST_MESSAGE / NOTIFY_* at job level; tests must not inherit them."""
-    for name in (nd.ENV_TEST_MESSAGE, nd.ENV_MAX_EVENTS, nd.ENV_MIN_SCORE):
+    for name in (nd.ENV_TEST_MESSAGE, nd.ENV_MAX_EVENTS, nd.ENV_MIN_SCORE, nd.ENV_BOT_TOKEN, nd.ENV_MAIN_CHANNEL,
+                 "DISCORD_WATCH_CHANNEL_ID", "WATCHLIST_API_URL", "WATCHLIST_SYNC_KEY"):
         monkeypatch.delenv(name, raising=False)
