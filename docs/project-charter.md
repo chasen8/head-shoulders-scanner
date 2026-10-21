@@ -24,6 +24,7 @@
 - 2026-10-19：TP1 改對數斐波那契 1.414（D28）；台股上線（D29），271 測試全綠，公開網站同時有加密貨幣 151 筆與台股 665 筆。
 - 2026-10-21：夜間模式（D31）與 Discord 附圖、全部列出（D32）上線，289 測試全綠。已知：台股 4h 每天只有 2 根，1000 根上限≈2 年，型態可能過長，待使用者決定是否縮短台股 4h 上限。
 - 2026-10-22：D34 程式完成（pytest 324、Worker node 測試 11 全綠）；待使用者：註冊 Cloudflare、建 Discord 機器人並 `gh secret set DISCORD_BOT_TOKEN`、提供 Application ID／Public Key／兩個頻道 ID，之後主對話部署 Worker 與設定金鑰。
+- 2026-10-22：D35 部署完成（Worker 測試 23、pytest 335 全綠；斜線指令已註冊到伺服器）。待使用者：Discord 後台 OAuth2 Redirect 加 `<worker>/auth/callback`、`wrangler secret put DISCORD_CLIENT_SECRET`，之後網站登入才會啟用。
 ## 決策記錄
 格式：日期｜決定｜原因｜何時可推翻
 
@@ -61,3 +62,4 @@
 - D32 2026-10-21｜Discord 每張卡片附型態圖（`ihs_scanner/chart_image.py`，matplotlib 1200×675、圖內文字英數、只畫 bars 檔的值）；multipart 上傳，每則 ≤10 embed、附件 <7.5MB；取消 20 筆上限與「未列出」摘要，全部逐筆送（保險上限 `NOTIFY_MAX_EVENTS` 預設 200）；圖產生失敗則該筆不附圖照送；workflow 加 `test_message`｜使用者要求附圖並全部列出（台股首日 55 筆中 35 筆被收進摘要）｜通知太多時改回上限或提高分數門檻
 - D33 2026-10-21｜台股 4h 型態長度上限改 300 根（約半年），用 `config.MARKET_OVERRIDES["tw"]`＋`market_config()` 只對台股生效；加密貨幣與台股 1d/1w 不變｜台股 4h 每天只有 2 根，1000 根≈2 年，型態過長且不像（例：1101 4h 跨一年多）；使用者同意｜台股 4h 結果太少或使用者要更長時
 - D34 2026-10-22｜右肩確認改為每次掃描一則表格（圖＋下拉選單 watch_select/_2…，台北時間標題）；右肩形成中與突破維持逐筆附圖；關注清單＝Discord 機器人＋Cloudflare Worker（`bot/`，KV 儲存，/interactions 驗簽、/api/watchlist Bearer SYNC_KEY），網站星號可選擇雲端同步；關注頻道只通知狀態改變（含消失），每則附圖＋取消關注按鈕；未設定機器人／Worker 時自動降級｜使用者選方案 C（即時點選、網站同步）｜設計見 `docs/watchlist-bot-design.md`；KV 無鎖，同秒寫入可能覆蓋（個人使用可接受）
+- D35 2026-10-22｜關注清單改成每人一份（KV `user:<discord_id>`），以 Discord 使用者 ID 區分；選單加入／取消關注／`/watchlist`／`/notify` 只動自己的；通知方式每人可選 #關注 頻道 @（同型態合併一則、allowed_mentions 限定）或機器人私訊（403 時退回頻道 @）；網站改「用 Discord 登入」（OAuth2 code、HMAC state＋nonce cookie、session 30 天放 URL fragment），取代同步金鑰；舊共用清單已刪除（不遷移）；Worker secrets：DISCORD_PUBLIC_KEY、SYNC_KEY、SESSION_SECRET、DISCORD_CLIENT_SECRET（使用者自設）｜使用者要讓伺服器裡的朋友各自關注｜設計見 `docs/watchlist-bot-design.md` D35 節
