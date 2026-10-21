@@ -25,6 +25,7 @@
 - 2026-10-21：夜間模式（D31）與 Discord 附圖、全部列出（D32）上線，289 測試全綠。已知：台股 4h 每天只有 2 根，1000 根上限≈2 年，型態可能過長，待使用者決定是否縮短台股 4h 上限。
 - 2026-10-22：D34 程式完成（pytest 324、Worker node 測試 11 全綠）；待使用者：註冊 Cloudflare、建 Discord 機器人並 `gh secret set DISCORD_BOT_TOKEN`、提供 Application ID／Public Key／兩個頻道 ID，之後主對話部署 Worker 與設定金鑰。
 - 2026-10-22：D35 部署完成（Worker 測試 23、pytest 335 全綠；斜線指令已註冊到伺服器）。待使用者：Discord 後台 OAuth2 Redirect 加 `<worker>/auth/callback`、`wrangler secret put DISCORD_CLIENT_SECRET`，之後網站登入才會啟用。
+- 2026-10-22：D36 上線（352 測試全綠，含 BTC/AT/LDO 三個新黃金案例）。
 ## 決策記錄
 格式：日期｜決定｜原因｜何時可推翻
 
@@ -63,3 +64,4 @@
 - D33 2026-10-21｜台股 4h 型態長度上限改 300 根（約半年），用 `config.MARKET_OVERRIDES["tw"]`＋`market_config()` 只對台股生效；加密貨幣與台股 1d/1w 不變｜台股 4h 每天只有 2 根，1000 根≈2 年，型態過長且不像（例：1101 4h 跨一年多）；使用者同意｜台股 4h 結果太少或使用者要更長時
 - D34 2026-10-22｜右肩確認改為每次掃描一則表格（圖＋下拉選單 watch_select/_2…，台北時間標題）；右肩形成中與突破維持逐筆附圖；關注清單＝Discord 機器人＋Cloudflare Worker（`bot/`，KV 儲存，/interactions 驗簽、/api/watchlist Bearer SYNC_KEY），網站星號可選擇雲端同步；關注頻道只通知狀態改變（含消失），每則附圖＋取消關注按鈕；未設定機器人／Worker 時自動降級｜使用者選方案 C（即時點選、網站同步）｜設計見 `docs/watchlist-bot-design.md`；KV 無鎖，同秒寫入可能覆蓋（個人使用可接受）
 - D35 2026-10-22｜關注清單改成每人一份（KV `user:<discord_id>`），以 Discord 使用者 ID 區分；選單加入／取消關注／`/watchlist`／`/notify` 只動自己的；通知方式每人可選 #關注 頻道 @（同型態合併一則、allowed_mentions 限定）或機器人私訊（403 時退回頻道 @）；網站改「用 Discord 登入」（OAuth2 code、HMAC state＋nonce cookie、session 30 天放 URL fragment），取代同步金鑰；舊共用清單已刪除（不遷移）；Worker secrets：DISCORD_PUBLIC_KEY、SYNC_KEY、SESSION_SECRET、DISCORD_CLIENT_SECRET（使用者自設）｜使用者要讓伺服器裡的朋友各自關注｜設計見 `docs/watchlist-bot-design.md` D35 節
+- D36 2026-10-22｜依使用者三個對照案例修偵測：(A) 突破改用 high（影線穿過頸線即突破，`breakout_price`，template 預設 high）；(B) 突破優先：同一 H 已有有效候選突破後，之後 RS 的候選不成立（例外：前者突破失敗、或後者頸線排名較好），避免把突破後高點當 N2；(C) 碰頸線不算 V1 違規（在碰頸線處切段）並輸出 `neckline_touches`；去重順序：已突破→碰頸線多→下斜→分數；1w 頸線角度上限 45°；T8 改用實體低點；1w 有效下斜型態取代重疊的 1d 上斜型態（`superseded`）｜BTC 1d 誤判未突破、AT 4h 插針未算突破、LDO 週線下斜頸線沒抓到｜黃金測試 `tests/test_golden_d36.py` 鎖住；規則 B 兩個例外由 TRUST／PENDLE 反推；T8 改實體會放進 MINA 類尖峰型態；快照 84→64 筆
