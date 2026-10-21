@@ -45,7 +45,8 @@ from ihs_scanner.data_binance import (BinanceFetchError, WeightLimiter, fetch_kl
                                       list_usdt_symbols)
 from ihs_scanner.keys import pattern_key
 from ihs_scanner.neckline import calculate_neckline
-from ihs_scanner.scanner import OUTPUT_FIELDS, _to_jsonable, scan_symbols, sort_results
+from ihs_scanner.scanner import (OUTPUT_FIELDS, _to_jsonable, scan_symbols, sort_results,
+                                 supersede_by_higher_timeframe)
 from ihs_scanner.sources import SOURCE_PRIORITY, Instrument, SourceFetchError, merge_instruments
 from ihs_scanner.swings import get_timestamps
 from ihs_scanner.validation import CHECKS, shape_checks
@@ -65,11 +66,13 @@ ERROR_CHARS = 240
 # Must match .github/workflows/scan-and-notify.yml: cron "7 */4 * * *"
 SCAN_EVERY_HOURS = 4
 SCAN_MINUTE = 7
-SCHEMA_VERSION = 7  # 3: bars files carry `levels`, `levels_estimated`, `rs_provisional`;
+SCHEMA_VERSION = 8  # 3: bars files carry `levels`, `levels_estimated`, `rs_provisional`;
 #                     4: rows carry `shape_checks`, settings `shape_validation` (D26);
 #                     5: rows carry `pattern_key` (D24 key, no RS) for the site watchlist;
 #                     6: rows carry `neckline_change_pct` and `neckline_trend`, settings `neckline_trend_threshold`;
 #                     7: payload `market` ("crypto" | "tw"), rows (and bars files) may carry `name` (D29 Taiwan stocks)
+#                     8: rows carry `neckline_touches`, `breakout_basis`; payload `superseded`, settings
+#                        `breakout_price` (D36)
 # Neckline N1->N2 total change: <= -T is "down", >= +T is "up", otherwise "flat" (front end only filters on it).
 NECKLINE_TREND_THRESHOLD = 0.03
 POINT_NAMES = ("LS", "N1", "H", "N2", "RS")
@@ -255,6 +258,10 @@ def build_payload(symbol_data: Mapping[str, Mapping[str, pd.DataFrame]], cfg: Ma
         if inst.name:
             r["name"] = inst.name
         r["pattern_id"] = f"{inst.exchange}|{inst.market}|{r['pattern_id']}"
+    superseded: list[dict[str, Any]] = []
+    if cfg["supersede_by_higher_timeframe"]:  # D36: across timeframes, so after every series is scanned
+        results, gone = supersede_by_higher_timeframe(results)
+        superseded = [{"pattern_id": g["pattern_id"], "superseded_by": g["superseded_by"]} for g in gone]
     results = sort_results(results)
 
     angle_scale = float(cfg["angle_scale"])
@@ -320,6 +327,7 @@ def build_payload(symbol_data: Mapping[str, Mapping[str, pd.DataFrame]], cfg: Ma
             "min_pattern_score": float(cfg["min_pattern_score"]),
             "profile": str(cfg["profile"]),
             "neckline_trend_threshold": NECKLINE_TREND_THRESHOLD,
+            "breakout_price": str(cfg["breakout_price"]),  # D36: "high" (wick) or "close"; front end wording
             # D26 thresholds (None = check off); the per-row values and pass flags are in shape_checks
             "shape_validation": {cid: (None if cfg[key] is None else float(cfg[key]))
                                  for cid, _f, key, _k, _t in CHECKS},
@@ -337,6 +345,7 @@ def build_payload(symbol_data: Mapping[str, Mapping[str, pd.DataFrame]], cfg: Ma
         "series_scanned": series,
         "failures": failures,
         "skipped": list(skipped or []),
+        "superseded": superseded,  # D36: smaller-timeframe patterns replaced by a larger timeframe (not in results)
         "last_closed": last_closed,
         "results": rows,
     }

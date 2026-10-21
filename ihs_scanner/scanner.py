@@ -27,12 +27,13 @@ OUTPUT_FIELDS = [
     # D23 template values and display-only targets
     "drop_left_pct", "drop_right_pct", "shoulder_drop_diff", "head_rise_pct", "head_prominence",
     "neckline_tilt_of_head", "neckline_max_violation", "neckline_change", "neckline_wick_of_head",
+    "neckline_touches",  # D36
     # D26 shape validation
     "v1_max_counter_swing", "v1_leg", "v2_mad", "v2_r2", "v3_close_violation", "v3_runaway", "v3_fallback",
     "v4_template_distance", "v4_nearest_template", "shape_valid",
     "head_height", "breakout_level", "neckline_mid", "tp1", "tp2", "invalidation_price",
     "current_close", "current_neckline_price", "distance_to_neckline",
-    "breakout_detected", "breakout_time", "breakout_price", "volume_ratio",
+    "breakout_detected", "breakout_time", "breakout_price", "breakout_basis", "volume_ratio",
     "average_volume_20", "bars_since_rs", "bars_since_breakout", "signal_time", "as_of_time",
     "pattern_id",
 ]
@@ -42,12 +43,54 @@ def sort_results(results: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return sorted(results, key=result_sort_key)
 
 
+# D36 cross-timeframe: (larger, smaller) timeframe pairs compared by supersede_by_higher_timeframe()
+SUPERSEDE_PAIRS = (("1w", "1d"),)
+
+
+def _same_series(a: Mapping[str, Any], b: Mapping[str, Any]) -> bool:
+    return (a["symbol"] == b["symbol"] and a.get("exchange") == b.get("exchange")
+            and a.get("market") == b.get("market"))
+
+
+def supersede_by_higher_timeframe(results: list[dict[str, Any]]) -> tuple[list[dict[str, Any]],
+                                                                          list[dict[str, Any]]]:
+    """D36: for each (larger, smaller) pair in SUPERSEDE_PAIRS, a smaller-timeframe pattern with a rising
+    neckline (neckline_change > 0) is superseded when the same symbol (same exchange / market when tagged) has a
+    larger-timeframe result with a falling neckline (neckline_change < 0) whose [LS_time, RS_time] contains the
+    smaller pattern's H_time. Runs on the detector's final results (never inside the detector, which sees one
+    timeframe only). Returns (kept, superseded); superseded rows get `superseded_by` = the larger pattern_id."""
+    def change(r):
+        v = r.get("neckline_change")
+        return None if v is None else float(v)
+
+    kept, gone = [], []
+    for r in results:
+        by = None
+        for big, small in SUPERSEDE_PAIRS:
+            if r["timeframe"] != small or not (change(r) is not None and change(r) > 0):
+                continue
+            h = pd.Timestamp(r["H_time"])
+            for q in results:
+                if (q["timeframe"] == big and _same_series(q, r) and change(q) is not None and change(q) < 0
+                        and pd.Timestamp(q["LS_time"]) <= h <= pd.Timestamp(q["RS_time"])):
+                    by = q["pattern_id"]
+                    break
+            if by:
+                break
+        if by:
+            gone.append({**r, "superseded_by": by})
+        else:
+            kept.append(r)
+    return kept, gone
+
+
 def scan_symbols(symbol_data: Mapping[str, Mapping[str, pd.DataFrame]],
                  config: Mapping[str, Any] | None = None,
                  timings: dict | None = None) -> list[dict[str, Any]]:
     """symbol_data = {symbol: {timeframe: df}}. Returns sorted results with
     pattern_score >= min_pattern_score. If `timings` is a dict it is filled with
-    {(symbol, timeframe): (n_bars, seconds)}."""
+    {(symbol, timeframe): (n_bars, seconds)}. D36: with supersede_by_higher_timeframe, a smaller-timeframe
+    pattern superseded by a larger one (supersede_by_higher_timeframe()) is left out."""
     cfg = merge_config(config)
     results: list[dict[str, Any]] = []
     for symbol, by_tf in symbol_data.items():
@@ -59,6 +102,8 @@ def scan_symbols(symbol_data: Mapping[str, Mapping[str, pd.DataFrame]],
             results.extend(res)
     min_score = float(cfg["min_pattern_score"])
     results = [r for r in results if r["pattern_score"] >= min_score]
+    if cfg["supersede_by_higher_timeframe"]:
+        results, _ = supersede_by_higher_timeframe(results)
     return sort_results(results)
 
 

@@ -333,14 +333,19 @@
   }
 
   /* ---------- detail ---------- */
+  // D36: breakout_basis "high" = the bar's high (wick) crossing the neckline counts; "close" = a close above it
+  function crossText(r) {
+    return r.breakout_basis === "close" ? "收盤站上頸線" : "最高價（含影線）穿過頸線";
+  }
+
   function summary(r) {
     var tf = r.timeframe, close = "最新收盤 " + fmtPrice(r.current_close) + "，" + distText(r) + "。";
     if (r.status === "confirmed") {
-      return fmtBar(r.breakout_time, tf) + " 那根 K 線收盤突破頸線，到現在過了 " + r.bars_since_breakout + " 根。" + close;
+      return fmtBar(r.breakout_time, tf) + " 那根 K 線" + crossText(r) + "，到現在過了 " + r.bars_since_breakout + " 根。" + close;
     }
     if (r.status === "forming") {
       return "右肩形成中：N2 之後的最低點（" + fmtBar(r.RS_time, tf) + "）暫定為右肩。" + PROVISIONAL_NOTE +
-        (r.breakout_detected ? "已有 K 線收盤站上頸線（" + fmtBar(r.breakout_time, tf) + "），右肩確認後才算已突破。" : "") +
+        (r.breakout_detected ? "已有 K 線" + crossText(r) + "（" + fmtBar(r.breakout_time, tf) + "），右肩確認後才算已突破。" : "") +
         close;
     }
     if (r.status === "watchlist") {

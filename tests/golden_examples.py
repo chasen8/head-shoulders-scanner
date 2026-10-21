@@ -90,3 +90,46 @@ GOLDEN_EXAMPLES = {
 BARS_BEFORE = 1000
 # ... plus a few bars after it (the test cuts them off; kept so truncation is really exercised)
 BARS_AFTER = 30
+
+# D36: three cases the user checked by hand in TradingView (2026-10-22, Taipei time; converted to UTC here,
+# daily / weekly bars labelled by their UTC open date; Binance weekly bars open Monday 00:00 UTC).
+# Prices are the K-line values at the user's bars (the user's chart labels agree within rounding).
+# They are NOT added to GOLDEN_EXAMPLES: those five feed the V4 templates (scripts/build_templates.py).
+D36_SCREENSHOT_UTC = "2026-10-21T17:00:00Z"  # 2026-10-22 01:00 UTC+8: last closed 4h bar opens 10-21 12:00 UTC
+D36_CASES = {
+    # we showed "RS confirmed, not broken out" with N2 = the post-breakout high; the user's pattern broke out
+    "BTCUSDT_binance_spot_1d": {
+        "source": "binance_spot", "symbol": "BTCUSDT", "timeframe": "1d",
+        "screenshot_utc": D36_SCREENSHOT_UTC,
+        "points": {
+            "LS": ("2026-04-29T00:00:00Z", 74937.52),
+            "N1": ("2026-05-06T00:00:00Z", 82850.0),  # user: "LS 後約 7 天的高點, ~83,000"
+            "N2": ("2026-09-03T00:00:00Z", 82300.0),  # user: ~82,300 (RS -8.79%)
+            "RS": ("2026-09-16T00:00:00Z", 75064.82),  # user's bar; the swing low is 09-15 (74,967.97)
+        },
+    },
+    # the newest closed bar's wick (high 0.1653, user ~0.1645) is far above the neckline (~0.142), close 0.1417
+    "ATUSDT_binance_spot_4h": {
+        "source": "binance_spot", "symbol": "ATUSDT", "timeframe": "4h",
+        "screenshot_utc": D36_SCREENSHOT_UTC,
+        "wick_bar": ("2026-10-21T08:00:00Z", 0.1653, 0.1417),  # (open time, high, close)
+        "H": "2026-10-03T16:00:00Z",
+    },
+    # the user's weekly pattern with a falling neckline (we only showed a rising 1d one)
+    "LDOUSDT_binance_spot_1w": {
+        "source": "binance_spot", "symbol": "LDOUSDT", "timeframe": "1w",
+        "screenshot_utc": D36_SCREENSHOT_UTC,
+        "points": {
+            "LS": ("2025-12-15T00:00:00Z", 0.4913),
+            "N1": ("2026-01-05T00:00:00Z", 0.6808),  # (0.6808 - 0.4913) / 0.6808 = the user's -27.83%
+            "H": ("2026-06-22T00:00:00Z", 0.2341),
+            "N2": ("2026-09-21T00:00:00Z", 0.5066),  # user ~0.507
+            "RS": ("2026-10-12T00:00:00Z", 0.3630),  # (0.5066 - 0.3630) / 0.5066 = the user's -28.35%
+        },
+        "user_head_rise": 1.5057, "user_target": 1.1329,
+    },
+    "LDOUSDT_binance_spot_1d": {
+        "source": "binance_spot", "symbol": "LDOUSDT", "timeframe": "1d",
+        "screenshot_utc": D36_SCREENSHOT_UTC,
+    },
+}

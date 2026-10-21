@@ -86,15 +86,28 @@ def _intervals_overlap(a: Mapping[str, Any], b: Mapping[str, Any]) -> bool:
     return a["LS_time"] <= b["RS_time"] and b["LS_time"] <= a["RS_time"]
 
 
-def deduplicate_patterns(patterns: list[dict[str, Any]]) -> list[dict[str, Any]]:
+DEDUP_PRIORITIES = ("score", "breakout_touches_slope")
+
+
+def _dedup_key(p: Mapping[str, Any], priority: str) -> tuple:
+    newer = (-p["pattern_score"], -pd.Timestamp(p["RS_time"]).value, -pd.Timestamp(p["LS_time"]).value)
+    if priority == "score":
+        return newer
+    # D36: a pattern that already broke out beats one that has not; then more neckline touches; then a
+    # falling neckline (N2 < N1) beats a flat / rising one; only then the score (and the D11 tie-break)
+    change = p.get("neckline_change")
+    rising = 0 if change is not None and change < 0 else 1
+    return (0 if p.get("breakout_detected") else 1, -int(p.get("neckline_touches") or 0), rising) + newer
+
+
+def deduplicate_patterns(patterns: list[dict[str, Any]], priority: str = "score") -> list[dict[str, Any]]:
     """D11: among patterns of the same symbol+timeframe whose [LS, RS] intervals
-    overlap (closed intervals), keep only the highest score; ties keep the newer
-    one (later RS, then later LS). Greedy by that priority."""
-    order = sorted(
-        patterns,
-        key=lambda p: (-p["pattern_score"], -pd.Timestamp(p["RS_time"]).value,
-                       -pd.Timestamp(p["LS_time"]).value),
-    )
+    overlap (closed intervals), keep only the best one. priority "score" (D11): highest score, ties keep the
+    newer one (later RS, then later LS). "breakout_touches_slope" (D36): breakout_detected first, then more
+    neckline_touches, then a falling before a flat / rising neckline, then the D11 order. Greedy by priority."""
+    if priority not in DEDUP_PRIORITIES:
+        raise ValueError(f"dedup_priority must be one of {DEDUP_PRIORITIES}, got {priority!r}")
+    order = sorted(patterns, key=lambda p: _dedup_key(p, priority))
     kept: list[dict[str, Any]] = []
     for p in order:
         clash = any(
@@ -105,6 +118,24 @@ def deduplicate_patterns(patterns: list[dict[str, Any]]) -> list[dict[str, Any]]
         if not clash:
             kept.append(p)
     return kept
+
+
+def _count_touch_runs(touch: np.ndarray, ls: int, n1: int, n2: int, rs: int) -> int:
+    """D36 neckline_touches. touch[k] is bar ls + k. Counts runs of consecutive touch bars strictly between N1
+    and RS with N2 excluded, skipping a run that starts at N1 + 1 or is adjacent to N2 (ends at N2 - 1 or
+    starts at N2 + 1): those belong to the neckline points themselves."""
+    count, i = 0, n1 + 1
+    while i < rs:
+        if i == n2 or not touch[i - ls]:
+            i += 1
+            continue
+        j = i
+        while j + 1 < rs and j + 1 != n2 and touch[j + 1 - ls]:
+            j += 1
+        if i != n1 + 1 and j != n2 - 1 and i != n2 + 1:
+            count += 1
+        i = j + 1
+    return count
 
 
 def _validate(df: pd.DataFrame, timeframe: str) -> None:
@@ -139,7 +170,7 @@ def find_pattern_candidates(df: pd.DataFrame, timeframe: str,
     # spec step 3 shoulder diff: None = off (D23 template); the spec score then uses the classic limit
     shoulder_limit = _opt_float(tf_value(cfg, "shoulder_diff_limit_by_timeframe", timeframe))
     min_depth = float(tf_value(cfg, "min_head_depth_by_timeframe", timeframe))
-    max_angle = float(cfg["max_neckline_angle"])
+    max_angle = float(tf_value(cfg, "max_neckline_angle", timeframe))  # D36: may be per timeframe
     angle_scale = float(cfg["angle_scale"])
     buffer = float(tf_value(cfg, "breakout_buffer_by_timeframe", timeframe))
     max_bars = int(tf_value(cfg, "max_pattern_bars_by_timeframe", timeframe))
@@ -209,13 +240,26 @@ def find_pattern_candidates(df: pd.DataFrame, timeframe: str,
     shape_w = float(cfg["shape_score_weight"])
     tp1_level = float(cfg["tp1_fib_level"])
     tp1_log = bool(cfg["tp1_fib_log"])
+    # D36 (formulas: config.py "D36" block)
+    brk_basis = str(cfg["breakout_price"])
+    if brk_basis not in ("close", "high"):
+        raise ValueError(f"breakout_price must be 'close' or 'high', got {brk_basis!r}")
+    post_brk_reject = bool(cfg["reject_post_breakout_rs"])
+    touch_tol = float(cfg["neckline_touch_tolerance"])
+    v1_skip_touch = bool(cfg["v1_ignore_neckline_touches"])
+    lead_key = str(cfg["head_lead_in_price"])
+    if lead_key not in ("low", "body"):
+        raise ValueError(f"head_lead_in_price must be 'low' or 'body', got {lead_key!r}")
 
     times = get_timestamps(df)
     high = df["high"].to_numpy(dtype=float)
     low = df["low"].to_numpy(dtype=float)
     close = df["close"].to_numpy(dtype=float)
     volume = df["volume"].to_numpy(dtype=float)
-    body_top = np.maximum(df["open"].to_numpy(dtype=float), close)
+    open_ = df["open"].to_numpy(dtype=float)
+    body_top = np.maximum(open_, close)
+    lead_px = low if lead_key == "low" else np.minimum(open_, close)  # D36: T8 lead-in price
+    brk_px = close if brk_basis == "close" else high  # D36 A: the price that has to cross the neckline
     start_px = df[start_price_key].to_numpy(dtype=float)
     atr_all = wilder_atr(df, int(cfg["atr_length"]))
     with np.errstate(divide="ignore", invalid="ignore"):  # D26: log prices (a non-positive price -> NaN/-inf)
@@ -271,10 +315,11 @@ def find_pattern_candidates(df: pd.DataFrame, timeframe: str,
         if not rs_pts:
             continue
 
-        # D23 T8: last bar before H (anywhere, not only within max_bars) whose low is below H.low
+        # D23 T8: last bar before H (anywhere, not only within max_bars) whose low (D36 template: body low
+        # min(open, close)) is below H.low
         prev_lower = None
         if lead_in is not None:
-            lower = np.flatnonzero(low[:hi] < h_low)
+            lower = np.flatnonzero(lead_px[:hi] < h_low)
             prev_lower = int(lower[-1]) if lower.size else None
         # N1 per LS / N2 per RS (D5); candidates without one drop out
         ls_keep, n1_pos = [], []
@@ -344,6 +389,10 @@ def find_pattern_candidates(df: pd.DataFrame, timeframe: str,
 
         atr_h = float(atr_all[hi])  # D21 R1: ATR at the head bar (bars <= H.index only)
         atr_ok = math.isfinite(atr_h) and atr_h > 0
+        h_rows: list[tuple[int, dict[str, Any]]] = []  # (RS.index, row) of this head, before D36 rule B
+        # D36 B: valid candidates of this head that crossed their neckline:
+        # (cross bar, RS.index, RS.low, neckline rank) with rank = (rising?, -touches) -- lower is better
+        h_crossed: list[tuple[int, int, float, tuple[int, int]]] = []
         for ia, ib in np.argwhere(ok):
             LS, N1 = ls_keep[ia], highs[n1_pos[ia]]
             RS, N2 = rs_keep[ib], highs[n2_pos[ib]]
@@ -449,7 +498,16 @@ def find_pattern_candidates(df: pd.DataFrame, timeframe: str,
             v3a_ok = None if max_close_viol is None else (close_viol is None or close_viol <= max_close_viol)
             if v3a_ok is False:
                 continue
-            swing_log, swing_leg = max_counter_swing(z_low, z_high, pidx)  # V1
+            # D36 neckline touches: bars LS..RS whose high is within +-touch_tol of the (extended) neckline
+            span = np.arange(LS.index, RS.index + 1)
+            touch = np.abs(high[span] / neck.price_at(span) - 1.0) <= touch_tol
+            touches = _count_touch_runs(touch, LS.index, N1.index, N2.index, RS.index)
+            # V1 on the LS..RS slice (same values; the touch mask covers exactly these bars); D36: legs are split at
+            # neckline touches (validation.leg_counter_swing)
+            off = LS.index
+            swing_log, swing_leg = max_counter_swing(
+                z_low[off:RS.index + 1], z_high[off:RS.index + 1], tuple(i - off for i in pidx),
+                touch if v1_skip_touch else None)  # V1
             swing = swing_log / hh_log if hh_log > 0 else math.nan
             v1_ok = check_passes(swing, max_swing, "max")
             if v1_ok is False:
@@ -470,7 +528,7 @@ def find_pattern_candidates(df: pd.DataFrame, timeframe: str,
             if start <= last:
                 idx = np.arange(start, n)
                 neck_vals = neck.price_at(idx)
-                okb = close[start:] > neck_vals * (1.0 + buffer)
+                okb = brk_px[start:] > neck_vals * (1.0 + buffer)  # D8 close / D36 A high
                 cross_hits = np.flatnonzero(okb)
                 if cross_hits.size:
                     cross_i = start + int(cross_hits[0])
@@ -483,6 +541,9 @@ def find_pattern_candidates(df: pd.DataFrame, timeframe: str,
                 stop = breakout_i if breakout_i is not None else n  # lows strictly before breakout
                 if np.any(low[start:stop] < RS.price):
                     continue  # D7: right shoulder broken before breakout (never true for a forming RS)
+            neck_rank = (0 if neck_change < 0 else 1, -touches)  # D36: falling first, then more touches
+            if cross_i is not None:  # D36 B: a valid candidate of this head crossed its neckline at cross_i
+                h_crossed.append((cross_i, RS.index, RS.price, neck_rank))
 
             breakout = breakout_i is not None
             # D9 status. D14: age runs from the first price cross and is not reset by a
@@ -559,7 +620,7 @@ def find_pattern_candidates(df: pd.DataFrame, timeframe: str,
             signal_i = max(known, breakout_i) if breakout else known
 
             ls_t, h_t, rs_t = _iso(LS.time), _iso(H.time), _iso(RS.time)
-            out.append({
+            h_rows.append((RS.index, {
                 "symbol": symbol,
                 "timeframe": timeframe,
                 "pattern_type": PATTERN_TYPE,
@@ -601,6 +662,7 @@ def find_pattern_candidates(df: pd.DataFrame, timeframe: str,
                 "neckline_max_violation": violation,
                 "neckline_change": neck_change,
                 "neckline_wick_of_head": wick_of_head,
+                "neckline_touches": touches,  # D36
                 # D26 shape validation (ratios in head heights; v3_* see config.py)
                 "v1_max_counter_swing": swing,
                 "v1_leg": swing_leg,
@@ -624,7 +686,8 @@ def find_pattern_candidates(df: pd.DataFrame, timeframe: str,
                 "distance_to_neckline": distance,
                 "breakout_detected": breakout,
                 "breakout_time": times[breakout_i] if breakout else None,
-                "breakout_price": float(close[breakout_i]) if breakout else None,
+                "breakout_price": float(brk_px[breakout_i]) if breakout else None,  # close, or high (D36)
+                "breakout_basis": brk_basis,  # D36: "high" = a wick crossing counts, "close" = D8
                 "volume_ratio": volume_ratio,
                 "average_volume_20": avg_vol,
                 "bars_since_rs": last - RS.index,
@@ -633,7 +696,19 @@ def find_pattern_candidates(df: pd.DataFrame, timeframe: str,
                 "signal_time": times[signal_i],
                 "as_of_time": times[last],
                 "pattern_id": f"{symbol}|{timeframe}|{ls_t}|{h_t}|{rs_t}",
-            })
+            }))
+        # D36 B breakout first (formula: config.py "D36" block): a candidate whose RS comes after another valid
+        # same-head candidate's neckline cross is that breakout's retest -- unless that breakout failed (a low
+        # below its RS before this RS) or this candidate's neckline ranks better (falling vs rising, then more
+        # touches: the user's TRUST example, where a steeper untouched line was crossed first)
+        if post_brk_reject and h_crossed:
+            for rs_idx, row in h_rows:
+                rank = (0 if row["neckline_change"] < 0 else 1, -row["neckline_touches"])
+                if not any(c < rs_idx and rank >= a_rank and float(np.min(low[c:rs_idx + 1])) >= a_rs_low
+                           for c, _a_rs, a_rs_low, a_rank in h_crossed):
+                    out.append(row)
+        else:
+            out.extend(row for _rs_idx, row in h_rows)
     return out
 
 
@@ -652,5 +727,6 @@ def detect_inverse_head_shoulders(df: pd.DataFrame, timeframe: str,
     D26: with any shape check enabled (template profile) only patterns passing V1, V2, V3a, V4 are returned.
     Returns de-duplicated (D11) results sorted by spec step 11 order.
     """
-    candidates = find_pattern_candidates(df, timeframe, config, symbol)
-    return sorted(deduplicate_patterns(candidates), key=result_sort_key)
+    cfg = merge_config(config)
+    candidates = find_pattern_candidates(df, timeframe, cfg, symbol)
+    return sorted(deduplicate_patterns(candidates, str(cfg["dedup_priority"])), key=result_sort_key)

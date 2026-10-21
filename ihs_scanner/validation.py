@@ -46,14 +46,62 @@ def counter_swing(z_low: np.ndarray, z_high: np.ndarray, s: int, e: int, leg: st
     return max(0.0, best)
 
 
-def max_counter_swing(z_low: np.ndarray, z_high: np.ndarray, idx: Sequence[int]) -> tuple[float, str]:
+def touch_peaks(touch: np.ndarray, z_high: np.ndarray, s: int, e: int) -> list[int]:
+    """D36: one bar per run of consecutive neckline-touch bars strictly inside s..e (the run's highest high)."""
+    peaks, i = [], s + 1
+    while i < e:
+        if not touch[i]:
+            i += 1
+            continue
+        j = i
+        while j + 1 < e and touch[j + 1]:
+            j += 1
+        peaks.append(i + int(np.argmax(z_high[i:j + 1])))
+        i = j + 1
+    return peaks
+
+
+def leg_counter_swing(z_low: np.ndarray, z_high: np.ndarray, s: int, e: int, leg: str,
+                      touches: Sequence[int] = ()) -> float:
+    """counter_swing of one leg, D36 neckline touches taken as extra neckline vertices: the leg is split at each
+    touch peak k (and at the lowest low m between a touch and its neighbour anchor), so the move up to the neckline
+    and back is a pair of sub-legs, not a counter swing; swings inside every sub-leg still count.
+    down leg s(high) -> e(low): s -> m1 down, m1 -> k1 up, k1 -> m2 down, ..., k_last -> e down;
+    up leg   s(low) -> e(high): s -> k1 up, k1 -> m1 down, m1 -> k2 up, ..., m_last -> e up.
+    No touches -> counter_swing(s, e)."""
+    segs: list[tuple[int, int, str]] = []
+    a = s
+    ks = [int(k) for k in touches if s < k < e]
+    for n, k in enumerate(ks):
+        if leg == "down":
+            if k - a >= 2:
+                m = a + 1 + int(np.argmin(z_low[a + 1:k]))
+                segs += [(a, m, "down"), (m, k, "up")]
+            a = k
+        else:
+            segs.append((a, k, "up"))
+            nxt = ks[n + 1] if n + 1 < len(ks) else e
+            if nxt - k >= 2:
+                m = k + 1 + int(np.argmin(z_low[k + 1:nxt]))
+                segs.append((k, m, "down"))
+                a = m
+            else:
+                a = k
+    segs.append((a, e, leg))
+    return max(counter_swing(z_low, z_high, x, y, kind) for x, y, kind in segs)
+
+
+def max_counter_swing(z_low: np.ndarray, z_high: np.ndarray, idx: Sequence[int],
+                      touch: np.ndarray | None = None) -> tuple[float, str]:
     """V1: the largest counter swing over the four legs LS->N1 (up), N1->H (down), H->N2 (up),
-    N2->RS (down). idx = (LS, N1, H, N2, RS) bar indices. Returns (value in log units, leg name)."""
+    N2->RS (down). idx = (LS, N1, H, N2, RS) bar indices. Returns (value in log units, leg name).
+    touch: D36 neckline-touch bars (bool, aligned with z_low / z_high) -> leg_counter_swing splits at them."""
     ls, n1, h, n2, rs = (int(i) for i in idx)
     legs = (("LS-N1", ls, n1, "up"), ("N1-H", n1, h, "down"), ("H-N2", h, n2, "up"), ("N2-RS", n2, rs, "down"))
     best, where = 0.0, legs[0][0]
     for name, s, e, kind in legs:
-        v = counter_swing(z_low, z_high, s, e, kind)
+        peaks = touch_peaks(touch, z_high, s, e) if touch is not None else ()
+        v = leg_counter_swing(z_low, z_high, s, e, kind, peaks)
         if v > best:
             best, where = v, name
     return best, where
@@ -155,7 +203,7 @@ CHECKS = (
     ("V3b", "v3_runaway", "max_runaway_of_head", "max",
      "還沒漲過頭：目前收盤高出頸線的幅度，小於頭高的這個比例（超過就標為過期）"),
     ("V3c", "v3_fallback", "max_fallback_of_head", "max",
-     "突破後沒有跌回頸線下太多：跌回頸線下的幅度，小於頭高的這個比例（只看已站上過頸線的）"),
+     "突破後沒有跌回頸線下太多：跌回頸線下的幅度，小於頭高的這個比例（只看已突破過頸線的）"),
     ("V4", "v4_template_distance", "max_template_distance", "max",
      "整體形狀與參考型態的距離（振幅 80%、時間 20%，越小越接近）"),
 )
@@ -173,7 +221,7 @@ def check_passes(value: float | None, limit: float | None, kind: str) -> bool | 
 
 def shape_checks(row: Mapping[str, Any], config: Mapping[str, Any]) -> list[dict[str, Any]]:
     """[{id, field, value, limit, kind, pass, enabled, text}] for one result, decided here so the front end only
-    draws it (D17). pass None = off, or (V3c) not applicable because the price never closed above the neckline."""
+    draws it (D17). pass None = off, or (V3c) not applicable because the price never crossed the neckline."""
     out = []
     for cid, field, key, kind, text in CHECKS:
         value, limit = row.get(field), config.get(key)

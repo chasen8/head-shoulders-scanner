@@ -192,31 +192,37 @@ def test_v3a_close_above_neckline_rejected_while_t4_passes():
     assert r["v3_close_violation"] == pytest.approx(0.008) and r["neckline_max_violation"] == pytest.approx(0.009)
 
 
+def _detect_close(df, **overrides):
+    return _detect(df, **{"breakout_price": "close", **overrides})
+
+
 def test_v3b_runaway_turns_stale():
     wp = [(0, 125), (20, 100), (40, 110), (60, 90), (80, 110), (100, 100), (110, 112), (116, 124)]
     df = make_df(wp)
-    r = _detect(df)[0]
+    # D36: pinned to the close breakout (a wick cross one bar earlier would make the age 7 > 6 -> "age")
+    r = _detect_close(df)[0]
     assert r["status"] == "stale" and r["stale_reason"] == "runaway" and r["shape_valid"] is True
     assert r["v3_runaway"] == pytest.approx((124.5 - 111) / 21)
     assert detect_inverse_head_shoulders(df, "4h", None, symbol="T") == []  # stale is not output by default
-    assert _detect(df, max_runaway_of_head=None)[0]["status"] == "confirmed"
+    assert _detect_close(df, max_runaway_of_head=None)[0]["status"] == "confirmed"
     v = r["v3_runaway"]
-    assert _detect(df, max_runaway_of_head=v)[0]["status"] == "confirmed"  # boundary: <= passes
-    assert _detect(df, max_runaway_of_head=v - 1e-9)[0]["status"] == "stale"
+    assert _detect_close(df, max_runaway_of_head=v)[0]["status"] == "confirmed"  # boundary: <= passes
+    assert _detect_close(df, max_runaway_of_head=v - 1e-9)[0]["status"] == "stale"
 
 
 def test_v3c_failed_breakout_turns_stale():
     wp = [(0, 125), (20, 100), (40, 110), (60, 90), (80, 110), (100, 100), (106, 113), (112, 104.5)]
     df = make_df(wp)
-    r = _detect(df)[0]
+    # D36: close breakout, see V3b
+    r = _detect_close(df)[0]
     assert r["breakout_detected"] and r["status"] == "stale" and r["stale_reason"] == "failed_breakout"
     assert r["v3_fallback"] == pytest.approx((111 - 105.0) / 21)
     v = r["v3_fallback"]
-    assert _detect(df, max_fallback_of_head=v)[0]["status"] == "confirmed"
-    assert _detect(df, max_fallback_of_head=v - 1e-9)[0]["status"] == "stale"
+    assert _detect_close(df, max_fallback_of_head=v)[0]["status"] == "confirmed"
+    assert _detect_close(df, max_fallback_of_head=v - 1e-9)[0]["status"] == "stale"
     # a throwback to just under the neckline stays confirmed
     small = make_df(wp[:-1] + [(112, 109.5)])
-    s = _detect(small)[0]
+    s = _detect_close(small)[0]
     assert s["status"] == "confirmed" and 0 < s["v3_fallback"] < 0.25
 
 

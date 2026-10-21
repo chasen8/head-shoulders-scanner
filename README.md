@@ -95,8 +95,9 @@ template 與 classic 不同的值全列在 `TEMPLATE_OVERRIDES`。下表「預�
 | `pivot_window_by_timeframe` | 4h 5、1d 5、1w 3 | swing 左右各 N 根，嚴格不等式；確認延遲 N 根 |
 | `shoulder_diff_limit_by_timeframe` | 4h 0.05、1d/1w 0.10（template：None＝關） | 左右肩低點價格差異率上限（規格第三步）；None＝關 |
 | `min_head_depth_by_timeframe` | 4h 0.03、1d/1w 0.05 | 最小頭部深度 |
-| `max_neckline_angle` / `angle_scale` | 30 / 100 | `atan(slope_pct_per_bar × scale)` 度數上限 |
-| `breakout_buffer_by_timeframe` | 4h 0.005、1d/1w 0.01 | 突破 = close > 頸線 × (1+buffer) |
+| `max_neckline_angle` / `angle_scale` | 30 / 100（template：4h 30、1d 30、1w 45） | `atan(slope_pct_per_bar × scale)` 度數上限；可分 timeframe（D36：週 K 一根 7 天，同樣 %/根 在時間上比日線陡 7 倍） |
+| `breakout_buffer_by_timeframe` | 4h 0.005、1d/1w 0.01 | 突破 = `breakout_price` 指定的價格 > 頸線 × (1+buffer) |
+| `breakout_price` | `close`（template：`high`） | D36：`high`＝RS 之後某根最高價（含影線）穿過頸線就算突破；`close`＝收盤（D8）。突破時間、第一次穿越（D14）、signal_time、狀態年齡、V3c、TP2 的 breakout_level 都用它；T4／V3a（型態成立前）不變 |
 | `enable_breakout_filter` | False | True＝breakout 模式 |
 | `enable_volume_filter` / `min_volume_ratio` | False / 1.2 | 突破量比門檻 |
 | `volume_avg_window` | 20 | 均量＝突破 K **之前** 20 根（不含自身） |
@@ -130,7 +131,13 @@ D23 template 規則（classic 全關；符號：`drop_L=(N1.high−LS.low)/N1.hi
 | `max_neckline_tilt_of_head` | 0.75 | T5 `\|N2.high−N1.high\|` ≤ 0.75×head_height（取代 R3） |
 | `enable_forming_rs` | True | T6 右肩形成中：N2 已確認後，N2 之後至今最低 low 若仍在 pivot 確認窗內（index > last−N），以 `status="forming"` 輸出 |
 | `require_n1_first_high_after_ls` | True | T7 N1 是 LS 之後第一個 swing high，且 LS 是 [LS, N1] 最低 low（LS＝衝向 N1 那段的起漲底） |
-| `head_lead_in` | 0.5 | T8 LS 前 ceil(0.5×(H−LS)) 根內不得有低於 H 的 low（資料不足不算失敗） |
+| `head_lead_in` | 0.5 | T8 LS 前 ceil(0.5×(H−LS)) 根內不得有低於 H 的價格（資料不足不算失敗） |
+| `head_lead_in_price` | `body`（classic：`low`） | D36：T8 比較用 `low` 或實體低點 `min(open, close)`（單根閃崩長下影不算「價格曾低於頭部」，例 LDO 1w 2025-10-06） |
+| `reject_post_breakout_rs` | True（classic：False） | D36 突破優先：同一個 H 的另一個有效候選 A（形狀規則＋D7 都通過，狀態不論）在 c 根第一次穿越頸線，RS 在 c 之後的候選 B 不成立（B 是 A 突破後的回測、N2 常是突破後高點）；例外：A 的突破失敗（c～RS_B 之間 low < A.RS）或 B 的頸線排名較好（下斜優於上斜，再比碰頸線次數多） |
+| `neckline_touch_tolerance` | 0.01 | D36 碰頸線：N1 與 RS 之間（N2 除外）high 落在頸線 ±1% 內的 K 線；連續的算一次、緊貼 N1/N2 的不算 → `neckline_touches` |
+| `v1_ignore_neckline_touches` | True（classic：False） | D36：V1 把碰頸線當成頸線上的額外頂點，在那裡切開該段（漲到頸線再回落不算反向波動；切開後各小段內的反向波動照算） |
+| `dedup_priority` | `breakout_touches_slope`（classic：`score`） | D36 去重順序：已突破 → 碰頸線次數多 → 下斜（N2<N1）優於水平／上斜 → 分數（D11） |
+| `supersede_by_higher_timeframe` | True（classic：False） | D36 跨週期（scanner／build_site 彙整階段）：同幣同來源，1w 有下斜頸線型態且 [LS, RS] 涵蓋 1d 型態的 H，而 1d 頸線上斜 → 1d 不輸出，記在 scan.json `superseded`（`SUPERSEDE_PAIRS` 目前只有 1w→1d） |
 | `max_neckline_rise` | 0.10 | T9 上升頸線上限 `N2.high/N1.high−1` |
 | `max_neckline_wick_of_head` | 0.32 | T10 N1/N2 不可是孤立長上影：(high − ±N 根內實體最高) / head_height |
 | `score_method` | `template` | `spec`（規格第九步）或 `template`（見下） |
@@ -154,7 +161,7 @@ V3b、V3c 不判形狀，只把狀態改成 `stale`（`stale_reason`）：
 | `min_skeleton_r2` | None | V2 輔助：同一折線的 R²＝1−SS_res/SS_tot，只顯示；範例只有 −0.20～0.37，不能當過濾 |
 | `max_neckline_close_violation` | 0.005 | V3a N1 與 RS 之間（N2 除外）每根 `close/neck − 1` 的最大值上限（T4 管 high 1%，V3a 管收盤 0.5%） |
 | `max_runaway_of_head` | 0.5 | V3b 追高上限（SignalSync MAX_RUNAWAY 概念）：`(close − neck(now)) / head_height` 超過 → `stale`（`runaway`） |
-| `max_fallback_of_head` | 0.25 | V3c 突破失敗：曾收盤站上頸線（`first_cross_time`）後 `(neck(now) − close) / head_height` 超過 → `stale`（`failed_breakout`）；小幅回測頸線不算 |
+| `max_fallback_of_head` | 0.25 | V3c 突破失敗：曾穿越頸線（`first_cross_time`，依 `breakout_price`）後 `(neck(now) − close) / head_height` 超過 → `stale`（`failed_breakout`）；小幅回測頸線不算 |
 | `max_template_distance` | 0.25 | V4 範例模板距離（Fu et al. 2007 振幅／時間距離）：`y'_k=(z_k−z_H)/(z_neck(H)−z_H)`、`x'_k=(t_k−t_LS)/(t_RS−t_LS)`，`D_j = 0.8·AD_j + 0.2·TD_j`，`D = min_j D_j`；範例 leave-one-out 0.096–0.191 |
 | `template_amplitude_weight` | 0.8 | V4 的 w |
 | `template_exclude` | `[]` | V4 不比對的範例名稱（leave-one-out 測試用） |
@@ -173,13 +180,14 @@ V3b、V3c 不判形狀，只把狀態改成 `stale`（`stale_reason`）：
   任何 low 跌破 H 即作廢）／`watchlist`（未突破）／`confirmed`（已突破且夠新）／`stale`
 - D23 欄位（比例皆為小數，0.244＝24.4%）：`drop_left_pct`、`drop_right_pct`、`shoulder_drop_diff`、`head_rise_pct`、
   `head_prominence`、`neckline_tilt_of_head`、`neckline_max_violation`、`neckline_change`、`neckline_wick_of_head`、`head_height`
+- D36：`neckline_touches`（N1、N2 之外碰頸線次數）、`breakout_basis`（`high`／`close`）；`breakout_price` 是突破那根被拿來比的價格（`high` 模式為最高價）
 - 目標價（只是顯示資訊）：`breakout_level`＝已突破時突破那根的頸線價，否則目前這根的頸線價（預估）；
   `tp1 = H.low × (neckline_mid / H.low) ^ 1.414`（D28：頭部到頸線中點的對數斐波那契 1.414，`tp1_fib_level`／`tp1_fib_log` 可調；`neckline_mid`＝N1、N2 時間中點的頸線價，不隨突破移動）；`tp2 = breakout_level × (1 + head_rise_pct)`（使用者圖上算法）；
   `invalidation_price = H.low`
 - `shoulder_score`、`head_depth_score`、`neckline_score`、`breakout_score`：四項分數；`base_score`＝四項總和（D26 前的 pattern_score）
 - `stale_reason`：`age`（D9 時間窗）／`runaway`（V3b）／`failed_breakout`（V3c）；非 stale 為空
 - D26 形狀驗證（比例的單位是「頭高」）：`v1_max_counter_swing`、`v1_leg`（最大反向波動所在段，如 `N1-H`）、`v2_mad`、`v2_r2`、
-  `v3_close_violation`（小數，0.005＝高出頸線 0.5%）、`v3_runaway`（負＝在頸線下）、`v3_fallback`（未曾站上頸線為空）、
+  `v3_close_violation`（小數，0.005＝高出頸線 0.5%）、`v3_runaway`（負＝在頸線下）、`v3_fallback`（未曾穿越頸線為空）、
   `v4_template_distance`、`v4_nearest_template`、`shape_valid`（classic 沒有啟用任何檢查時為空）、`shape_score`
 - `RS_confirm_time`：右肩 pivot 被確認的 K 線時間（= RS_time + N 根）；`forming` 為空
 - D21 規則數值（規則關掉時也照算）：`atr_at_head`、`head_atr_multiple`（(min(LS,RS) − H)/ATR）、
@@ -203,13 +211,15 @@ ihs_scanner/  config.py  swings.py  neckline.py  scoring.py  detector.py  scanne
 scan.py       CLI
 scripts/fetch_golden_fixtures.py   下載黃金範例 K 線到 tests/fixtures/（公開端點：幣安現貨／USDT-M、OKX）
 scripts/build_templates.py         從黃金範例產生 ihs_scanner/templates.py（V4 模板）；--check 只比對
-tests/        pytest（不碰網路；截斷／不 repaint 測試在 test_truncation.py、test_template.py、test_golden_examples.py）
+tests/        pytest（不碰網路；截斷／不 repaint 測試在 test_truncation.py、test_template.py、test_golden_examples.py、test_golden_d36.py）
 ```
 
 黃金測試（D23）：`tests/golden_examples.py` 是使用者 5 個範例（時間已換成 UTC），`tests/test_golden_examples.py`
 把 K 線截到截圖當下最後一根已收盤 K 線，用預設 template 偵測並核對點位；`pytest -s tests/test_golden_examples.py`
 會印出偵測點位、drop／head_rise、TP 與使用者標註對照。`test_golden_shape_validation_leave_one_out`（D26）
 在排除該範例自己的模板後再偵測，要求 V1–V4 全過，`-s` 會印出每條驗證的值、門檻與餘裕。
+D36 三個案例（`D36_CASES`：BTCUSDT 1d 突破優先、ATUSDT 4h 影線突破、LDOUSDT 1w／1d 下斜週線頸線）在
+`tests/test_golden_d36.py`（含截斷／不 repaint）；不加進 `GOLDEN_EXAMPLES`，因為那 5 個範例同時是 V4 模板。
 
 ## 資料來源（D22）
 

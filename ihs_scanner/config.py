@@ -25,7 +25,7 @@ CLASSIC_CONFIG: dict[str, Any] = {
     "pivot_window_by_timeframe": {"4h": 5, "1d": 5, "1w": 3},
     "shoulder_diff_limit_by_timeframe": {"4h": 0.05, "1d": 0.10, "1w": 0.10},
     "min_head_depth_by_timeframe": {"4h": 0.03, "1d": 0.05, "1w": 0.05},
-    "max_neckline_angle": 30.0,
+    "max_neckline_angle": 30.0,  # degrees; scalar or per-timeframe dict (D36 template: 1w 45)
     "angle_scale": 100.0,
     "breakout_buffer_by_timeframe": {"4h": 0.005, "1d": 0.01, "1w": 0.01},
     "enable_breakout_filter": False,  # False = candidate mode, True = breakout mode
@@ -205,6 +205,42 @@ CLASSIC_CONFIG: dict[str, Any] = {
     # pattern_score = (1 - weight) * base_score + weight * shape_score; base_score = the D23/spec total
     # (= shoulder + head_depth + neckline + breakout component scores).
     "shape_score_weight": 0.0,
+    # --- D36 (user's TradingView cases BTCUSDT 1d, ATUSDT 4h, LDOUSDT 1w; tests/test_golden_d36.py) ---
+    # A. breakout price: "close" (D8) = a close above neck(i) * (1 + buffer); "high" = the bar's high (its wick)
+    #   crossing is enough. Used by every breakout-based value: breakout_time / first_cross_time (D14),
+    #   signal_time (D13), status age, V3c's "has crossed", breakout_level (TP2). The pre-pattern checks T4 (highs
+    #   <= neck * 1.01) and V3a (closes) between N1 and RS are unchanged.
+    "breakout_price": "close",
+    # B. breakout first: candidate B is dropped when another valid candidate A with the same head H (all shape
+    #   rules + D7 passed; its status is not considered) first crossed its neckline at bar c < RS_B -- B's
+    #   "right shoulder" is then the retest after A's breakout and its N2 typically the post-breakout high
+    #   (BTCUSDT 1d 2026-09/10, LDOUSDT 1d, CRVUSDT 1d) -- except when
+    #     (1) A's breakout failed: min(low[c .. RS_B]) < A.RS.low (the user's PENDLE example), or
+    #     (2) B's neckline ranks better: rank = (0 if N2 < N1 else 1, -neckline_touches), B's rank < A's
+    #         (falling beats rising, then more touches; the user's TRUST example: a steeper, untouched line was
+    #         crossed first while the user's line through the 07-27 touch held).
+    #   No look-ahead: everything is read from bars <= RS_B <= the last bar.
+    "reject_post_breakout_rs": False,
+    # C. neckline touches: a bar strictly between N1 and RS (N2 excluded) whose high is within +-tol of the
+    #   neckline is a touch bar; neckline_touches = number of runs of consecutive touch bars, not counting runs
+    #   that start right after N1 or are adjacent to N2 (those are the neckline points themselves).
+    #   With v1_ignore_neckline_touches, V1 treats every touch (highest bar of a run of touch bars, anywhere in
+    #   LS..RS) as an extra neckline vertex: each leg is split there (validation.leg_counter_swing), so the rally
+    #   up to the neckline and the drop back are sub-legs, not a counter swing -- the neckline holding is not an
+    #   extra turning point. Counter swings inside every sub-leg still count against the same V1 limit.
+    "neckline_touch_tolerance": 0.01,
+    "v1_ignore_neckline_touches": False,
+    # C. de-duplication priority among overlapping patterns (D11): "score" = highest score (D11);
+    #   "breakout_touches_slope" = breakout_detected first, then more neckline_touches, then a falling neckline
+    #   (N2 < N1) before a flat / rising one, then the score.
+    "dedup_priority": "score",
+    # C. cross-timeframe (scanner / build_site, never inside the detector): a pattern on the smaller timeframe of
+    #   a pair in SUPERSEDE_PAIRS (scanner.py) with a rising neckline (N2 > N1) is removed when the same symbol
+    #   has a falling-neckline pattern on the larger timeframe whose [LS, RS] contains its H.
+    "supersede_by_higher_timeframe": False,
+    # T8 lead-in price: "low" (D23) or "body" = min(open, close): a single flash-crash wick (LDOUSDT 1w
+    #   2025-10-06, low 0.2314 with open 1.16 / close 0.92) is not "price was below the head".
+    "head_lead_in_price": "low",
 }
 
 # D23 template profile: calibrated on the five golden examples (per-example values:
@@ -252,6 +288,16 @@ TEMPLATE_OVERRIDES: dict[str, Any] = {
     "max_runaway_of_head": 0.5,  # V3b: SignalSync uses 5% of price; here half the measured move to TP1
     "max_fallback_of_head": 0.25,  # V3c: judgment value (no literature number)
     "max_template_distance": 0.25,  # V4: research report start value; examples' LOO 0.096-0.191
+    # D36 (formulas: CLASSIC_CONFIG "D36" block). The spec's +-30 deg angle is in %/bar, so a weekly bar
+    # (7 days) is 7x stricter in time terms than a daily one; LDOUSDT 1w (neckline -25.6% over 37 weeks,
+    # -34.7 deg) is the user's preferred neckline -> 1w 45 deg (1%/bar). 4h / 1d unchanged.
+    "max_neckline_angle": {"4h": 30.0, "1d": 30.0, "1w": 45.0},
+    "breakout_price": "high",
+    "reject_post_breakout_rs": True,
+    "v1_ignore_neckline_touches": True,
+    "dedup_priority": "breakout_touches_slope",
+    "supersede_by_higher_timeframe": True,
+    "head_lead_in_price": "body",
 }
 
 

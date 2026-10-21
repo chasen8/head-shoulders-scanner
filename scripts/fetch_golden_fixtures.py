@@ -1,4 +1,4 @@
-"""Download the D22 golden-example K lines into tests/fixtures/<name>.csv (public endpoints, no key).
+"""Download the D22 golden-example and D36 case K lines into tests/fixtures/<name>.csv (public, no key).
 
     /c/trading-data/ihs-scanner-v2/venv/Scripts/python.exe scripts/fetch_golden_fixtures.py [--force]
 
@@ -24,10 +24,13 @@ import requests
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from tests.golden_examples import BARS_AFTER, BARS_BEFORE, GOLDEN_EXAMPLES  # noqa: E402
+from tests.golden_examples import BARS_AFTER, BARS_BEFORE, D36_CASES, GOLDEN_EXAMPLES  # noqa: E402
 
 FIXTURE_DIR = ROOT / "tests" / "fixtures"
 BAR_MS = {"4h": 4 * 3600 * 1000, "1d": 86400 * 1000, "1w": 7 * 86400 * 1000}
+# D36: bar open times are multiples of the bar length from this offset; Binance / OKX weekly bars open on
+# Monday 00:00 UTC and 1970-01-01 was a Thursday -> the first Monday is 4 days later
+BAR_OFFSET_MS = {"4h": 0, "1d": 0, "1w": 4 * 86400 * 1000}
 TIMEOUT = 20
 
 
@@ -86,7 +89,8 @@ def fetch_example(name: str, spec: dict) -> pd.DataFrame:
     bar = BAR_MS[tf]
     shot = int(pd.Timestamp(spec["screenshot_utc"]).value // 1_000_000)
     now = int(time.time() * 1000)
-    last_closed_open = (shot // bar) * bar - bar  # weekly bars are not used here; 4h/1d align to epoch
+    off = BAR_OFFSET_MS[tf]
+    last_closed_open = ((shot - off) // bar) * bar + off - bar
     start = last_closed_open - (BARS_BEFORE - 1) * bar
     end = min(last_closed_open + BARS_AFTER * bar, now - bar)
     src = spec["source"]
@@ -110,7 +114,7 @@ def main(argv=None) -> int:
     ap.add_argument("--force", action="store_true", help="re-download existing fixtures")
     args = ap.parse_args(argv)
     FIXTURE_DIR.mkdir(parents=True, exist_ok=True)
-    for name, spec in GOLDEN_EXAMPLES.items():
+    for name, spec in {**GOLDEN_EXAMPLES, **D36_CASES}.items():
         path = FIXTURE_DIR / f"{name}.csv"
         if path.exists() and not args.force:
             print(f"[skip] {path.name} exists")
