@@ -23,6 +23,14 @@ Taiwan stocks (D29): the TW scan (site/data/tw/scan.json, `"market": "tw"`) uses
 (state_tw.json on the scan-state branch) and the same webhook; titles read "台股 2330 台積電 日線 右肩形成中",
 prices are shown as NT$ with two decimals, and the first run is again a single summary.
 
+Charts (D32): every event embed carries a PNG of the detected pattern (ihs_scanner/chart_image.py, drawn from
+the bars file named by the row's `chart_file`, next to scan.json), uploaded as multipart/form-data
+(payload_json + files[n], embed.image.url = attachment://<ascii name>). A chart that cannot be made (bars file
+missing, render error) only drops the picture, never the notification. Every event is listed, <= 10 embeds per
+message, as many messages as needed (no "N more not listed" summary); NOTIFY_MAX_EVENTS (default 200, 0 = no limit)
+is only a safety net: events beyond it are not sent AND not recorded, so the next run picks them up.
+--test-message sends one message with the best-scoring pattern and touches no state.
+
 Example:
     python notify_discord.py --dry-run
     python notify_discord.py --scan site/data/tw/scan.json --state state_tw.json --dry-run
@@ -31,11 +39,14 @@ Example:
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import math
 import os
+import re
 import sys
 import time
+from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Callable, Mapping
@@ -50,11 +61,16 @@ DEFAULT_SCAN = ROOT / "site" / "data" / "scan.json"
 DEFAULT_STATE = ROOT / "state.json"
 ENV_WEBHOOK = "DISCORD_WEBHOOK_URL"
 ENV_MIN_SCORE = "NOTIFY_MIN_SCORE"
+ENV_MAX_EVENTS = "NOTIFY_MAX_EVENTS"
+ENV_TEST_MESSAGE = "TEST_MESSAGE"
 DEFAULT_MIN_SCORE = 50.0  # template forming patterns score ~50-70 (the user's five examples: 53-71)
 DEFAULT_STATUSES = "forming,watchlist,confirmed"
 STATE_VERSION = 2
 MAX_EMBEDS_PER_MESSAGE = 10
-MAX_DETAILED = 20
+DEFAULT_MAX_EVENTS = 200  # safety net only (D32); 0 = unlimited
+MAX_ATTACH_BYTES = 7_500_000  # per message; Discord's limit is 8 MB (webhook default)
+DEFAULT_PREVIEW_DIR = ROOT / "output" / "notify-preview"
+TEST_TEXT = "測試：圖片通知（只送最高分 1 筆，不影響通知狀態）"
 PRUNE_DAYS = 14
 MAX_RETRIES = 5
 MAX_RETRY_WAIT = 60.0
@@ -269,22 +285,59 @@ def build_embed(event: Mapping[str, Any]) -> dict[str, Any]:
     return embed
 
 
-def build_messages(events: list[Mapping[str, Any]], *, max_detailed: int = MAX_DETAILED,
-                   extra_summary: str | None = None, market: str = "crypto") -> list[dict[str, Any]]:
-    """Webhook payloads: <= 10 embeds each; beyond max_detailed events only a summary line."""
-    detailed = events[:max_detailed]
-    rest = len(events) - len(detailed)
-    embeds = [build_embed(e) for e in detailed]
-    messages = [{"embeds": embeds[i:i + MAX_EMBEDS_PER_MESSAGE]}
-                for i in range(0, len(embeds), MAX_EMBEDS_PER_MESSAGE)]
-    notes = []
-    if rest > 0:
-        notes.append(f"另有 {rest} 個符合條件的型態未列出，請到網站／scan-state 分支查看。")
+@dataclass
+class Message:
+    """One webhook call: payload (embeds) + PNG attachments (name, bytes) + the event keys it covers."""
+    payload: dict[str, Any]
+    files: list[tuple[str, bytes]] = field(default_factory=list)
+    keys: list[str] = field(default_factory=list)
+
+
+def attachment_name(row: Mapping[str, Any], key: str) -> str:
+    """ASCII-only file name, e.g. starusdt_4h_1a2b3c4d.png (Discord needs it to match attachment://<name>)."""
+    sym = re.sub(r"[^a-z0-9]+", "", str(row.get("symbol", "")).lower()) or "chart"
+    tf = re.sub(r"[^a-z0-9]+", "", str(row.get("timeframe", "")).lower())
+    return f"{sym[:24]}_{tf}_{hashlib.sha1(key.encode('utf-8')).hexdigest()[:8]}.png"
+
+
+def make_chart_png(row: Mapping[str, Any], scan_dir: Path | None) -> bytes | None:
+    """PNG for one result, or None (logged, never raised): the notification goes out without the picture."""
+    label = f"{row.get('symbol')} {row.get('timeframe')}"
+    try:
+        rel = row.get("chart_file")
+        if scan_dir is None or not rel:
+            raise FileNotFoundError("no chart_file")
+        doc = json.loads((scan_dir / rel).read_text(encoding="utf-8"))
+        from ihs_scanner.chart_image import render_chart  # lazy: matplotlib problems must not stop notifying
+        return render_chart(row, doc)
+    except Exception as exc:  # noqa: BLE001
+        print(f"[notify] no chart for {label}: {type(exc).__name__}: {str(exc)[:120]}", file=sys.stderr)
+        return None
+
+
+def build_messages(events: list[Mapping[str, Any]], *, extra_summary: str | None = None, market: str = "crypto",
+                   image_for: Callable[[Mapping[str, Any]], bytes | None] | None = None) -> list[Message]:
+    """Every event gets its own embed (no cap, D32), <= 10 per message; each embed carries its chart as
+    attachment://<name> when image_for(row) returns PNG bytes (<= MAX_ATTACH_BYTES per message)."""
+    messages: list[Message] = []
+    for i in range(0, len(events), MAX_EMBEDS_PER_MESSAGE):
+        msg = Message(payload={"embeds": []})
+        total = 0
+        for e in events[i:i + MAX_EMBEDS_PER_MESSAGE]:
+            key = e.get("key") or notify_key(e["row"])
+            embed = build_embed(e)
+            png = image_for(e["row"]) if image_for else None
+            if png and total + len(png) <= MAX_ATTACH_BYTES:
+                name = attachment_name(e["row"], key)
+                embed["image"] = {"url": f"attachment://{name}"}
+                msg.files.append((name, png))
+                total += len(png)
+            msg.payload["embeds"].append(embed)
+            msg.keys.append(key)
+        messages.append(msg)
     if extra_summary:
-        notes.append(extra_summary)
-    if notes:
         title = f"{TW_PREFIX}摘要" if market == "tw" else "摘要"
-        messages.append({"embeds": [{"title": title, "description": "\n".join(notes), "color": COLOR_SUMMARY}]})
+        messages.append(Message({"embeds": [{"title": title, "description": extra_summary, "color": COLOR_SUMMARY}]}))
     return messages
 
 
@@ -313,19 +366,27 @@ def first_run_text(rows: Mapping[str, Mapping[str, Any]], min_score: float, mark
             f"，其中分數 ≥ {min_score:g} 的 {above} 個。之後只通知新出現的型態與突破。")
 
 
-def post_message(url: str, payload: Mapping[str, Any], *, sleep: Callable[[float], None] = time.sleep,
-                 max_retries: int = MAX_RETRIES) -> None:
-    """POST one webhook payload. 429 waits retry_after; 5xx / network errors back off; bounded retries."""
+def post_message(url: str, payload: Mapping[str, Any], *, files: list[tuple[str, bytes]] | None = None,
+                 sleep: Callable[[float], None] = time.sleep, max_retries: int = MAX_RETRIES) -> None:
+    """POST one webhook payload (JSON, or multipart payload_json + files[n] when `files` is given).
+    429 waits retry_after; 5xx / network errors back off; bounded retries. Errors never contain the URL."""
     last = "unknown error"
     for attempt in range(max_retries + 1):
         try:
-            resp = requests.post(url, json=payload, timeout=20)
+            if files:
+                resp = requests.post(
+                    url, data={"payload_json": json.dumps(payload, ensure_ascii=False)},
+                    files=[(f"files[{i}]", (name, data, "image/png")) for i, (name, data) in enumerate(files)],
+                    timeout=60)
+            else:
+                resp = requests.post(url, json=payload, timeout=20)
         except requests.RequestException as exc:  # message may embed the URL: keep only the type
             last = type(exc).__name__
             sleep(min(2.0 ** attempt, MAX_RETRY_WAIT))
             continue
         code = resp.status_code
         if 200 <= code < 300:
+            print(f"[notify] Discord HTTP {code}" + (f" ({len(files)} attachment(s))" if files else ""))
             return
         if code == 429:
             wait = 1.0
@@ -347,16 +408,82 @@ def post_message(url: str, payload: Mapping[str, Any], *, sleep: Callable[[float
     raise NotifyError(f"gave up after {max_retries + 1} attempts ({last})")
 
 
+def send_message(url: str, msg: Message, *, sleep: Callable[[float], None], pause: float) -> None:
+    """Send with its pictures; if Discord rejects that (4xx, e.g. a bad attachment) retry once as plain embeds so
+    one bad picture can never block the patterns of this message forever."""
+    try:
+        post_message(url, msg.payload, files=msg.files or None, sleep=sleep)
+        return
+    except NotifyError as exc:
+        if not msg.files or "gave up" in str(exc):
+            raise
+        print(f"[notify] {exc}; retrying this message without images", file=sys.stderr)
+    plain = dict(msg.payload)
+    plain["embeds"] = [{k: v for k, v in e.items() if k != "image"} for e in msg.payload["embeds"]]
+    sleep(pause)
+    post_message(url, plain, sleep=sleep)
+
+
+def save_previews(messages: list[Message], preview_dir: Path) -> None:
+    """Dry-run: write the PNGs that would be attached and list every message (titles + file names, no URL)."""
+    preview_dir.mkdir(parents=True, exist_ok=True)
+    for i, m in enumerate(messages, 1):
+        print(f"--- message {i}/{len(messages)} ({len(m.payload['embeds'])} embed(s), {len(m.files)} attachment(s)) ---")
+        names = {name for name, _ in m.files}
+        for e in m.payload["embeds"]:
+            img = (e.get("image") or {}).get("url", "").removeprefix("attachment://")
+            print(f"  {e.get('title')}" + (f"  [{img}]" if img in names else "  [no image]"))
+        for name, data in m.files:
+            (preview_dir / name).write_bytes(data)
+    n = sum(len(m.files) for m in messages)
+    print(f"[notify] preview images: {n} written to {preview_dir}")
+
+
+def run_test_message(rows: Mapping[str, Mapping[str, Any]], market: str, *, dry_run: bool, webhook: str | None,
+                     image_for: Callable[[Mapping[str, Any]], bytes | None], preview_dir: Path) -> int:
+    """--test-message: one message with the best-scoring pattern, chart attached; reads and writes no state."""
+    if not rows:
+        print("[notify] test message: scan has no patterns", file=sys.stderr)
+        return 1
+    key, row = max(rows.items(), key=lambda kv: float(kv[1].get("pattern_score") or 0))
+    event = {"kind": "new", "key": key, "row": row, "previous": None}
+    msg = build_messages([event], market=market, image_for=image_for)[0]
+    msg.payload["content"] = TEST_TEXT
+    print(f"[notify] test message: {embed_title(row)} (score {float(row.get('pattern_score') or 0):.1f}); "
+          f"state untouched")
+    if dry_run:
+        save_previews([msg], preview_dir)
+        print("[notify] dry-run: nothing sent")
+        return 0
+    if not webhook:
+        print("[notify] test message: webhook 未設定", file=sys.stderr)
+        return 1
+    try:
+        send_message(webhook, msg, sleep=time.sleep, pause=PAUSE_BETWEEN_MESSAGES)
+    except NotifyError as exc:
+        print(f"[notify] send failed: {exc}", file=sys.stderr)
+        return 1
+    print(f"[notify] test message sent ({len(msg.files)} attachment(s))")
+    return 0
+
+
 def run(scan_path: Path, state_path: Path, *, min_score: float, statuses: set[str], notify_all: bool,
-        dry_run: bool, prune_days: int = PRUNE_DAYS, max_detailed: int = MAX_DETAILED,
+        dry_run: bool, prune_days: int = PRUNE_DAYS, max_events: int = DEFAULT_MAX_EVENTS,
         webhook: str | None = None, now: datetime | None = None,
-        sleep: Callable[[float], None] = time.sleep, pause: float = PAUSE_BETWEEN_MESSAGES) -> int:
+        sleep: Callable[[float], None] = time.sleep, pause: float = PAUSE_BETWEEN_MESSAGES,
+        test_message: bool = False, preview_dir: Path | None = None,
+        image_for: Callable[[Mapping[str, Any]], bytes | None] | None = None) -> int:
     now = now or datetime.now(timezone.utc)
     now_text = _utc_text(now)
     scan = json.loads(scan_path.read_text(encoding="utf-8"))
     results = scan.get("results", [])
     market = scan_market(scan)
     rows = unique_rows(results)
+    if image_for is None:
+        image_for = lambda r: make_chart_png(r, scan_path.parent)  # noqa: E731 - bars files sit next to scan.json
+    if test_message:
+        return run_test_message(rows, market, dry_run=dry_run, webhook=webhook, image_for=image_for,
+                                preview_dir=preview_dir or DEFAULT_PREVIEW_DIR)
     state = load_state(state_path)
     first_run = state is None
     prev = dict(state or {})
@@ -368,10 +495,15 @@ def run(scan_path: Path, state_path: Path, *, min_score: float, statuses: set[st
     baseline = first_run and not notify_all
     if baseline:
         events: list[dict[str, Any]] = []
-        messages = [summary_message(first_run_text(rows, min_score, market), market)]
+        messages = [Message(summary_message(first_run_text(rows, min_score, market), market))]
     else:
         events = find_events(results, None if first_run else prev, min_score=min_score, statuses=statuses)
-        messages = build_messages(events, max_detailed=max_detailed, market=market)
+        if max_events > 0 and len(events) > max_events:
+            print(f"[notify] {len(events)} events > {ENV_MAX_EVENTS}={max_events}: sending the best {max_events}; "
+                  f"the rest stay un-notified and go out next run")
+            events = events[:max_events]
+        messages = build_messages(events, market=market,
+                                  image_for=image_for if (webhook or dry_run) else None)
     kinds: dict[str, int] = {}
     for e in events:
         label = "confirmed" if e["row"]["status"] == "confirmed" else e["row"]["status"]
@@ -380,9 +512,7 @@ def run(scan_path: Path, state_path: Path, *, min_score: float, statuses: set[st
           f"{len(messages)} message(s)")
 
     if dry_run:
-        for i, m in enumerate(messages, 1):
-            print(f"--- message {i}/{len(messages)} ---")
-            print(json.dumps(m, ensure_ascii=False, indent=1))
+        save_previews(messages, preview_dir or DEFAULT_PREVIEW_DIR)
         print("[notify] dry-run: nothing sent, state not written")
         return 0
 
@@ -393,21 +523,17 @@ def run(scan_path: Path, state_path: Path, *, min_score: float, statuses: set[st
         print("未設定 webhook，略過通知")
         notified = {e["key"] for e in events}  # D20: not re-sent once a webhook is configured
     else:
-        detailed_keys = [e["key"] for e in events[:max_detailed]]
-        n_detail_msgs = (len(detailed_keys) + MAX_EMBEDS_PER_MESSAGE - 1) // MAX_EMBEDS_PER_MESSAGE
         for i, m in enumerate(messages):
             try:
                 if i:
                     sleep(pause)
-                post_message(webhook, m, sleep=sleep)
+                send_message(webhook, m, sleep=sleep, pause=pause)
             except NotifyError as exc:
                 sent_ok = False
                 print(f"[notify] send failed: {exc}", file=sys.stderr)
                 break
-            if i < n_detail_msgs:
-                notified.update(detailed_keys[i * MAX_EMBEDS_PER_MESSAGE:(i + 1) * MAX_EMBEDS_PER_MESSAGE])
+            notified.update(m.keys)
         if sent_ok:
-            notified = {e["key"] for e in events}  # incl. the ones only counted in the summary
             print(f"[notify] sent {len(messages)} message(s)")
 
     new_state: dict[str, Any] = {}
@@ -449,7 +575,16 @@ def parse_args(argv=None) -> argparse.Namespace:
     p.add_argument("--dry-run", action="store_true", help="print what would be sent; send nothing, write no state")
     p.add_argument("--prune-days", type=int, default=PRUNE_DAYS,
                    help="drop state entries not seen for this many days")
-    p.add_argument("--max-detailed", type=int, default=MAX_DETAILED, help="max detailed embeds; rest summarised")
+    env_max = os.environ.get(ENV_MAX_EVENTS, "").strip()
+    p.add_argument("--max-events", type=int, default=int(env_max) if env_max else DEFAULT_MAX_EVENTS,
+                   help=f"safety cap on events per run (default {DEFAULT_MAX_EVENTS}, 0 = unlimited; env "
+                        f"{ENV_MAX_EVENTS}); events over it are neither sent nor recorded")
+    p.add_argument("--test-message", action="store_true",
+                   default=os.environ.get(ENV_TEST_MESSAGE, "").strip().lower() == "true",
+                   help="send ONE test message (best-scoring pattern + chart), do not touch state "
+                        f"(env {ENV_TEST_MESSAGE}=true)")
+    p.add_argument("--preview-dir", default=str(DEFAULT_PREVIEW_DIR),
+                   help="--dry-run: where the would-be attachments are written (default %(default)s)")
     return p.parse_args(argv)
 
 
@@ -467,7 +602,8 @@ def main(argv=None) -> int:
     statuses = {s.strip() for s in args.statuses.split(",") if s.strip()}
     webhook = os.environ.get(ENV_WEBHOOK, "").strip() or None
     return run(scan, Path(args.state), min_score=args.min_score, statuses=statuses, notify_all=args.notify_all,
-               dry_run=args.dry_run, prune_days=args.prune_days, max_detailed=args.max_detailed, webhook=webhook)
+               dry_run=args.dry_run, prune_days=args.prune_days, max_events=args.max_events, webhook=webhook,
+               test_message=args.test_message, preview_dir=Path(args.preview_dir))
 
 
 if __name__ == "__main__":

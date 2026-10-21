@@ -308,8 +308,21 @@ scan-state：加密貨幣＝`state.json`＋`site/data/scan.json`＋`site/data/ba
 （形成中的 RS 會隨新低移動，用含 RS 的 pattern_id 會一直重發）；state（`version: 2`）存每個鍵的最後狀態、
 最後通知時間與 `notified_status`（最後通知過的狀態）。低於門檻時只記錄不通知，之後分數過門檻會補發一次。
 首次執行（沒有 state，或讀到舊版／沒有 version 的 state）只發一則「開始追蹤，目前 N 個型態（各狀態筆數）」摘要並建立基準
-（`--notify-all` 才逐筆發）。每則訊息最多 10 個 embed，最多詳列 20 筆，其餘只在摘要裡報筆數；遇 429 依 `retry_after` 等待，重試有上限；
-送失敗的下次重試。embed：標題「GRAMUSDT 日線 右肩形成中／已突破」、交易所與市場、分數、目前價、頸線價（距頸線%）、TP1、TP2
+（`--notify-all` 才逐筆發）。所有事件**逐筆列出**（D32，不再有「另有 N 個未列出」摘要）：每則訊息最多 10 個 embed，超過就分多則依序送出（訊息間隔 ≥ 1 秒）；
+遇 429 依 `retry_after` 等待，重試有上限；送失敗的下次重試。保險上限：環境變數 `NOTIFY_MAX_EVENTS`（`--max-events`，預設 200，0 = 不限），
+超過的事件既不送也不記入 state，下一次執行接著送。
+
+**圖片（D32）**：每個 embed 附一張該型態的 PNG（1200×675，約 60–80 KB；`ihs_scanner/chart_image.py`，matplotlib Agg），
+只畫 bars 檔（`site/data/bars/`、`site/data/tw/bars/`，用結果的 `chart_file` 找）裡已有的值，不重算偵測：白底黑白 K 線、
+LS/N1/H/N2/RS 藍點與標籤、頸線藍虛線、暫定 RS 空心標「RS?」、突破紅點、TP1/TP2 綠虛線、失效價灰虛線、底部成交量。
+圖內文字一律英數（runner 沒有中文字型），中文說明在 embed。以 multipart/form-data 上傳（`payload_json` + `files[n]`，
+`embed.image.url = attachment://<ascii 檔名>`，每則附件 < 7.5 MB）。bars 檔缺或畫圖失敗只是該筆不附圖（log 記錄），照常通知；
+若 Discord 因附件回 4xx，該則改以不含圖的 embed 重送一次。
+
+- `--dry-run`：不送，把會附的圖存到 `--preview-dir`（預設 `output/notify-preview/`），印每則的 embed 標題與附件檔名；workflow dry-run 時上傳成 artifact `notify-preview`（保留 3 天）。
+- `--test-message`（或環境變數 `TEST_MESSAGE=true`；workflow_dispatch 輸入 `test_message`）：只送一則「測試：圖片通知」，取目前結果分數最高 1 筆、附圖，不讀不寫 state、不發布。
+
+embed：標題「GRAMUSDT 日線 右肩形成中／已突破」、交易所與市場、分數、目前價、頸線價（距頸線%）、TP1、TP2
 （未突破標「預估」）、失效價（頭部低點）、左右肩跌幅、頭到頸線漲幅；顏色 形成中橘、觀察中藍、已突破紅；標題連到 TradingView
 （用 `tv_symbol`）。價格依數量級顯示位數（0.0001750）。型態從掃描結果消失超過 14 天才會從 state 清掉。
 
@@ -327,6 +340,7 @@ scan-state：加密貨幣＝`state.json`＋`site/data/scan.json`＋`site/data/ba
 
 ```
 gh workflow run scan-and-notify.yml --repo chasen8/head-shoulders-scanner -f dry_run=true     # 只印內容，不送、不更新 scan-state
+gh workflow run scan-and-notify.yml --repo chasen8/head-shoulders-scanner -f test_message=true # 只送一則附圖測試訊息（D32）
 gh workflow run scan-and-notify.yml --repo chasen8/head-shoulders-scanner                      # 正式（有 secret 才會發）
 gh run list --repo chasen8/head-shoulders-scanner --workflow scan-and-notify.yml --limit 3
 gh workflow run scan-tw.yml --repo chasen8/head-shoulders-scanner -f dry_run=true             # 台股

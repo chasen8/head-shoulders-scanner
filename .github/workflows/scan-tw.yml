@@ -21,6 +21,10 @@ on:
         description: "沒有 state 時逐筆通知（預設只發一則摘要）"
         type: boolean
         default: false
+      test_message:
+        description: "只送一則「測試：圖片通知」（目前分數最高 1 筆，附圖；不改 state、不發布），用來驗證 Discord 圖片上傳"
+        type: boolean
+        default: false
 
 permissions:
   contents: write  # publish job 推 scan-state 分支
@@ -38,6 +42,7 @@ jobs:
     env:
       DRY_RUN: ${{ github.event.inputs.dry_run }}
       NOTIFY_ALL: ${{ github.event.inputs.notify_all }}
+      TEST_MESSAGE: ${{ github.event.inputs.test_message }}
     steps:
       - uses: actions/checkout@v7
 
@@ -73,7 +78,19 @@ jobs:
           args="--scan site/data/tw/scan.json --state state_tw.json"
           [ "$DRY_RUN" = "true" ] && args="$args --dry-run"
           [ "$NOTIFY_ALL" = "true" ] && args="$args --notify-all"
+          [ "$TEST_MESSAGE" = "true" ] && args="$args --test-message"
+          args="$args --preview-dir output/notify-preview"
           python notify_discord.py $args
+
+      # D32：dry-run 時把會附在 Discord 的圖存成 artifact，方便檢查（bars 檔與 scan.json 在 site/data 內，同一個 job）。
+      - name: Upload notify preview images
+        if: ${{ !cancelled() && github.event.inputs.dry_run == 'true' }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: notify-preview
+          path: output/notify-preview/
+          retention-days: 3
+          if-no-files-found: ignore
 
       - name: Upload site as artifact
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
@@ -95,7 +112,7 @@ jobs:
 
   publish:
     needs: scan
-    if: ${{ !cancelled() && needs.scan.outputs.build_ok == 'true' && github.event.inputs.dry_run != 'true' }}
+    if: ${{ !cancelled() && needs.scan.outputs.build_ok == 'true' && github.event.inputs.dry_run != 'true' && github.event.inputs.test_message != 'true' }}
     uses: ./.github/workflows/publish.yml
     with:
       market: tw

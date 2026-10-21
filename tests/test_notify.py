@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import json as _json
 from datetime import datetime, timezone
 
 import pytest
@@ -48,14 +49,15 @@ class Resp:
 
 @pytest.fixture
 def post(monkeypatch):
-    calls, queue = [], []
+    calls, queue, raw = [], [], []
 
-    def fake(url, json=None, timeout=None):
-        calls.append(json)
+    def fake(url, json=None, data=None, files=None, timeout=None):
+        raw.append({"json": json, "data": data, "files": files})
+        calls.append(json if json is not None else _json.loads(data["payload_json"]))
         return queue.pop(0) if queue else Resp()
 
     monkeypatch.setattr(nd.requests, "post", fake)
-    fake.calls, fake.queue = calls, queue
+    fake.calls, fake.queue, fake.raw = calls, queue, raw
     return fake
 
 
@@ -298,8 +300,8 @@ def test_embed_chunking_and_summary(tmp_path, post):
     scan, st = setup(tmp_path, rows, state={})
     go(scan, st)
     sizes = [len(m["embeds"]) for m in post.calls]
-    assert sizes == [10, 10, 1]
-    assert "另有 5 個" in post.calls[-1]["embeds"][0]["description"]
+    assert sizes == [10, 10, 5]  # D32: every event listed, no "N more not listed" summary
+    assert "未列出" not in json.dumps(post.calls, ensure_ascii=False)
     state = nd.load_state(st)
     assert len(state) == 25 and all(v["notified_status"] == "forming" for v in state.values())
 
@@ -307,7 +309,7 @@ def test_embed_chunking_and_summary(tmp_path, post):
 def test_embed_numbers_split_of_exact_multiple():
     ev = [{"kind": "new", "row": row(f"S{i}USDT")} for i in range(12)]
     msgs = nd.build_messages(ev)
-    assert [len(m["embeds"]) for m in msgs] == [10, 2]
+    assert [len(m.payload["embeds"]) for m in msgs] == [10, 2]
 
 
 def test_prune_old_missing_patterns(tmp_path, post):
@@ -330,7 +332,7 @@ def test_flicker_does_not_renotify(tmp_path, post):
 
 
 def test_url_never_printed(tmp_path, monkeypatch, capsys):
-    def boom(url, json=None, timeout=None):
+    def boom(url, **kw):
         raise requests.ConnectionError(f"cannot reach {url}")
 
     monkeypatch.setattr(nd.requests, "post", boom)

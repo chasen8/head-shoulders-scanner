@@ -27,6 +27,10 @@ on:
         description: "沒有 state 時逐筆通知（預設只發一則摘要）"
         type: boolean
         default: false
+      test_message:
+        description: "只送一則「測試：圖片通知」（目前分數最高 1 筆，附圖；不改 state、不發布），用來驗證 Discord 圖片上傳"
+        type: boolean
+        default: false
 
 permissions:
   contents: write  # publish job 推 scan-state 分支
@@ -46,6 +50,7 @@ jobs:
     env:
       DRY_RUN: ${{ github.event.inputs.dry_run }}
       NOTIFY_ALL: ${{ github.event.inputs.notify_all }}
+      TEST_MESSAGE: ${{ github.event.inputs.test_message }}
     steps:
       - uses: actions/checkout@v7
 
@@ -83,10 +88,22 @@ jobs:
           args=""
           [ "$DRY_RUN" = "true" ] && args="$args --dry-run"
           [ "$NOTIFY_ALL" = "true" ] && args="$args --notify-all"
+          [ "$TEST_MESSAGE" = "true" ] && args="$args --test-message"
+          args="$args --preview-dir output/notify-preview"
           python notify_discord.py $args
 
       # notify 送失敗時也要存 state（沒送成功的型態不會被記錄，下次重試），所以用 !cancelled()。
       # scan-state 與公開網站在 publish job 推送（D29：保留台股那一邊的檔案）；dry-run 不推。
+      # D32：dry-run 時把會附在 Discord 的圖存成 artifact，方便檢查（bars 檔與 scan.json 在 site/data 內，同一個 job）。
+      - name: Upload notify preview images
+        if: ${{ !cancelled() && github.event.inputs.dry_run == 'true' }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: notify-preview
+          path: output/notify-preview/
+          retention-days: 3
+          if-no-files-found: ignore
+
       - name: Upload site as artifact
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         uses: actions/upload-artifact@v7
@@ -110,7 +127,7 @@ jobs:
   # 保留台股的 data/tw 與 state_tw.json；concurrency group publish-site 讓兩邊的發布不會同時進行。
   publish:
     needs: scan
-    if: ${{ !cancelled() && needs.scan.outputs.build_ok == 'true' && github.event.inputs.dry_run != 'true' }}
+    if: ${{ !cancelled() && needs.scan.outputs.build_ok == 'true' && github.event.inputs.dry_run != 'true' && github.event.inputs.test_message != 'true' }}
     uses: ./.github/workflows/publish.yml
     with:
       market: crypto
