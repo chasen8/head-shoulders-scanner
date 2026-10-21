@@ -104,7 +104,11 @@ TW_PREFIX = "台股"
 
 
 class NotifyError(Exception):
-    """Sending failed (message never contains the webhook URL)."""
+    """Sending failed (message never contains the webhook URL). `status` = Discord's HTTP code for a 4xx rejection."""
+
+    def __init__(self, message: str, status: int | None = None):
+        super().__init__(message)
+        self.status = status
 
 
 def _utc_text(now: datetime) -> str:
@@ -493,7 +497,7 @@ def post_message(url: str, payload: Mapping[str, Any], *, files: list[tuple[str,
             last = f"HTTP {code}"
             sleep(min(2.0 ** attempt, MAX_RETRY_WAIT))
             continue
-        raise NotifyError(f"Discord rejected the message (HTTP {code})")  # 4xx: retrying will not help
+        raise NotifyError(f"Discord rejected the message (HTTP {code})", code)  # 4xx: retrying will not help
     raise NotifyError(f"gave up after {max_retries + 1} attempts ({last})")
 
 

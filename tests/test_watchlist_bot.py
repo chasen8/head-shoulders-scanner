@@ -1,8 +1,10 @@
-"""D34: right-shoulder table (bot select / webhook fallback) and watchlist change notifications. No network."""
+"""D34/D35: right-shoulder table (bot select / webhook fallback) and per-user watchlist change notifications.
+No network."""
 from __future__ import annotations
 
 import hashlib
 import json
+import re
 from datetime import datetime, timezone
 
 import pytest
@@ -58,23 +60,31 @@ def _clean_env(monkeypatch):
 
 @pytest.fixture
 def net(monkeypatch):
-    """Records every requests.post / requests.get; `queue` feeds responses, `items` is the GET watchlist."""
+    """Records every requests.post / requests.get; `queue` feeds responses, `users` is the GET watchlist.
+    Opening a DM channel answers {"id": "dm<user id>"}; posts into the DM of a user in `dm_blocked` get 403."""
     class Net:
         posts, gets, queue = [], [], []
-        items: list = []
+        users: list = []
+        dm_blocked: set = set()
+        dm_open_code = 200
         get_code = 200
 
     n = Net()
-    n.posts, n.gets, n.queue, n.items = [], [], [], []
+    n.posts, n.gets, n.queue, n.users, n.dm_blocked = [], [], [], [], set()
 
     def post(url, json=None, data=None, files=None, timeout=None, headers=None):
         payload = json if json is not None else __import__("json").loads(data["payload_json"])
         n.posts.append({"url": url, "payload": payload, "files": files, "headers": headers or {}})
+        if url == nw.DM_CHANNEL_URL:
+            return Resp(n.dm_open_code, {"id": "dm" + payload["recipient_id"]})
+        m = re.search(r"/channels/dm(\d+)/messages$", url)
+        if m and m.group(1) in n.dm_blocked:
+            return Resp(403, {"code": 50007})
         return n.queue.pop(0) if n.queue else Resp(200)
 
     def get(url, headers=None, timeout=None):
         n.gets.append({"url": url, "headers": headers or {}})
-        return Resp(n.get_code, {"items": n.items})
+        return Resp(n.get_code, {"users": n.users})
 
     monkeypatch.setattr(requests, "post", post)
     monkeypatch.setattr(requests, "get", get)
@@ -284,7 +294,10 @@ def test_main_reads_bot_env(tmp_path, net, monkeypatch):
     assert net.posts[0]["url"].endswith(f"/channels/{MAIN}/messages")
 
 
-# ---------------------------------------------------------------- watchlist notifications
+# ---------------------------------------------------------------- watchlist notifications (per user, D35)
+
+UA, UB, UC = "111111111111111111", "222222222222222222", "333333333333333333"
+
 
 def item(r, last_status, name=None, **extra):
     d = {"pattern_key": key_of(r), "market": "tw" if nd.is_tw_row(r) else "crypto", "symbol": r["symbol"],
@@ -293,9 +306,13 @@ def item(r, last_status, name=None, **extra):
     return d
 
 
-def run_watch(tmp_path, rows, items, net, *, market=None, **kw):
+def user(uid, items, notify="channel"):
+    return {"user_id": uid, "username": "u" + uid[:2], "notify": notify, "items": items}
+
+
+def run_watch(tmp_path, rows, users, net, *, market=None, **kw):
     scan, _ = write_scan(tmp_path, rows, market)
-    net.items = items
+    net.users = users
     args = dict(api_url=API, sync_key=SYNC, bot_token=BOT, watch_channel=WATCH, now=NOW, sleep=lambda s: None,
                 pause=0, image_for=lambda r: PNG)
     args.update(kw)
@@ -311,6 +328,10 @@ def discord_posts(net):
     return [p for p in net.posts if "/channels/" in p["url"]]
 
 
+def watch_posts(net):
+    return [p for p in net.posts if p["url"] == f"https://discord.com/api/v10/channels/{WATCH}/messages"]
+
+
 @pytest.mark.parametrize("before,after,arrow", [
     ("forming", "watchlist", "右肩形成中 → 右肩確認"),
     ("watchlist", "confirmed", "右肩確認 → 已突破"),
@@ -318,70 +339,161 @@ def discord_posts(net):
     ("confirmed", "stale", "已突破 → 已過期")])
 def test_transitions_notify_and_update(tmp_path, net, before, after, arrow):
     r = row("STARUSDT", after, score=83)
-    assert run_watch(tmp_path, [r], [item(r, before)], net) == 0
+    assert run_watch(tmp_path, [r], [user(UA, [item(r, before)])], net) == 0
     (p,) = discord_posts(net)
     assert p["url"] == f"https://discord.com/api/v10/channels/{WATCH}/messages"
     emb = p["payload"]["embeds"][0]
     assert emb["title"] == f"⭐ STARUSDT 4h {arrow}"
     assert {f["name"] for f in emb["fields"]} >= {"目前價", "頸線價", "TP1", "失效價（頭部低點）"}
     assert p["headers"]["Authorization"] == f"Bot {BOT}" and len(p["files"]) == 1
+    assert p["payload"]["content"] == f"<@{UA}>"
+    assert p["payload"]["allowed_mentions"] == {"parse": [], "users": [UA]}
     (u,) = updates_of(net)
-    assert u["pattern_key"] == key_of(r) and u["last_status"] == after and u["last_notified_at"] == "2026-10-22T08:00:00Z"
+    assert u == {"user_id": UA, "pattern_key": key_of(r), "last_status": after,
+                 "last_notified_at": "2026-10-22T08:00:00Z"}
     api_post = [x for x in net.posts if x["url"].endswith("/api/watchlist")][0]
     assert api_post["headers"] == {"Authorization": f"Bearer {SYNC}"}
     assert net.gets[0]["headers"] == {"Authorization": f"Bearer {SYNC}"}
 
 
+def test_channel_watchers_merged_into_one_message(tmp_path, net):
+    r = row("STARUSDT", "confirmed")
+    users = [user(UA, [item(r, "watchlist")]), user(UB, [item(r, "watchlist")]), user(UC, [item(r, "confirmed")])]
+    run_watch(tmp_path, [r], users, net)
+    (p,) = discord_posts(net)  # one message for A and B; C already knew
+    assert p["payload"]["content"] == f"<@{UA}> <@{UB}>"
+    am = p["payload"]["allowed_mentions"]
+    assert am == {"parse": [], "users": [UA, UB]}  # only these two can be pinged: no @everyone / roles
+    assert "everyone" not in json.dumps(am)
+    btn = p["payload"]["components"][0]["components"][0]
+    assert btn["custom_id"] == "unwatch:" + key_of(r) and btn["label"] == "取消關注"
+    assert sorted(u["user_id"] for u in updates_of(net)) == [UA, UB]
+
+
+def test_each_user_has_own_last_status(tmp_path, net):
+    r = row("STARUSDT", "confirmed")
+    users = [user(UA, [item(r, "forming")]), user(UB, [item(r, "watchlist")]), user(UC, [item(r, None)])]
+    run_watch(tmp_path, [r], users, net)
+    titles = sorted((p["payload"]["embeds"][0]["title"], p["payload"]["content"]) for p in discord_posts(net))
+    assert titles == [("⭐ STARUSDT 4h 右肩形成中 → 已突破", f"<@{UA}>"), ("⭐ STARUSDT 4h 右肩確認 → 已突破", f"<@{UB}>")]
+    ups = {u["user_id"]: u for u in updates_of(net)}
+    assert ups[UA]["last_status"] == ups[UB]["last_status"] == ups[UC]["last_status"] == "confirmed"
+    assert ups[UC]["last_notified_at"] is None  # first sight: recorded, not notified
+
+
+def test_dm_flow(tmp_path, net):
+    r = row("STARUSDT", "confirmed")
+    users = [user(UA, [item(r, "watchlist")], notify="dm"), user(UB, [item(r, "watchlist")])]
+    run_watch(tmp_path, [r], users, net)
+    opens = [p for p in net.posts if p["url"] == nw.DM_CHANNEL_URL]
+    assert [o["payload"] for o in opens] == [{"recipient_id": UA}]
+    assert opens[0]["headers"]["Authorization"] == f"Bot {BOT}"
+    (dm,) = [p for p in net.posts if p["url"] == f"https://discord.com/api/v10/channels/dm{UA}/messages"]
+    assert "content" not in dm["payload"] and dm["payload"]["allowed_mentions"] == {"parse": []}
+    assert len(dm["files"]) == 1 and dm["payload"]["components"][0]["components"][0]["label"] == "取消關注"
+    (ch,) = watch_posts(net)
+    assert ch["payload"]["content"] == f"<@{UB}>" and ch["payload"]["allowed_mentions"]["users"] == [UB]
+    assert sorted(u["user_id"] for u in updates_of(net)) == [UA, UB]
+
+
+def test_dm_403_falls_back_to_channel_mention(tmp_path, net, capsys):
+    r = row("STARUSDT", "confirmed")
+    net.dm_blocked = {UA}
+    users = [user(UA, [item(r, "watchlist")], notify="dm"), user(UB, [item(r, "watchlist")])]
+    run_watch(tmp_path, [r], users, net)
+    (ch,) = watch_posts(net)  # B's mention and A's fallback share one message
+    assert ch["payload"]["content"] == f"<@{UB}>\n<@{UA}> {nw.DM_FAILED_NOTE}"
+    assert "私訊失敗" in ch["payload"]["content"]
+    assert ch["payload"]["allowed_mentions"] == {"parse": [], "users": [UB, UA]}
+    assert sorted(u["user_id"] for u in updates_of(net)) == [UA, UB]
+    assert "403" in capsys.readouterr().err
+
+    net.posts.clear()
+    run_watch(tmp_path, [r], [user(UA, [item(r, "watchlist")], notify="dm")], net)  # only the DM user
+    (ch,) = watch_posts(net)
+    assert ch["payload"]["content"].startswith(f"<@{UA}> 私訊失敗")
+    assert [u["user_id"] for u in updates_of(net)] == [UA]
+
+
+def test_dm_other_failure_not_recorded_no_fallback(tmp_path, net):
+    r = row("STARUSDT", "confirmed")
+    net.dm_open_code = 400
+    run_watch(tmp_path, [r], [user(UA, [item(r, "watchlist")], notify="dm")], net)
+    assert watch_posts(net) == [] and updates_of(net) == []  # retried next scan
+
+
+def test_no_watch_channel_dm_still_works(tmp_path, net, capsys):
+    r = row("STARUSDT", "confirmed")
+    users = [user(UA, [item(r, "watchlist")], notify="dm"), user(UB, [item(r, "watchlist")])]
+    run_watch(tmp_path, [r], users, net, watch_channel=None)
+    assert watch_posts(net) == []
+    assert [u["user_id"] for u in updates_of(net)] == [UA]  # B not recorded: goes out once the channel is set
+    assert "DISCORD_WATCH_CHANNEL_ID" in capsys.readouterr().err
+
+
+def test_many_channel_watchers_split_mentions(tmp_path, net):
+    r = row("STARUSDT", "confirmed")
+    users = [user(str(10 ** 17 + i), [item(r, "watchlist")]) for i in range(nw.MENTIONS_PER_MESSAGE + 5)]
+    run_watch(tmp_path, [r], users, net)
+    ps = watch_posts(net)
+    assert [len(p["payload"]["allowed_mentions"]["users"]) for p in ps] == [nw.MENTIONS_PER_MESSAGE, 5]
+    assert all(len(p["payload"]["content"]) <= 2000 for p in ps)
+    assert len(updates_of(net)) == nw.MENTIONS_PER_MESSAGE + 5
+
+
 def test_same_status_nothing(tmp_path, net):
     r = row("STARUSDT", "watchlist")
-    run_watch(tmp_path, [r], [item(r, "watchlist")], net)
+    run_watch(tmp_path, [r], [user(UA, [item(r, "watchlist")])], net)
     assert net.posts == []
 
 
 def test_gone_notified_once(tmp_path, net):
     r = row("STARUSDT", "watchlist")
     other = row("OTHERUSDT", "forming")
-    run_watch(tmp_path, [other], [item(r, "watchlist")], net)
+    run_watch(tmp_path, [other], [user(UA, [item(r, "watchlist")])], net)
     (p,) = discord_posts(net)
     emb = p["payload"]["embeds"][0]
     assert emb["title"] == "⭐ STARUSDT 4h 右肩確認 → 型態消失" and "作廢或過期" in emb["description"]
     assert p["files"] is None
     assert updates_of(net)[0]["last_status"] == "gone"
     net.posts.clear()
-    run_watch(tmp_path, [other], [item(r, "gone")], net)  # next scan: already gone, no repeat
+    run_watch(tmp_path, [other], [user(UA, [item(r, "gone")])], net)  # next scan: already gone, no repeat
     assert net.posts == []
 
 
 def test_first_sight_only_recorded(tmp_path, net):
     r = row("STARUSDT", "watchlist")
-    run_watch(tmp_path, [r], [item(r, None)], net)
-    assert discord_posts(net) == []
+    run_watch(tmp_path, [r], [user(UA, [item(r, None)], notify="dm")], net)
+    assert discord_posts(net) == [] and not [p for p in net.posts if p["url"] == nw.DM_CHANNEL_URL]
     (u,) = updates_of(net)
-    assert u["last_status"] == "watchlist" and u["last_notified_at"] is None
+    assert u == {"user_id": UA, "pattern_key": key_of(r), "last_status": "watchlist", "last_notified_at": None}
 
 
 def test_market_filter(tmp_path, net):
     c = row("STARUSDT", "confirmed")
     t = tw_row("2330", "台積電", "confirmed")
-    # crypto scan: the TW item is ignored even though its status "changed"
-    run_watch(tmp_path, [c], [item(c, "watchlist"), item(t, "watchlist")], net)
-    assert len(discord_posts(net)) == 1 and [u["pattern_key"] for u in updates_of(net)] == [key_of(c)]
+    users = [user(UA, [item(c, "watchlist"), item(t, "watchlist")]), user(UB, [item(t, "watchlist")])]
+    # crypto scan: the TW items are ignored even though their status "changed"
+    run_watch(tmp_path, [c], users, net)
+    assert len(discord_posts(net)) == 1 and [(u["user_id"], u["pattern_key"]) for u in updates_of(net)] == \
+        [(UA, key_of(c))]
     net.posts.clear()
-    # tw scan: only the TW item
-    run_watch(tmp_path, [t], [item(c, "watchlist"), item(t, "watchlist")], net, market="tw")
+    # tw scan: only the TW item, both watchers in one message
+    run_watch(tmp_path, [t], users, net, market="tw")
     (p,) = discord_posts(net)
     assert p["payload"]["embeds"][0]["title"] == "⭐ 台股 2330 台積電 1d 右肩確認 → 已突破"
-    assert [u["pattern_key"] for u in updates_of(net)] == [key_of(t)]
+    assert p["payload"]["content"] == f"<@{UA}> <@{UB}>"
+    assert sorted((u["user_id"], u["pattern_key"]) for u in updates_of(net)) == [(UA, key_of(t)), (UB, key_of(t))]
 
 
 def test_tw_name_filled_in(tmp_path, net):
     t = tw_row("2330", "台積電", "confirmed")
-    run_watch(tmp_path, [t], [item(t, "watchlist", name=None)], net, market="tw")
+    run_watch(tmp_path, [t], [user(UA, [item(t, "watchlist", name=None)])], net, market="tw")
     assert updates_of(net)[0]["name"] == "台積電"
     net.posts.clear()
     t2 = tw_row("2317", "鴻海", "watchlist")  # no change but name missing -> silent update
-    run_watch(tmp_path, [t2], [item(t2, "watchlist", name=None)], net, market="tw")
-    assert discord_posts(net) == [] and updates_of(net) == [{"pattern_key": key_of(t2), "name": "鴻海"}]
+    run_watch(tmp_path, [t2], [user(UA, [item(t2, "watchlist", name=None)])], net, market="tw")
+    assert discord_posts(net) == [] and updates_of(net) == [{"user_id": UA, "pattern_key": key_of(t2), "name": "鴻海"}]
 
 
 def test_unwatch_button_custom_id_and_sha1():
@@ -393,17 +505,18 @@ def test_unwatch_button_custom_id_and_sha1():
     edge = "a" * (100 - len("unwatch:"))
     assert nw.unwatch_custom_id(edge) == "unwatch:" + edge  # exactly 100 chars stays
     r = row("STARUSDT", "confirmed")
-    msg = nw.build_change_message({"item": item(r, "watchlist"), "row": r, "previous": "watchlist",
-                                   "current": "confirmed", "name_fix": {}}, None, lambda r_: None)
+    msg = nw.build_change_message({"key": key_of(r), "item": item(r, "watchlist"), "row": r, "previous": "watchlist",
+                                   "current": "confirmed", "watchers": []}, None, lambda r_: None)
     btn = msg.payload["components"][0]["components"][0]
     assert btn["type"] == 2 and btn["label"] == "取消關注" and btn["custom_id"] == "unwatch:" + key_of(r)
     assert msg.files == [] and "image" not in msg.payload["embeds"][0]  # no bars -> no picture
+    assert msg.payload["allowed_mentions"] == {"parse": []}
 
 
 def test_no_bot_config_skips_notification_and_does_not_record(tmp_path, net, capsys):
     r = row("STARUSDT", "confirmed")
     new = row("NEWUSDT", "watchlist")
-    run_watch(tmp_path, [r, new], [item(r, "watchlist"), item(new, None)], net, bot_token=None)
+    run_watch(tmp_path, [r, new], [user(UA, [item(r, "watchlist"), item(new, None)])], net, bot_token=None)
     assert discord_posts(net) == []
     assert [u["pattern_key"] for u in updates_of(net)] == [key_of(new)]  # only the first-sight record
     assert "略過關注通知" in capsys.readouterr().out
@@ -411,19 +524,29 @@ def test_no_bot_config_skips_notification_and_does_not_record(tmp_path, net, cap
 
 def test_no_api_config_skips(tmp_path, net, capsys):
     r = row("STARUSDT", "confirmed")
-    assert run_watch(tmp_path, [r], [item(r, "watchlist")], net, api_url=None) == 0
+    assert run_watch(tmp_path, [r], [user(UA, [item(r, "watchlist")])], net, api_url=None) == 0
     assert net.posts == [] and net.gets == []
     assert "略過關注通知" in capsys.readouterr().out
 
 
-def test_api_failures_do_not_fail(tmp_path, net, capsys, monkeypatch):
+def test_bad_users_payload_is_cleaned(tmp_path, net):
+    r = row("STARUSDT", "confirmed")
+    users = [{"user_id": "../x", "items": [item(r, "watchlist")]}, "junk", {"user_id": UA, "items": [{"no": "key"}]},
+             {"user_id": UB, "notify": "sms", "items": [item(r, "watchlist")]}]
+    run_watch(tmp_path, [r], users, net)
+    (p,) = discord_posts(net)
+    assert p["payload"]["content"] == f"<@{UB}>"  # unknown notify mode -> channel
+    assert [u["user_id"] for u in updates_of(net)] == [UB]
+
+
+def test_api_failures_do_not_fail(tmp_path, net, capsys):
     r = row("STARUSDT", "confirmed")
     net.get_code = 500
-    assert run_watch(tmp_path, [r], [item(r, "watchlist")], net) == 0
+    assert run_watch(tmp_path, [r], [user(UA, [item(r, "watchlist")])], net) == 0
     assert net.posts == []
     net.get_code = 200
     net.queue.extend([Resp(204), Resp(500)])  # Discord ok, POST /api/watchlist fails
-    assert run_watch(tmp_path, [r], [item(r, "watchlist")], net) == 0
+    assert run_watch(tmp_path, [r], [user(UA, [item(r, "watchlist")])], net) == 0
     cap = capsys.readouterr()
     assert "警告" in cap.err
     for secret in (SYNC, BOT, API, "workers.dev"):
@@ -442,26 +565,56 @@ def test_api_network_error_hides_url_and_key(tmp_path, monkeypatch, capsys):
         assert secret not in cap.out + cap.err
 
 
+def test_discord_errors_never_print_secrets(tmp_path, net, monkeypatch, capsys):
+    r = row("STARUSDT", "confirmed")
+    real_post = requests.post
+
+    def flaky(url, **kw):
+        if "/api/watchlist" in url:
+            return real_post(url, **kw)
+        raise requests.ConnectionError(f"cannot reach {url} with {kw.get('headers')}")
+
+    monkeypatch.setattr(requests, "post", flaky)
+    users = [user(UA, [item(r, "watchlist")], notify="dm"), user(UB, [item(r, "watchlist")])]
+    assert run_watch(tmp_path, [r], users, net) == 0
+    cap = capsys.readouterr()
+    for secret in (SYNC, BOT, "BOT-TOKEN", API, "workers.dev"):
+        assert secret not in cap.out + cap.err
+    assert updates_of(net) == []
+
+
 def test_discord_failure_keeps_change_unrecorded(tmp_path, net):
     r = row("STARUSDT", "confirmed")
     net.queue.extend([Resp(403), Resp(403)])  # with picture, then the retry without it
-    assert run_watch(tmp_path, [r], [item(r, "watchlist")], net) == 0
+    assert run_watch(tmp_path, [r], [user(UA, [item(r, "watchlist")])], net) == 0
     assert updates_of(net) == []  # retried next scan
 
 
 def test_dry_run_no_post_saves_preview(tmp_path, net, capsys):
     r = row("STARUSDT", "confirmed")
     prev = tmp_path / "prev"
-    assert run_watch(tmp_path, [r], [item(r, "watchlist")], net, dry_run=True, preview_dir=prev) == 0
+    users = [user(UA, [item(r, "watchlist")]), user(UB, [item(r, "watchlist")], notify="dm")]
+    assert run_watch(tmp_path, [r], users, net, dry_run=True, preview_dir=prev) == 0
     assert net.posts == []  # neither Discord nor POST /api/watchlist
     assert len(net.gets) == 1
-    assert list(prev.glob("watch_*.png")) and "STARUSDT" in capsys.readouterr().out
+    out = capsys.readouterr().out
+    assert list(prev.glob("watch_*.png")) and "STARUSDT" in out and "頻道 @ 1 人、私訊 1 人" in out
+
+
+def test_users_file(tmp_path, net):
+    r = row("STARUSDT", "confirmed")
+    f = tmp_path / "users.json"
+    f.write_text(json.dumps({"users": [user(UA, [item(r, "watchlist")])]}), encoding="utf-8")
+    scan, _ = write_scan(tmp_path, [r])
+    assert nw.run(scan, api_url=API, sync_key=SYNC, bot_token=BOT, watch_channel=WATCH, users_file=f, now=NOW,
+                  sleep=lambda s: None, pause=0, image_for=lambda r_: PNG) == 0
+    assert net.gets == [] and len(discord_posts(net)) == 1 and updates_of(net) == []  # file mode: no POST
 
 
 def test_main_env_and_masking(tmp_path, net, monkeypatch, capsys):
     r = row("STARUSDT", "confirmed")
     scan, _ = write_scan(tmp_path, [r])
-    net.items = [item(r, "watchlist")]
+    net.users = [user(UA, [item(r, "watchlist")])]
     monkeypatch.setenv(nw.ENV_API_URL, API + "/")
     monkeypatch.setenv(nw.ENV_SYNC_KEY, SYNC)
     monkeypatch.setenv(nd.ENV_BOT_TOKEN, BOT)
@@ -478,7 +631,7 @@ def test_main_env_and_masking(tmp_path, net, monkeypatch, capsys):
 
 def test_empty_scan_does_not_mark_everything_gone(tmp_path, net):
     r = row("STARUSDT", "watchlist")
-    run_watch(tmp_path, [], [item(r, "watchlist")], net)
+    run_watch(tmp_path, [], [user(UA, [item(r, "watchlist")])], net)
     assert net.posts == []
 
 

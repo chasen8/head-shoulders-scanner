@@ -30,7 +30,8 @@
   var NECK_ORDER = ["down", "flat", "up"];
   var WL_KEY = "ihs.watchlist.v1";
   var SET_KEY = "ihs.settings.v1";
-  var SYNC_LS = "ihs.sync.v1"; // { url, key, known: [pattern_key], pendingRemove: [pattern_key] } (cloud sync, optional)
+  var SYNC_LS = "ihs.sync.v1"; // D34 sync URL + key: no longer used (D35), removed when found
+  var SESSION_LS = "ihs.session.v1"; // D35 Discord login: { token, user_id, username, known, pendingRemove }
   // Filter defaults are shared by both markets; `market` remembers the market viewed last (D29).
   var DEFAULT_SETTINGS = { tf: "all", status: "all", neck: "all", sort: "score", minScore: 0, showLevels: true, showChecks: true,
     market: "crypto", theme: "auto" };
@@ -935,7 +936,7 @@
     saveWatch();
     delete synced[key];
     refreshStars();
-    if (sync) pushChange(added, key);
+    if (loggedIn()) pushChange(added, key);
   }
   function refreshStars() {
     Array.prototype.forEach.call(document.querySelectorAll(".star"), function (b) {
@@ -952,52 +953,111 @@
     if (state.onlyWl && state.data) update(true);
   }
 
-  /* ---------- cloud sync (optional): same list as the Discord bot, via the Cloudflare Worker (bot/) ---------- */
+  /* ---------- cloud sync (optional, D35): log in with Discord -> your own watchlist on the Cloudflare Worker (bot/) ---------- */
   var synced = {};     // pattern_key -> true once the server is known to hold it
   var syncState = { busy: false, ok: null, err: "", count: 0 };
-  var URL_OK = /^(https:\/\/[^\s\/?#]+|http:\/\/(127\.0\.0\.1|localhost)(:\d{1,5})?)(\/[^\s?#]*)?$/;
-  function cleanSyncUrl(u) { u = String(u || "").trim().replace(/\/+$/, ""); return URL_OK.test(u) ? u : null; }
-  var sync = (function () {
-    var raw = readStore(SYNC_LS);
-    var url = raw && typeof raw === "object" ? cleanSyncUrl(raw.url) : null;
-    if (!url || typeof raw.key !== "string" || !raw.key) return null;
-    var strs = function (a) { return Array.isArray(a) ? a.filter(function (k) { return typeof k === "string"; }) : []; };
-    return { url: url, key: raw.key, known: strs(raw.known), pendingRemove: strs(raw.pendingRemove) };
+  // The Worker. Local preview only: ?worker=http://127.0.0.1:PORT is honoured when the page itself is served from
+  // 127.0.0.1 / localhost, so a link can never send a session to another server.
+  var WORKER_URL = (function () {
+    var def = "https://ihs-watchlist-bot.a753951828282.workers.dev";
+    try {
+      var w = new URLSearchParams(location.search).get("worker");
+      if (w && /^(127\.0\.0\.1|localhost)$/.test(location.hostname) && /^http:\/\/(127\.0\.0\.1|localhost)(:\d{1,5})?$/.test(w)) return w;
+    } catch (e) { /* ignore */ }
+    return def;
   })();
-  function saveSync() { if (sync) writeStore(SYNC_LS, sync); }
-  function dropSync() {
-    sync = null; synced = {}; syncState = { busy: false, ok: null, err: "", count: 0 };
+  var LOGIN_ERR = { cancelled: "已取消 Discord 登入。", unavailable: "Discord 登入暫時無法使用（伺服器尚未設定），星號先存本機。",
+    discord: "Discord 登入失敗，請稍後再試。" };
+  var loginNotice = "", loginOk = false;
+  function strs(a) { return Array.isArray(a) ? a.filter(function (k) { return typeof k === "string"; }).slice(0, 2000) : []; }
+  // The session's payload is read only for display (name) and to tell accounts apart; the Worker verifies it.
+  function sessionInfo(token) {
+    try {
+      var b = token.split(".")[0].replace(/-/g, "+").replace(/_/g, "/");
+      var bin = atob(b + "===".slice((b.length + 3) % 4)), bytes = new Uint8Array(bin.length);
+      for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      var p = JSON.parse(new TextDecoder().decode(bytes));
+      if (!p || typeof p.u !== "string" || typeof p.exp !== "number") return null;
+      return { user_id: p.u, username: typeof p.n === "string" ? p.n.slice(0, 40) : "", exp: p.exp };
+    } catch (e) { return null; }
+  }
+  // ihs.session.v1 = { token|null, user_id, username, known:[pattern_key], pendingRemove:[pattern_key] }.
+  // token null = logged out by expiry: known / pendingRemove are kept for when the same account logs in again.
+  var sess = (function () {
+    if (readStore(SYNC_LS) !== null) { try { window.localStorage.removeItem(SYNC_LS); } catch (e) { /* ignore */ } } // D34 key
+    var raw = readStore(SESSION_LS), s = null;
+    if (raw && typeof raw === "object" && typeof raw.user_id === "string") {
+      s = { token: typeof raw.token === "string" ? raw.token : null, user_id: raw.user_id, username: str(raw.username) || "",
+        known: strs(raw.known), pendingRemove: strs(raw.pendingRemove) };
+    }
+    var h = location.hash || "", m = /^#ihs_session=([A-Za-z0-9_.-]{20,2048})$/.exec(h), e = /^#ihs_login_error=([a-z]+)$/.exec(h);
+    if (m || e) {
+      try { history.replaceState(null, "", location.pathname + location.search); } catch (err) { /* ignore */ }
+    }
+    if (e) loginNotice = LOGIN_ERR[e[1]] || LOGIN_ERR.discord;
+    if (m) {
+      var info = sessionInfo(m[1]);
+      if (info) {
+        var same = s && s.user_id === info.user_id;
+        s = { token: m[1], user_id: info.user_id, username: info.username, known: same ? s.known : [], pendingRemove: same ? s.pendingRemove : [] };
+        loginNotice = "已用 Discord 登入：" + (info.username || info.user_id) + "。"; loginOk = true;
+      }
+    }
+    if (s && s.token) {
+      var cur = sessionInfo(s.token);
+      if (!cur || cur.exp * 1000 <= Date.now()) s.token = null;
+    }
+    return s;
+  })();
+  var notifyMode = null; // "channel" | "dm" once /api/me answered
+  function loggedIn() { return !!(sess && sess.token); }
+  function saveSess() { if (sess) writeStore(SESSION_LS, sess); }
+  if (sess) saveSess();
+  function logout() {
+    sess = null; synced = {}; notifyMode = null; syncState = { busy: false, ok: null, err: "", count: 0 };
     if (demoMode) return;
-    try { window.localStorage.removeItem(SYNC_LS); } catch (e) { /* ignore */ }
+    try { window.localStorage.removeItem(SESSION_LS); } catch (e) { /* ignore */ }
+  }
+  function loginUrl() {
+    return WORKER_URL + "/auth/login?return=" + encodeURIComponent(location.origin + location.pathname + location.search);
   }
   var toastTimer = null;
-  function showToast(text) {
+  function showToast(text, ok) { // ok: neutral confirmation; default: warning (orange)
     var t = $("toast");
     if (!t) return;
-    t.textContent = text; t.hidden = false;
+    t.textContent = text; t.hidden = false; t.className = "toast" + (ok ? " toast--ok" : "");
     clearTimeout(toastTimer);
     toastTimer = setTimeout(function () { t.hidden = true; }, 6000);
   }
   function friendly(msg) { var e = new Error(msg); e.friendly = true; return e; }
-  // One request to the Worker. The key only ever goes into the Authorization header of this fetch.
-  function syncCall(cfg, method, body) {
+  function sessionExpired() {
+    if (sess) { sess.token = null; saveSess(); }
+    synced = {}; notifyMode = null;
+    showToast("Discord 登入已過期，請到「設定 → 雲端同步」重新登入。本機星號都還在。");
+    renderSyncSection();
+  }
+  // One request to the Worker's user API. The session only ever goes into the Authorization header of this fetch.
+  function meCall(method, path, body) {
+    if (!loggedIn()) return Promise.reject(friendly("尚未登入"));
     var ctl = typeof AbortController === "function" ? new AbortController() : null;
     var timer = setTimeout(function () { if (ctl) ctl.abort(); }, 10000);
-    var init = { method: method, headers: { Authorization: "Bearer " + cfg.key }, cache: "no-store" };
+    var init = { method: method, headers: { Authorization: "Bearer " + sess.token }, cache: "no-store" };
     if (ctl) init.signal = ctl.signal;
     if (body) { init.headers["Content-Type"] = "application/json"; init.body = JSON.stringify(body); }
-    return fetch(cfg.url + "/api/watchlist", init).then(function (res) {
+    return fetch(WORKER_URL + path, init).then(function (res) {
       clearTimeout(timer);
-      if (res.status === 401) throw friendly("同步金鑰不正確（401）");
+      if (res.status === 401) { sessionExpired(); throw friendly("Discord 登入已過期，請重新登入"); }
       if (!res.ok) throw friendly("伺服器回應 HTTP " + res.status);
       return res.json().catch(function () { throw friendly("伺服器回傳的不是 JSON"); });
-    }).then(function (j) {
+    }, function () {
+      clearTimeout(timer);
+      throw friendly("連不上同步伺服器（離線或被擋）");
+    });
+  }
+  function itemsCall(method, body) {
+    return meCall(method, "/api/me/watchlist", body).then(function (j) {
       if (!j || !Array.isArray(j.items)) throw friendly("伺服器回傳格式不對");
       return j.items;
-    }, function (err) {
-      clearTimeout(timer);
-      if (err && err.friendly) throw err;
-      throw friendly("連不上同步伺服器（網址錯誤、離線或被擋）");
     });
   }
   function toServer(w) {
@@ -1013,26 +1073,34 @@
       timeframe: s.timeframe || p[3], name: s.name, added_at: s.added_at, status_at_add: st, score_at_add: s.score_at_add,
       tv_symbol: s.tv_symbol, via: s.added_via });
   }
-  function adoptServerSet(cfg, items) { // the server list is now `items`: record it as known + synced
-    synced = {}; cfg.known = [];
-    items.forEach(function (s) { if (s && typeof s.pattern_key === "string") { synced[s.pattern_key] = true; cfg.known.push(s.pattern_key); } });
-    syncState.count = cfg.known.length;
-    saveSync();
+  function adoptServerSet(items) { // the server list is now `items`: record it as known + synced
+    synced = {}; sess.known = [];
+    items.forEach(function (s) { if (s && typeof s.pattern_key === "string") { synced[s.pattern_key] = true; sess.known.push(s.pattern_key); } });
+    syncState.count = sess.known.length;
+    saveSess();
+  }
+  function loadMe() { // name + notification mode for the settings screen (never blocks the star sync)
+    return meCall("GET", "/api/me").then(function (j) {
+      if (!j || !sess) return;
+      if (j.notify === "channel" || j.notify === "dm") notifyMode = j.notify;
+      if (typeof j.username === "string" && j.username) { sess.username = j.username.slice(0, 40); saveSess(); }
+      if (drawerEl().classList.contains("is-open") && drawer.view === "settings") renderSyncSection();
+    }, function () { /* the star sync reports errors */ });
   }
   // Full merge, server wins: on the server but not here -> add here; here but not on the server -> upload,
   // unless this browser had synced it before (then it was removed elsewhere, e.g. Discord's cancel button).
   function syncAll() {
-    if (!sync || syncState.busy) return Promise.resolve();
-    var cfg = sync;
+    if (!loggedIn() || syncState.busy) return Promise.resolve();
     syncState.busy = true;
-    var pre = cfg.pendingRemove.length ? syncCall(cfg, "POST", { remove: cfg.pendingRemove }) : Promise.resolve(null);
+    loadMe();
+    var pre = sess.pendingRemove.length ? itemsCall("POST", { remove: sess.pendingRemove }) : Promise.resolve(null);
     return pre.then(function () {
-      if (cfg.pendingRemove.length) { cfg.pendingRemove = []; saveSync(); }
-      return syncCall(cfg, "GET");
+      if (sess.pendingRemove.length) { sess.pendingRemove = []; saveSess(); }
+      return itemsCall("GET");
     }).then(function (serverItems) {
       var srv = {}, known = {}, have = {}, changed = false, upload = [];
       serverItems.forEach(function (s) { if (s && s.pattern_key) srv[s.pattern_key] = true; });
-      cfg.known.forEach(function (k) { known[k] = true; });
+      sess.known.forEach(function (k) { known[k] = true; });
       watch.forEach(function (w) { have[w.pattern_key] = true; });
       serverItems.forEach(function (s) {
         if (!s || have[s.pattern_key]) return;
@@ -1046,52 +1114,56 @@
       });
       if (changed) saveWatch();
       if (!upload.length) return serverItems;
-      return syncCall(cfg, "POST", { add: upload.map(toServer) });
+      return itemsCall("POST", { add: upload.map(toServer) });
     }).then(function (finalItems) {
-      adoptServerSet(cfg, finalItems);
+      adoptServerSet(finalItems);
       syncState.ok = true; syncState.err = "";
     }).catch(function (err) {
       syncState.ok = false; syncState.err = err && err.message ? err.message : "同步失敗";
-      showToast("雲端同步失敗：" + syncState.err + "。已保留本機名單，下次載入會重試。");
+      if (loggedIn()) showToast("雲端同步失敗：" + syncState.err + "。已保留本機名單，下次載入會重試。");
     }).then(function () {
       syncState.busy = false;
       refreshStars();
+      if (drawerEl().classList.contains("is-open") && drawer.view === "settings") renderSyncSection();
     });
   }
   function pushChange(added, key) { // one star toggled: tell the server now, remember to retry if it fails
-    var cfg = sync;
     var p;
     if (added) {
-      cfg.pendingRemove = cfg.pendingRemove.filter(function (k) { return k !== key; });
-      p = syncCall(cfg, "POST", { add: [toServer(added)] });
+      sess.pendingRemove = sess.pendingRemove.filter(function (k) { return k !== key; });
+      p = itemsCall("POST", { add: [toServer(added)] });
     } else {
-      p = syncCall(cfg, "POST", { remove: [key] });
+      p = itemsCall("POST", { remove: [key] });
     }
     p.then(function (items) {
-      cfg.pendingRemove = cfg.pendingRemove.filter(function (k) { return k !== key; });
-      adoptServerSet(cfg, items);
+      sess.pendingRemove = sess.pendingRemove.filter(function (k) { return k !== key; });
+      adoptServerSet(items);
       syncState.ok = true; syncState.err = "";
     }, function (err) {
-      if (!added && cfg.pendingRemove.indexOf(key) < 0) cfg.pendingRemove.push(key);
-      saveSync();
+      if (sess) {
+        if (!added && sess.pendingRemove.indexOf(key) < 0) sess.pendingRemove.push(key);
+        saveSess();
+      }
       syncState.ok = false; syncState.err = err && err.message ? err.message : "同步失敗";
-      showToast("沒有同步到雲端：" + syncState.err + "。已保留在本機，下次載入會重試。");
+      if (loggedIn()) showToast("沒有同步到雲端：" + syncState.err + "。已保留在本機，下次載入會重試。");
     }).then(refreshStars);
   }
   var CLOUD_SVG = "<svg viewBox=\"0 0 24 24\" aria-hidden=\"true\" focusable=\"false\"><path d=\"M7 18a4 4 0 0 1-.6-7.96A5.5 5.5 0 0 1 17 8.6a4.7 4.7 0 0 1 .3 9.4z\"/></svg>";
   function cloudMark(key) {
-    if (!sync) return "";
+    if (!loggedIn()) return "";
     var on = !!synced[key];
     return "<span class=\"cloud" + (on ? " cloud--on" : "") + "\" title=\"" + (on ? "已同步到雲端" : "尚未同步到雲端") + "\">" + CLOUD_SVG +
       "<span class=\"vh\">" + (on ? "已同步到雲端" : "尚未同步到雲端") + "</span></span>";
   }
-  function syncLine() { // one status line above the watchlist; nothing at all when sync is not set up
-    if (!sync) return "";
-    var t = syncState.busy ? "雲端同步中…"
-      : syncState.ok === true ? "雲端同步：已連線，伺服器上有 " + syncState.count + " 筆。"
+  function syncLine() { // one status line above the watchlist; nothing at all when never logged in
+    if (!sess) return "";
+    var who = sess.username || "Discord";
+    var t = !loggedIn() ? "Discord 登入已過期，星號只存在這個瀏覽器；到「設定 → 雲端同步」重新登入。"
+      : syncState.busy ? "雲端同步中…"
+      : syncState.ok === true ? "已用 Discord 登入（" + who + "），伺服器上你的清單有 " + syncState.count + " 筆。"
       : syncState.ok === false ? "雲端同步失敗：" + syncState.err + "（本機名單不受影響）"
       : "雲端同步：尚未連線。";
-    return "<p class=\"syncline" + (syncState.ok === false ? " syncline--bad" : "") + "\" role=\"status\">" + esc(t) + "</p>";
+    return "<p class=\"syncline" + (syncState.ok === false || !loggedIn() ? " syncline--bad" : "") + "\" role=\"status\">" + esc(t) + "</p>";
   }
 
   /* ---------- drawer ---------- */
@@ -1213,7 +1285,7 @@
       "<label class=\"chk\"><input type=\"checkbox\" data-set=\"showLevels\"" + (settings.showLevels ? " checked" : "") + "><span>在圖上顯示 TP／失效價線</span></label>" +
       "<label class=\"chk\"><input type=\"checkbox\" data-set=\"showChecks\"" + (settings.showChecks ? " checked" : "") + "><span>顯示形狀驗證區塊</span></label>" +
       syncSettingsHtml() +
-      "<h3 class=\"dh\">觀察名單備份</h3><p class=\"dnote\">觀察名單預設只存在這個瀏覽器（未開雲端同步時）。換裝置或清除瀏覽資料前，請先匯出。</p>" +
+      "<h3 class=\"dh\">觀察名單備份</h3><p class=\"dnote\">觀察名單預設只存在這個瀏覽器（未用 Discord 登入時）。換裝置或清除瀏覽資料前，請先匯出。</p>" +
       "<div class=\"btnrow\"><button type=\"button\" class=\"dbtn\" data-act=\"export-file\">下載 JSON</button>" +
       "<button type=\"button\" class=\"dbtn\" data-act=\"export-copy\">複製到剪貼簿</button></div>" +
       "<div class=\"fld fld--col\"><label for=\"imp-text\">匯入（貼上匯出的 JSON）</label>" +
@@ -1227,50 +1299,74 @@
       "<button type=\"button\" class=\"dbtn\" data-act=\"clear-no\">取消</button></div></div>" +
       "<p class=\"dmsg\" id=\"d-msg\" role=\"status\" aria-live=\"polite\"></p>";
   }
-  function syncSettingsHtml() {
-    return "<h3 class=\"dh\">雲端同步（選用）</h3><p class=\"dnote\">填入 Discord 機器人的同步網址與金鑰後，星號會和 Discord 的關注清單同步。" +
-      "金鑰只存在這個瀏覽器，不會顯示在其他地方；不填就只存本機。</p>" +
-      "<div class=\"fld fld--col\"><label for=\"sy-url\">同步網址</label><input id=\"sy-url\" class=\"tin\" type=\"url\" inputmode=\"url\" autocomplete=\"off\" " +
-      "spellcheck=\"false\" placeholder=\"https://ihs-watchlist-bot.xxx.workers.dev\" value=\"" + esc(sync ? sync.url : "") + "\"></div>" +
-      "<div class=\"fld fld--col\"><label for=\"sy-key\">同步金鑰</label><input id=\"sy-key\" class=\"tin\" type=\"password\" autocomplete=\"off\" " +
-      "spellcheck=\"false\" placeholder=\"" + (sync ? "已儲存（不顯示），要更換才重新貼上" : "貼上同步金鑰") + "\"></div>" +
-      "<div class=\"btnrow\"><button type=\"button\" class=\"dbtn\" data-act=\"sync-save\">儲存並同步</button>" +
-      "<button type=\"button\" class=\"dbtn\" data-act=\"sync-test\">測試連線</button>" +
-      "<button type=\"button\" class=\"dbtn\" data-act=\"sync-clear\"" + (sync ? "" : " disabled") + ">清除</button></div>" +
-      "<p class=\"dnote\" id=\"sy-state\">" + (sync ? "已設定同步網址 " + esc(sync.url) : "尚未設定，名單只存在這個瀏覽器。") + "</p>";
+  var DISCORD_SVG = "<svg viewBox=\"0 0 24 24\" aria-hidden=\"true\" focusable=\"false\"><path d=\"M19.3 5.3A16.6 16.6 0 0 0 15.2 4l-.5 1a15.4 15.4 0 0 0-5.4 0l-.5-1a16.6 16.6 0 0 0-4.1 1.3C2.1 9.2 1.4 13 1.7 16.7a16.7 16.7 0 0 0 5 2.5l1.1-1.7c-.6-.2-1.2-.5-1.7-.8l.4-.3a11.9 11.9 0 0 0 10.2 0l.4.3c-.5.3-1.1.6-1.7.8l1.1 1.7a16.6 16.6 0 0 0 5-2.5c.4-4.3-.7-8-2.2-11.4zM8.7 14.5c-1 0-1.8-.9-1.8-2s.8-2 1.8-2 1.8.9 1.8 2-.8 2-1.8 2zm6.6 0c-1 0-1.8-.9-1.8-2s.8-2 1.8-2 1.8.9 1.8 2-.8 2-1.8 2z\"/></svg>";
+  function syncSettingsHtml() { return "<div id=\"sync-sec\" class=\"syncsec\">" + syncSectionInner() + "</div>"; }
+  function syncSectionInner() {
+    var h = "<h3 class=\"dh\">雲端同步（選用）</h3>";
+    if (!loggedIn()) {
+      h += "<p class=\"dnote\">用 Discord 登入後，星號會同步到<strong>你自己的</strong>關注清單（每個人各一份，和 Discord 表格選單加入的同一份），" +
+        "型態狀態改變時機器人會通知你。不登入就只存在這個瀏覽器。</p>" +
+        (sess ? "<p class=\"dwarn\">Discord 登入已過期，請重新登入。本機星號都還在。</p>" : "") +
+        "<div class=\"btnrow\"><a class=\"dbtn dbtn--discord\" href=\"" + esc(loginUrl()) + "\">" + DISCORD_SVG + "<span>用 Discord 登入</span></a></div>" +
+        "<p class=\"dnote\">只會取得你的 Discord 使用者名稱與 ID（權限 identify），不會讀取訊息或伺服器。</p>";
+      return h;
+    }
+    var mode = notifyMode;
+    var radio = function (v, label, sub) {
+      return "<label class=\"chk chk--radio\"><input type=\"radio\" name=\"s-notify\" value=\"" + v + "\"" + (mode === v ? " checked" : "") +
+        (mode ? "" : " disabled") + "><span>" + esc(label) + "<span class=\"chk__sub\">" + esc(sub) + "</span></span></label>";
+    };
+    h += "<p class=\"acct\">" + DISCORD_SVG + "<span>已用 Discord 登入：<strong>" + esc(sess.username || sess.user_id) + "</strong></span></p>" +
+      "<fieldset class=\"nfs\"><legend class=\"nfs__lg\">關注清單的通知方式</legend>" +
+      radio("channel", "在 #關注 頻道 @我", "和其他人的通知在同一個頻道") +
+      radio("dm", "機器人私訊", "只有你看得到；收不到時會改在 #關注 頻道 @你") + "</fieldset>" +
+      (mode === "dm" ? "<p class=\"dnote\">若收不到私訊：到這個 Discord 伺服器的「隱私設定」，打開「允許來自伺服器成員的私人訊息」。</p>" : "") +
+      (mode ? "" : "<p class=\"dnote\">" + (syncState.ok === false ? "讀不到通知方式：" + esc(syncState.err) : "讀取通知方式中…") + "</p>") +
+      "<div class=\"btnrow\"><button type=\"button\" class=\"dbtn\" data-act=\"sync-now\">立即同步</button>" +
+      "<button type=\"button\" class=\"dbtn\" data-act=\"sync-logout\">登出</button></div>" +
+      "<p class=\"dnote\" id=\"sy-state\" role=\"status\" aria-live=\"polite\">" + esc(syncStatusText()) + "</p>";
+    return h;
+  }
+  function syncStatusText() {
+    return syncState.busy ? "同步中…"
+      : syncState.ok === true ? "已同步：伺服器上你的清單有 " + syncState.count + " 筆。"
+      : syncState.ok === false ? "同步失敗：" + syncState.err + "（本機名單不受影響）" : "";
+  }
+  function renderSyncSection() {
+    var el = $("sync-sec");
+    if (!el) return;
+    var had = el.contains(document.activeElement) && document.activeElement.name === "s-notify";
+    el.innerHTML = syncSectionInner();
+    if (had) { var r = el.querySelector("input[name=\"s-notify\"]:checked"); if (r) r.focus(); }
   }
   function syncMsg(text, bad) {
     var m = $("sy-state");
     if (!m) return;
     m.textContent = text; m.className = "dnote" + (bad ? " dmsg--bad" : "");
   }
-  // Settings-form inputs -> a usable cfg (a blank key field keeps the saved key).
-  function syncFormCfg() {
-    var url = cleanSyncUrl($("sy-url").value);
-    if (!url) { syncMsg("同步網址要以 https:// 開頭（本機測試可用 http://127.0.0.1）。", true); return null; }
-    var key = $("sy-key").value.trim() || (sync ? sync.key : "");
-    if (!key) { syncMsg("請貼上同步金鑰。", true); return null; }
-    return { url: url, key: key };
-  }
   function onSyncAct(act) {
-    if (act === "sync-clear") {
-      dropSync(); renderDrawer(); syncMsg("已清除同步設定，名單繼續保留在本機。", false); refreshStars(); return;
-    }
-    var cfg = syncFormCfg();
-    if (!cfg) return;
-    syncMsg("連線中…", false);
-    if (act === "sync-test") {
-      syncCall(cfg, "GET").then(function (items) { syncMsg("連線成功：伺服器上有 " + items.length + " 筆。", false); },
-        function (err) { syncMsg("連線失敗：" + err.message, true); });
+    if (act === "sync-logout") {
+      logout(); renderSyncSection(); refreshStars();
+      var b = document.querySelector(".dbtn--discord"); if (b) b.focus();
+      showToast("已登出 Discord。觀察名單繼續保留在這個瀏覽器。", true);
       return;
     }
-    var same = sync && sync.url === cfg.url && sync.key === cfg.key;
-    sync = { url: cfg.url, key: cfg.key, known: same ? sync.known : [], pendingRemove: same ? sync.pendingRemove : [] };
-    synced = {}; syncState.ok = null;
-    saveSync();
-    $("sy-key").value = "";
-    syncAll().then(function () {
-      syncMsg(syncState.ok ? "已同步：伺服器與本機合併後共 " + watch.length + " 筆。" : "同步失敗：" + syncState.err + "（設定已儲存，之後會重試）", !syncState.ok);
+    if (act === "sync-now") {
+      syncMsg("同步中…", false);
+      syncAll();
+    }
+  }
+  function onNotifyChange(el) {
+    var mode = el.value, prev = notifyMode;
+    if (mode !== "channel" && mode !== "dm" || mode === prev) return;
+    notifyMode = mode; renderSyncSection(); syncMsg("儲存中…", false);
+    meCall("POST", "/api/me/notify", { mode: mode }).then(function (j) {
+      if (!j || (j.notify !== "channel" && j.notify !== "dm")) throw friendly("伺服器回傳格式不對");
+      notifyMode = j.notify; renderSyncSection();
+      syncMsg(j.notify === "dm" ? "已改成：機器人私訊。" : "已改成：在 #關注 頻道 @你。", false);
+    }).catch(function (err) {
+      notifyMode = loggedIn() ? prev : null; renderSyncSection();
+      syncMsg("沒有改成功：" + (err && err.message ? err.message : "同步失敗"), true);
     });
   }
   function aboutHtml() {
@@ -1280,7 +1376,7 @@
       "每個交易日收盤後（台北 14:10 左右）掃描一次；4 小時線一天兩根：09:00–13:00、13:00–13:30。</p>" +
       "<p>兩邊都只用已收盤的 K 線，頁首會寫出該市場的資料更新時間。</p>" +
       "<p><strong>這是型態偵測工具，不是投資建議。</strong>型態成立不代表價格會上漲，請自行判斷風險。</p>" +
-      "<p>觀察名單與設定預設只存在這個瀏覽器（localStorage）；若在「設定 → 雲端同步」填了機器人網址與金鑰，觀察名單會和 Discord 機器人的關注清單同步。換裝置也可以用「設定」裡的匯出／匯入。</p>" +
+      "<p>觀察名單與設定預設只存在這個瀏覽器（localStorage）；在「設定 → 雲端同步」用 Discord 登入後，觀察名單會和你在 Discord 機器人上的關注清單（每人各一份）同步，狀態改變時機器人會在 #關注 頻道 @你或私訊你。換裝置也可以用「設定」裡的匯出／匯入。</p>" +
       "<p>「右肩已確認」是掃描狀態（右肩已成形、尚未突破頸線），和「觀察名單」是兩回事。</p></div>";
   }
   function renderDrawer() {
@@ -1315,7 +1411,7 @@
     var t = e.target.closest("[data-act]");
     if (!t) return;
     var act = t.getAttribute("data-act");
-    if (act === "sync-save" || act === "sync-test" || act === "sync-clear") { onSyncAct(act); return; }
+    if (act === "sync-now" || act === "sync-logout") { onSyncAct(act); return; }
     if (act === "view") setView(t.getAttribute("data-view"));
     else if (act === "back") setView("menu");
     else if (act === "market") {
@@ -1405,6 +1501,7 @@
         fr.readAsText(f);
         return;
       }
+      if (e.target.name === "s-notify") { onNotifyChange(e.target); return; }
       onSettingChange(e.target);
     });
     $("drawer-body").addEventListener("input", function (e) { if (e.target.type === "range") onSettingChange(e.target); });
@@ -1600,7 +1697,8 @@
         fail(state.market, err);
         try { if (qs && qs.get("drawer") && VIEW_TITLE[qs.get("drawer")]) openDrawer(qs.get("drawer")); } catch (e) { /* ignore */ }
       });
-    if (sync) syncAll();
+    if (loginNotice) showToast(loginNotice, loginOk);
+    if (loggedIn()) syncAll();
   }
 
   start();

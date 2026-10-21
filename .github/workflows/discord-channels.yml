@@ -1,9 +1,15 @@
-# Temporary helper (D34 setup): list the servers and text channels the bot can see, with their IDs.
+# Temporary helper (D34/D35 setup): list the servers and text channels the bot can see, with their IDs, set the
+# interactions endpoint and register the slash commands (/watchlist, /notify).
 # Channel IDs are not secret. The bot token is read from secrets and never printed. Delete after setup.
 name: Discord channel IDs (setup)
 
 on:
   workflow_dispatch:
+    inputs:
+      guild_id:
+        description: "Register the slash commands in this server only (takes effect at once); empty = global (up to 1 h)"
+        required: false
+        default: ""
 
 permissions:
   contents: read
@@ -13,6 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
+      - uses: actions/checkout@v7  # for bot/register-commands.mjs
       - name: List guilds and channels
         env:
           DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
@@ -70,3 +77,23 @@ jobs:
               body = e.read().decode("utf-8", "replace")[:300]
               sys.exit(f"PATCH /applications/@me -> HTTP {e.code}: {body}")
           EOF
+      - name: Register slash commands /watchlist, /notify (D35)
+        env:
+          DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+          DISCORD_GUILD_ID: ${{ inputs.guild_id }}
+        run: |
+          DISCORD_APPLICATION_ID=$(python3 - <<'EOF'
+          import json, os, sys, urllib.request
+          req = urllib.request.Request("https://discord.com/api/v10/applications/@me",
+                                       headers={"Authorization": "Bot " + os.environ["DISCORD_BOT_TOKEN"],
+                                                "User-Agent": "ihs-setup (github actions, 1.0)"})
+          try:
+              with urllib.request.urlopen(req, timeout=20) as r:
+                  print(json.load(r)["id"])
+          except urllib.error.HTTPError as e:
+              sys.exit(f"GET /applications/@me -> HTTP {e.code}")
+          EOF
+          )
+          export DISCORD_APPLICATION_ID
+          echo "application id: $DISCORD_APPLICATION_ID"
+          node bot/register-commands.mjs

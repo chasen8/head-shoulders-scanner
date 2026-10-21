@@ -207,17 +207,24 @@
   以為改了沒生效。設定頁有一句說明。
 - **台股資料還沒產生**（`data/tw/scan.json` 404）：清單區顯示「台股資料還沒產生」與「看加密貨幣」按鈕，篩選與搜尋隱藏。
 
-## 雲端同步（2026-10-22，D34：和 Discord 關注清單共用同一份名單）
+## 雲端同步：用 Discord 登入（2026-10-22，D35；取代 D34 的「同步網址＋同步金鑰」）
 
-- **選用**：設定抽屜「雲端同步（選用）」填「同步網址」（Cloudflare Worker，`bot/`）與「同步金鑰」，存 localStorage `ihs.sync.v1`
-  （`{url, key, known:[pattern_key], pendingRemove:[pattern_key]}`，讀寫 try/catch）。未設定時行為與之前完全相同，只存本機。
-  網址只接受 `https://` 或本機 `http://127.0.0.1|localhost`（避免金鑰被送到明文／亂填的位置）。
-- **金鑰**：輸入框 `type=password`，儲存後不回填（placeholder 寫「已儲存（不顯示）」），空白送出＝沿用已存金鑰；
-  只會出現在 fetch 的 `Authorization: Bearer` 標頭，不進 DOM、console、錯誤訊息、toast。按鈕：儲存並同步、測試連線（用表單內的值，不儲存）、清除（只清同步設定，名單留在本機）。
-- **載入時合併（伺服器為準）**：GET `/api/watchlist` → 伺服器有、本機沒有：加入本機（`added_via`→`via`，缺的欄位由 `pattern_key` 推）；
-  本機有、伺服器沒有：POST add 上傳，**除非這個瀏覽器以前同步過它**（`known`），那代表它在別處（例如 Discord 的取消關注）被移除，本機也刪掉，否則取消會被舊的本機名單復活。
-- **星號**：加入／取消後立刻 POST add／remove；失敗時保留本機並跳小提示（左下 toast，6 秒），取消失敗記進 `pendingRemove`，下次載入先補送再合併；加入失敗下次載入會上傳。
-- **觀察名單畫面**：開了同步才顯示；頂端一行狀態（已連線 N 筆／失敗原因）；每筆右側小雲朵（實線藍＝已同步、虛線灰＝尚未）；
-  `added_via=discord` 的顯示橘色小標「來自 Discord」。伺服器項目沒有分數時只顯示加入時狀態（取自 `last_status`）。
-- **送給伺服器的欄位**：`pattern_key, market(crypto|tw), symbol, name, timeframe, added_at, added_via, last_status(=加入時狀態，避免剛加入就被當成狀態改變), exchange, tv_symbol, status_at_add, score_at_add`。
-- 前端只畫伺服器回傳的值；本機預覽可用任何能回 CORS 的假 API 測（Worker 的 CORS 允許 `http://127.0.0.1:*`）。
+- **選用**：設定抽屜「雲端同步（選用）」。未登入時只有一顆「用 Discord 登入」按鈕（Discord 品牌色 #5865F2 白字，4.6:1）＋一句權限說明
+  （identify：只取名稱與 ID）；不登入時行為與 D27 完全相同，只存本機。舊 localStorage `ihs.sync.v1`（D34 網址＋金鑰）讀到就刪除。
+- **登入流程**：按鈕是一般連結 → `<Worker>/auth/login?return=<目前頁面網址，不含 #>` → Discord 授權 → Worker 302 回原頁，
+  session 放在 **fragment** `#ihs_session=…`。頁面載入時（`start()` 讀 hash 之前）取出 → 存 `ihs.session.v1` → `history.replaceState` 清掉。
+  `#ihs_login_error=cancelled|unavailable|discord` → 左下 toast 說明。Worker 網址是常數 `WORKER_URL`；本機預覽可加
+  `?worker=http://127.0.0.1:PORT`，**只有頁面本身在 127.0.0.1／localhost 時才生效**（避免連結把 session 送去別的伺服器）。
+- **`ihs.session.v1`**：`{token, user_id, username, known:[pattern_key], pendingRemove:[pattern_key]}`，讀寫 try/catch。前端只解碼 token 的
+  payload 來顯示名稱、分辨帳號、判斷是否過期（不驗章，驗章在 Worker）。換帳號登入時 known／pendingRemove 重置。
+- **登入後**：顯示「已用 Discord 登入：名稱」、通知方式兩個 radio（「在 #關注 頻道 @我」／「機器人私訊」，各有一行小字），
+  選私訊時多一行「到伺服器隱私設定允許成員私訊」提示；`GET /api/me` 讀回前 radio 停用並顯示「讀取通知方式中…」。改選即 `POST /api/me/notify`，
+  失敗退回原值並顯示原因。按鈕：立即同步、登出（只清 session，本機星號保留）。
+- **同步**：`/api/me/watchlist`（Bearer session），合併規則沿用 D34：伺服器為準；本機有、伺服器沒有 → 上傳，除非 `known` 裡有（代表在別處被取消，
+  例如 Discord 的取消關注按鈕）；取消失敗記 `pendingRemove` 下次先補送。伺服器每人上限 200 筆，超過的留在本機（雲朵虛線＝未同步）。
+- **過期／被拒（401）**：token 設為 null（保留 known），toast「Discord 登入已過期，請到「設定 → 雲端同步」重新登入。本機星號都還在。」，
+  設定區改回登入按鈕並加橘色提示框；觀察名單頂端狀態行也寫過期。
+- **toast**：預設橘色（警告／失敗）；`toast--ok` 中性色（登入成功、登出）。
+- **觀察名單畫面**：登入過才顯示頂端狀態行與每筆小雲朵（實線藍＝已同步、虛線灰＝尚未）；`added_via=discord` 顯示「來自 Discord」。
+- **送給伺服器的欄位**：`pattern_key, market(crypto|tw), symbol, name, timeframe, added_at, added_via, last_status(=加入時狀態), exchange, tv_symbol, status_at_add, score_at_add`。
+- session 只出現在 fetch 的 `Authorization` 標頭與 localStorage，不進 DOM、console、錯誤訊息、toast。

@@ -339,14 +339,16 @@ embed：標題「GRAMUSDT 日線 右肩形成中／已突破」、交易所與�
   可多選，點選後 Worker 把它們加入關注清單。超過 125 筆分多則訊息。同一則訊息內 custom_id 必須唯一，所以第 2 個起的選單是
   `watch_select_2`、`watch_select_3`…。
 - **沒有機器人**：同一張表格圖改用 webhook 發（沒有選單）。兩者都沒有：只記錄 state。
-- **關注通知**（`notify_watchlist.py`，workflow 的「Notify watchlist changes」步驟，失敗只警告）：需要 `WATCHLIST_API_URL`、
-  `WATCHLIST_SYNC_KEY`（讀 `GET /api/watchlist`）與 `DISCORD_BOT_TOKEN`、`DISCORD_WATCH_CHANNEL_ID`。只看該市場的項目，用
-  `pattern_key` 在本次 scan.json 找目前狀態：與 `last_status` 不同（形成中→右肩確認→已突破、任何→已過期）就發一則 embed＋型態圖＋
-  「取消關注」按鈕（`custom_id=unwatch:<pattern_key>`，超過 100 字元改 `unwatch:`＋sha1 前 16 碼）；型態從 scan.json 消失視為
-  `gone`，只通知一次；第一次看到（`last_status` 為 null）只記錄；台股缺中文名時順便補。送出後 `POST /api/watchlist {"update":[…]}`
-  回寫。缺機器人設定→略過並 log（不記錄，補上設定後才會補發）；缺 API 設定→整個略過。
+- **關注通知**（`notify_watchlist.py`，workflow 的「Notify watchlist changes」步驟，失敗只警告；D35 起**每人一份清單**）：需要
+  `WATCHLIST_API_URL`、`WATCHLIST_SYNC_KEY`（讀 `GET /api/watchlist` → `{"users":[{user_id, notify, items}]}`）與 `DISCORD_BOT_TOKEN`、
+  `DISCORD_WATCH_CHANNEL_ID`。對每個人、只看該市場的項目，用 `pattern_key` 在本次 scan.json 找目前狀態：與該人的 `last_status` 不同
+  （形成中→右肩確認→已突破、任何→已過期）就通知；型態消失視為 `gone`，只通知一次；第一次看到（`last_status` 為 null）只記錄；台股缺中文名時順便補。
+  同一型態的同一變化合併：選「頻道」的人合成**一則** #關注 訊息 `<@id1> <@id2>`（`allowed_mentions` 只允許這些人）；選「私訊」的人由機器人私訊，
+  對方關閉私訊（403）時改在 #關注 @ 他並註明「私訊失敗」。每則都附 embed＋型態圖＋「取消關注」按鈕（`custom_id=unwatch:<pattern_key>`，
+  超過 100 字元改 sha1 前 16 碼；只移除按的人自己的）。送達的人才 `POST /api/watchlist {"update":[{user_id, pattern_key, …}]}` 回寫。
+  缺機器人 token→略過並 log（不記錄，補上設定後才會補發）；缺 API 設定→整個略過。通知方式在 Discord 用 `/notify`、或網站登入後在設定裡改。
 - 密鑰只從環境變數讀（GitHub secrets），不會出現在任何輸出；`--dry-run` 不送、不 POST，預覽圖存到 `--preview-dir`。
-  本機預覽關注通知：`python notify_watchlist.py --dry-run --items-file items.json`（`{"items":[…]}`，不連 API）。
+  本機預覽關注通知：`python notify_watchlist.py --dry-run --users-file users.json`（`{"users":[…]}`，不連 API）。
 
 ### 你要做的步驟（一次性）
 

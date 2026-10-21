@@ -1,8 +1,12 @@
-# Cloudflare Worker：Discord 互動端點 + 關注清單 API（見 ../docs/watchlist-bot-design.md）
-# 不放任何 secret。DISCORD_PUBLIC_KEY、SYNC_KEY 用 `npx wrangler secret put` 設定。
+# Cloudflare Worker：Discord 互動端點 + 每人關注清單 API + 網站 Discord 登入（見 ../docs/watchlist-bot-design.md）
+# 不放任何 secret。DISCORD_PUBLIC_KEY、SYNC_KEY、DISCORD_CLIENT_SECRET、SESSION_SECRET 用 `npx wrangler secret put` 設定。
 name = "ihs-watchlist-bot"
 main = "src/worker.js"
 compatibility_date = "2025-01-01"
+
+[vars]
+# Discord 應用程式的 Client ID（= Application ID，公開資訊，非機密），網站「用 Discord 登入」用（D35）
+DISCORD_CLIENT_ID = "1562504905804222494"
 
 [[kv_namespaces]]
 binding = "WATCHLIST"
