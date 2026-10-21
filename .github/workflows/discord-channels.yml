@@ -1,0 +1,43 @@
+# Temporary helper (D34 setup): list the servers and text channels the bot can see, with their IDs.
+# Channel IDs are not secret. The bot token is read from secrets and never printed. Delete after setup.
+name: Discord channel IDs (setup)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  list:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: List guilds and channels
+        env:
+          DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+        run: |
+          python3 - <<'EOF'
+          import json, os, sys, urllib.request
+          tok = os.environ.get("DISCORD_BOT_TOKEN", "")
+          if not tok:
+              sys.exit("DISCORD_BOT_TOKEN is not set")
+          def get(path):
+              req = urllib.request.Request("https://discord.com/api/v10" + path,
+                                           headers={"Authorization": "Bot " + tok, "User-Agent": "ihs-setup (github actions, 1.0)"})
+              try:
+                  with urllib.request.urlopen(req, timeout=20) as r:
+                      return json.load(r)
+              except urllib.error.HTTPError as e:
+                  sys.exit(f"Discord API {path} -> HTTP {e.code} (token invalid or bot not in a server?)")
+          me = get("/users/@me")
+          print(f"bot user: {me.get('username')} (id {me.get('id')})")
+          guilds = get("/users/@me/guilds")
+          if not guilds:
+              print("the bot is not in any server yet")
+          for g in guilds:
+              print(f"\nserver: {g['name']}  (id {g['id']})")
+              for c in sorted(get(f"/guilds/{g['id']}/channels"), key=lambda c: c.get("position", 0)):
+                  if c.get("type") in (0, 5):  # text / announcement channels
+                      print(f"  #{c['name']}  ->  {c['id']}")
+          EOF
