@@ -30,6 +30,7 @@
   var NECK_ORDER = ["down", "flat", "up"];
   var WL_KEY = "ihs.watchlist.v1";
   var SET_KEY = "ihs.settings.v1";
+  var SYNC_LS = "ihs.sync.v1"; // { url, key, known: [pattern_key], pendingRemove: [pattern_key] } (cloud sync, optional)
   // Filter defaults are shared by both markets; `market` remembers the market viewed last (D29).
   var DEFAULT_SETTINGS = { tf: "all", status: "all", neck: "all", sort: "score", minScore: 0, showLevels: true, showChecks: true,
     market: "crypto", theme: "auto" };
@@ -872,7 +873,8 @@
       added_at: typeof o.added_at === "string" && !isNaN(Date.parse(o.added_at)) ? o.added_at : new Date().toISOString(),
       status_at_add: STATUS_LABEL[o.status_at_add] ? o.status_at_add : null,
       score_at_add: typeof o.score_at_add === "number" && isFinite(o.score_at_add) ? o.score_at_add : null,
-      tv_symbol: str(o.tv_symbol)
+      tv_symbol: str(o.tv_symbol),
+      via: o.via === "discord" || o.via === "site" || o.via === "api" ? o.via : null
     };
   }
   function mergeItems(base, incoming) { // -> { items, added, dup, bad }
@@ -919,18 +921,21 @@
       a.pressed + "\" aria-label=\"" + a.label + "\" title=\"" + a.label + "\">" + STAR_SVG + "</button>";
   }
   function toggleStar(key) {
-    var cur = findWatch(key);
+    var cur = findWatch(key), added = null;
     if (cur) {
       watch = watch.filter(function (w) { return w.pattern_key !== key; });
     } else {
       var r = keyIndex[key];
       if (!r) return;
-      watch.unshift(normItem({ pattern_key: key, symbol: r.symbol, exchange: r.exchange, market: r.market,
+      added = normItem({ pattern_key: key, symbol: r.symbol, exchange: r.exchange, market: r.market,
         timeframe: r.timeframe, added_at: new Date().toISOString(), status_at_add: r.status,
-        score_at_add: r.pattern_score, tv_symbol: r.tv_symbol, name: r.name }));
+        score_at_add: r.pattern_score, tv_symbol: r.tv_symbol, name: r.name, via: "site" });
+      watch.unshift(added);
     }
     saveWatch();
+    delete synced[key];
     refreshStars();
+    if (sync) pushChange(added, key);
   }
   function refreshStars() {
     Array.prototype.forEach.call(document.querySelectorAll(".star"), function (b) {
@@ -945,6 +950,148 @@
       if (!drawerEl().contains(document.activeElement)) focusFirst();
     }
     if (state.onlyWl && state.data) update(true);
+  }
+
+  /* ---------- cloud sync (optional): same list as the Discord bot, via the Cloudflare Worker (bot/) ---------- */
+  var synced = {};     // pattern_key -> true once the server is known to hold it
+  var syncState = { busy: false, ok: null, err: "", count: 0 };
+  var URL_OK = /^(https:\/\/[^\s\/?#]+|http:\/\/(127\.0\.0\.1|localhost)(:\d{1,5})?)(\/[^\s?#]*)?$/;
+  function cleanSyncUrl(u) { u = String(u || "").trim().replace(/\/+$/, ""); return URL_OK.test(u) ? u : null; }
+  var sync = (function () {
+    var raw = readStore(SYNC_LS);
+    var url = raw && typeof raw === "object" ? cleanSyncUrl(raw.url) : null;
+    if (!url || typeof raw.key !== "string" || !raw.key) return null;
+    var strs = function (a) { return Array.isArray(a) ? a.filter(function (k) { return typeof k === "string"; }) : []; };
+    return { url: url, key: raw.key, known: strs(raw.known), pendingRemove: strs(raw.pendingRemove) };
+  })();
+  function saveSync() { if (sync) writeStore(SYNC_LS, sync); }
+  function dropSync() {
+    sync = null; synced = {}; syncState = { busy: false, ok: null, err: "", count: 0 };
+    if (demoMode) return;
+    try { window.localStorage.removeItem(SYNC_LS); } catch (e) { /* ignore */ }
+  }
+  var toastTimer = null;
+  function showToast(text) {
+    var t = $("toast");
+    if (!t) return;
+    t.textContent = text; t.hidden = false;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { t.hidden = true; }, 6000);
+  }
+  function friendly(msg) { var e = new Error(msg); e.friendly = true; return e; }
+  // One request to the Worker. The key only ever goes into the Authorization header of this fetch.
+  function syncCall(cfg, method, body) {
+    var ctl = typeof AbortController === "function" ? new AbortController() : null;
+    var timer = setTimeout(function () { if (ctl) ctl.abort(); }, 10000);
+    var init = { method: method, headers: { Authorization: "Bearer " + cfg.key }, cache: "no-store" };
+    if (ctl) init.signal = ctl.signal;
+    if (body) { init.headers["Content-Type"] = "application/json"; init.body = JSON.stringify(body); }
+    return fetch(cfg.url + "/api/watchlist", init).then(function (res) {
+      clearTimeout(timer);
+      if (res.status === 401) throw friendly("同步金鑰不正確（401）");
+      if (!res.ok) throw friendly("伺服器回應 HTTP " + res.status);
+      return res.json().catch(function () { throw friendly("伺服器回傳的不是 JSON"); });
+    }).then(function (j) {
+      if (!j || !Array.isArray(j.items)) throw friendly("伺服器回傳格式不對");
+      return j.items;
+    }, function (err) {
+      clearTimeout(timer);
+      if (err && err.friendly) throw err;
+      throw friendly("連不上同步伺服器（網址錯誤、離線或被擋）");
+    });
+  }
+  function toServer(w) {
+    return { pattern_key: w.pattern_key, market: rowMarket(w), symbol: w.symbol, name: w.name, timeframe: w.timeframe,
+      added_at: w.added_at, added_via: w.via || "site", last_status: w.status_at_add, exchange: w.exchange,
+      tv_symbol: w.tv_symbol, status_at_add: w.status_at_add, score_at_add: w.score_at_add };
+  }
+  function fromServer(s) {
+    if (!s || typeof s.pattern_key !== "string") return null;
+    var p = s.pattern_key.split("|");
+    var st = STATUS_LABEL[s.status_at_add] ? s.status_at_add : STATUS_LABEL[s.last_status] ? s.last_status : null;
+    return normItem({ pattern_key: s.pattern_key, symbol: s.symbol, exchange: s.exchange || p[0], market: p[1] || null,
+      timeframe: s.timeframe || p[3], name: s.name, added_at: s.added_at, status_at_add: st, score_at_add: s.score_at_add,
+      tv_symbol: s.tv_symbol, via: s.added_via });
+  }
+  function adoptServerSet(cfg, items) { // the server list is now `items`: record it as known + synced
+    synced = {}; cfg.known = [];
+    items.forEach(function (s) { if (s && typeof s.pattern_key === "string") { synced[s.pattern_key] = true; cfg.known.push(s.pattern_key); } });
+    syncState.count = cfg.known.length;
+    saveSync();
+  }
+  // Full merge, server wins: on the server but not here -> add here; here but not on the server -> upload,
+  // unless this browser had synced it before (then it was removed elsewhere, e.g. Discord's cancel button).
+  function syncAll() {
+    if (!sync || syncState.busy) return Promise.resolve();
+    var cfg = sync;
+    syncState.busy = true;
+    var pre = cfg.pendingRemove.length ? syncCall(cfg, "POST", { remove: cfg.pendingRemove }) : Promise.resolve(null);
+    return pre.then(function () {
+      if (cfg.pendingRemove.length) { cfg.pendingRemove = []; saveSync(); }
+      return syncCall(cfg, "GET");
+    }).then(function (serverItems) {
+      var srv = {}, known = {}, have = {}, changed = false, upload = [];
+      serverItems.forEach(function (s) { if (s && s.pattern_key) srv[s.pattern_key] = true; });
+      cfg.known.forEach(function (k) { known[k] = true; });
+      watch.forEach(function (w) { have[w.pattern_key] = true; });
+      serverItems.forEach(function (s) {
+        if (!s || have[s.pattern_key]) return;
+        var it = fromServer(s);
+        if (it && watch.length < 2000) { watch.push(it); have[it.pattern_key] = true; changed = true; }
+      });
+      watch = watch.filter(function (w) {
+        if (srv[w.pattern_key]) return true;
+        if (known[w.pattern_key]) { changed = true; return false; }
+        upload.push(w); return true;
+      });
+      if (changed) saveWatch();
+      if (!upload.length) return serverItems;
+      return syncCall(cfg, "POST", { add: upload.map(toServer) });
+    }).then(function (finalItems) {
+      adoptServerSet(cfg, finalItems);
+      syncState.ok = true; syncState.err = "";
+    }).catch(function (err) {
+      syncState.ok = false; syncState.err = err && err.message ? err.message : "同步失敗";
+      showToast("雲端同步失敗：" + syncState.err + "。已保留本機名單，下次載入會重試。");
+    }).then(function () {
+      syncState.busy = false;
+      refreshStars();
+    });
+  }
+  function pushChange(added, key) { // one star toggled: tell the server now, remember to retry if it fails
+    var cfg = sync;
+    var p;
+    if (added) {
+      cfg.pendingRemove = cfg.pendingRemove.filter(function (k) { return k !== key; });
+      p = syncCall(cfg, "POST", { add: [toServer(added)] });
+    } else {
+      p = syncCall(cfg, "POST", { remove: [key] });
+    }
+    p.then(function (items) {
+      cfg.pendingRemove = cfg.pendingRemove.filter(function (k) { return k !== key; });
+      adoptServerSet(cfg, items);
+      syncState.ok = true; syncState.err = "";
+    }, function (err) {
+      if (!added && cfg.pendingRemove.indexOf(key) < 0) cfg.pendingRemove.push(key);
+      saveSync();
+      syncState.ok = false; syncState.err = err && err.message ? err.message : "同步失敗";
+      showToast("沒有同步到雲端：" + syncState.err + "。已保留在本機，下次載入會重試。");
+    }).then(refreshStars);
+  }
+  var CLOUD_SVG = "<svg viewBox=\"0 0 24 24\" aria-hidden=\"true\" focusable=\"false\"><path d=\"M7 18a4 4 0 0 1-.6-7.96A5.5 5.5 0 0 1 17 8.6a4.7 4.7 0 0 1 .3 9.4z\"/></svg>";
+  function cloudMark(key) {
+    if (!sync) return "";
+    var on = !!synced[key];
+    return "<span class=\"cloud" + (on ? " cloud--on" : "") + "\" title=\"" + (on ? "已同步到雲端" : "尚未同步到雲端") + "\">" + CLOUD_SVG +
+      "<span class=\"vh\">" + (on ? "已同步到雲端" : "尚未同步到雲端") + "</span></span>";
+  }
+  function syncLine() { // one status line above the watchlist; nothing at all when sync is not set up
+    if (!sync) return "";
+    var t = syncState.busy ? "雲端同步中…"
+      : syncState.ok === true ? "雲端同步：已連線，伺服器上有 " + syncState.count + " 筆。"
+      : syncState.ok === false ? "雲端同步失敗：" + syncState.err + "（本機名單不受影響）"
+      : "雲端同步：尚未連線。";
+    return "<p class=\"syncline" + (syncState.ok === false ? " syncline--bad" : "") + "\" role=\"status\">" + esc(t) + "</p>";
   }
 
   /* ---------- drawer ---------- */
@@ -1010,6 +1157,7 @@
   function watchHtml() {
     var h = "<button type=\"button\" class=\"dback\" data-act=\"back\">‹ 選單</button>";
     if (!storageOk) h += "<p class=\"dwarn\">這個瀏覽器停用了網站儲存，觀察名單只在這次開啟期間有效，重新整理後會消失。</p>";
+    h += syncLine();
     if (!watch.length) {
       return h + "<p class=\"dempty\">還沒有加入任何型態。在清單每一列或詳細頁標題旁按星號（☆）就會出現在這裡。</p>";
     }
@@ -1019,7 +1167,8 @@
       var head = "<span class=\"wl__top\"><span class=\"mtag mtag--" + wm + "\">" + esc(MARKETS[wm].label) + "</span>" +
         "<span class=\"sym\">" + symHtml(w) + "</span>" +
         (w.timeframe ? "<span class=\"tf\">" + esc(tfName(w.timeframe)) + "</span>" : "") +
-        (w.exchange ? "<span class=\"mkt\">" + esc(marketText(w)) + "</span>" : "") + "</span>";
+        (w.exchange ? "<span class=\"mkt\">" + esc(marketText(w)) + "</span>" : "") +
+        (w.via === "discord" ? "<span class=\"vtag\">來自 Discord</span>" : "") + cloudMark(w.pattern_key) + "</span>";
       var sub, note = "加入於 " + fmtDay(w.added_at, true) +
         (w.status_at_add ? "，當時 " + STATUS_LABEL[w.status_at_add] : "") +
         (w.score_at_add !== null ? " " + w.score_at_add.toFixed(1) + " 分" : "");
@@ -1063,7 +1212,8 @@
       "<h3 class=\"dh\">詳細頁顯示</h3>" +
       "<label class=\"chk\"><input type=\"checkbox\" data-set=\"showLevels\"" + (settings.showLevels ? " checked" : "") + "><span>在圖上顯示 TP／失效價線</span></label>" +
       "<label class=\"chk\"><input type=\"checkbox\" data-set=\"showChecks\"" + (settings.showChecks ? " checked" : "") + "><span>顯示形狀驗證區塊</span></label>" +
-      "<h3 class=\"dh\">觀察名單備份</h3><p class=\"dnote\">觀察名單只存在這個瀏覽器。換裝置或清除瀏覽資料前，請先匯出。</p>" +
+      syncSettingsHtml() +
+      "<h3 class=\"dh\">觀察名單備份</h3><p class=\"dnote\">觀察名單預設只存在這個瀏覽器（未開雲端同步時）。換裝置或清除瀏覽資料前，請先匯出。</p>" +
       "<div class=\"btnrow\"><button type=\"button\" class=\"dbtn\" data-act=\"export-file\">下載 JSON</button>" +
       "<button type=\"button\" class=\"dbtn\" data-act=\"export-copy\">複製到剪貼簿</button></div>" +
       "<div class=\"fld fld--col\"><label for=\"imp-text\">匯入（貼上匯出的 JSON）</label>" +
@@ -1077,6 +1227,52 @@
       "<button type=\"button\" class=\"dbtn\" data-act=\"clear-no\">取消</button></div></div>" +
       "<p class=\"dmsg\" id=\"d-msg\" role=\"status\" aria-live=\"polite\"></p>";
   }
+  function syncSettingsHtml() {
+    return "<h3 class=\"dh\">雲端同步（選用）</h3><p class=\"dnote\">填入 Discord 機器人的同步網址與金鑰後，星號會和 Discord 的關注清單同步。" +
+      "金鑰只存在這個瀏覽器，不會顯示在其他地方；不填就只存本機。</p>" +
+      "<div class=\"fld fld--col\"><label for=\"sy-url\">同步網址</label><input id=\"sy-url\" class=\"tin\" type=\"url\" inputmode=\"url\" autocomplete=\"off\" " +
+      "spellcheck=\"false\" placeholder=\"https://ihs-watchlist-bot.xxx.workers.dev\" value=\"" + esc(sync ? sync.url : "") + "\"></div>" +
+      "<div class=\"fld fld--col\"><label for=\"sy-key\">同步金鑰</label><input id=\"sy-key\" class=\"tin\" type=\"password\" autocomplete=\"off\" " +
+      "spellcheck=\"false\" placeholder=\"" + (sync ? "已儲存（不顯示），要更換才重新貼上" : "貼上同步金鑰") + "\"></div>" +
+      "<div class=\"btnrow\"><button type=\"button\" class=\"dbtn\" data-act=\"sync-save\">儲存並同步</button>" +
+      "<button type=\"button\" class=\"dbtn\" data-act=\"sync-test\">測試連線</button>" +
+      "<button type=\"button\" class=\"dbtn\" data-act=\"sync-clear\"" + (sync ? "" : " disabled") + ">清除</button></div>" +
+      "<p class=\"dnote\" id=\"sy-state\">" + (sync ? "已設定同步網址 " + esc(sync.url) : "尚未設定，名單只存在這個瀏覽器。") + "</p>";
+  }
+  function syncMsg(text, bad) {
+    var m = $("sy-state");
+    if (!m) return;
+    m.textContent = text; m.className = "dnote" + (bad ? " dmsg--bad" : "");
+  }
+  // Settings-form inputs -> a usable cfg (a blank key field keeps the saved key).
+  function syncFormCfg() {
+    var url = cleanSyncUrl($("sy-url").value);
+    if (!url) { syncMsg("同步網址要以 https:// 開頭（本機測試可用 http://127.0.0.1）。", true); return null; }
+    var key = $("sy-key").value.trim() || (sync ? sync.key : "");
+    if (!key) { syncMsg("請貼上同步金鑰。", true); return null; }
+    return { url: url, key: key };
+  }
+  function onSyncAct(act) {
+    if (act === "sync-clear") {
+      dropSync(); renderDrawer(); syncMsg("已清除同步設定，名單繼續保留在本機。", false); refreshStars(); return;
+    }
+    var cfg = syncFormCfg();
+    if (!cfg) return;
+    syncMsg("連線中…", false);
+    if (act === "sync-test") {
+      syncCall(cfg, "GET").then(function (items) { syncMsg("連線成功：伺服器上有 " + items.length + " 筆。", false); },
+        function (err) { syncMsg("連線失敗：" + err.message, true); });
+      return;
+    }
+    var same = sync && sync.url === cfg.url && sync.key === cfg.key;
+    sync = { url: cfg.url, key: cfg.key, known: same ? sync.known : [], pendingRemove: same ? sync.pendingRemove : [] };
+    synced = {}; syncState.ok = null;
+    saveSync();
+    $("sy-key").value = "";
+    syncAll().then(function () {
+      syncMsg(syncState.ok ? "已同步：伺服器與本機合併後共 " + watch.length + " 筆。" : "同步失敗：" + syncState.err + "（設定已儲存，之後會重試）", !syncState.ok);
+    });
+  }
   function aboutHtml() {
     return "<button type=\"button\" class=\"dback\" data-act=\"back\">‹ 選單</button>" +
       "<div class=\"about\"><p>加密貨幣：幣安、OKX、Gate 的公開 K 線行情，每 4 小時自動掃描一次。</p>" +
@@ -1084,7 +1280,7 @@
       "每個交易日收盤後（台北 14:10 左右）掃描一次；4 小時線一天兩根：09:00–13:00、13:00–13:30。</p>" +
       "<p>兩邊都只用已收盤的 K 線，頁首會寫出該市場的資料更新時間。</p>" +
       "<p><strong>這是型態偵測工具，不是投資建議。</strong>型態成立不代表價格會上漲，請自行判斷風險。</p>" +
-      "<p>觀察名單與設定只存在這個瀏覽器（localStorage），不會上傳到任何地方；換裝置請用「設定」裡的匯出／匯入。</p>" +
+      "<p>觀察名單與設定預設只存在這個瀏覽器（localStorage）；若在「設定 → 雲端同步」填了機器人網址與金鑰，觀察名單會和 Discord 機器人的關注清單同步。換裝置也可以用「設定」裡的匯出／匯入。</p>" +
       "<p>「右肩已確認」是掃描狀態（右肩已成形、尚未突破頸線），和「觀察名單」是兩回事。</p></div>";
   }
   function renderDrawer() {
@@ -1119,6 +1315,7 @@
     var t = e.target.closest("[data-act]");
     if (!t) return;
     var act = t.getAttribute("data-act");
+    if (act === "sync-save" || act === "sync-test" || act === "sync-clear") { onSyncAct(act); return; }
     if (act === "view") setView(t.getAttribute("data-view"));
     else if (act === "back") setView("menu");
     else if (act === "market") {
@@ -1403,6 +1600,7 @@
         fail(state.market, err);
         try { if (qs && qs.get("drawer") && VIEW_TITLE[qs.get("drawer")]) openDrawer(qs.get("drawer")); } catch (e) { /* ignore */ }
       });
+    if (sync) syncAll();
   }
 
   start();

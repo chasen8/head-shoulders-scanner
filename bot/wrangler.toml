@@ -1,0 +1,10 @@
+# Cloudflare Worker：Discord 互動端點 + 關注清單 API（見 ../docs/watchlist-bot-design.md）
+# 不放任何 secret。DISCORD_PUBLIC_KEY、SYNC_KEY 用 `npx wrangler secret put` 設定。
+name = "ihs-watchlist-bot"
+main = "src/worker.js"
+compatibility_date = "2025-01-01"
+
+[[kv_namespaces]]
+binding = "WATCHLIST"
+# 部署前先執行 `npx wrangler kv namespace create WATCHLIST`，把輸出的 id 貼到這裡。
+id = "REPLACE_WITH_KV_NAMESPACE_ID"
