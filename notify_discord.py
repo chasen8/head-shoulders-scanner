@@ -362,10 +362,10 @@ def build_messages(events: list[Mapping[str, Any]], *, extra_summary: str | None
 
 
 def table_title(market: str, now: datetime, n: int) -> str:
-    """"右肩確認（加密貨幣）2026-10-22 08:00 共 12 筆" (UTC for crypto, Taipei time for the Taiwan scan)."""
+    """"右肩確認（加密貨幣）2026-10-22 16:00（台北）共 12 筆" -- Taipei time for both markets (D34)."""
     tw = market == "tw"
-    t = now.astimezone(timezone(timedelta(hours=8)) if tw else timezone.utc)
-    return f"右肩確認（{'台股' if tw else '加密貨幣'}）{t:%Y-%m-%d %H:%M} 共 {n} 筆"
+    t = now.astimezone(timezone(timedelta(hours=8)))
+    return f"右肩確認（{'台股' if tw else '加密貨幣'}）{t:%Y-%m-%d %H:%M}（台北）共 {n} 筆"
 
 
 def select_option(index: int, row: Mapping[str, Any], key: str) -> dict[str, str] | None:

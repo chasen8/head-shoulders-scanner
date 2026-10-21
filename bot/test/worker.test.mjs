@@ -80,6 +80,14 @@ test("watch_select 加入、去重、ephemeral", async () => {
   assert.equal(stored(env).length, 2);
 });
 
+test("watch_select_2…5：同一則表格訊息的第 2～5 個選單也能加入", async () => {
+  const env = mkEnv();
+  const res = await call(env, await signed({ type: 3, data: { custom_id: "watch_select_2", values: [KEY2] } }));
+  const j = await res.json();
+  assert.match(j.data.content, /已加入關注：2330 1d/);
+  assert.equal(stored(env).length, 1);
+});
+
 test("unwatch 按鈕：完整 key 與 sha1 版本", async () => {
   const env = mkEnv();
   await call(env, await signed({ type: 3, data: { custom_id: "watch_select", values: [KEY1, KEY2] } }));

@@ -23,6 +23,7 @@
 - 2026-10-19：觀察名單、☰ 選單、頸線斜率篩選上線（D27），243 測試全綠，公開網站已更新。
 - 2026-10-19：TP1 改對數斐波那契 1.414（D28）；台股上線（D29），271 測試全綠，公開網站同時有加密貨幣 151 筆與台股 665 筆。
 - 2026-10-21：夜間模式（D31）與 Discord 附圖、全部列出（D32）上線，289 測試全綠。已知：台股 4h 每天只有 2 根，1000 根上限≈2 年，型態可能過長，待使用者決定是否縮短台股 4h 上限。
+- 2026-10-22：D34 程式完成（pytest 324、Worker node 測試 11 全綠）；待使用者：註冊 Cloudflare、建 Discord 機器人並 `gh secret set DISCORD_BOT_TOKEN`、提供 Application ID／Public Key／兩個頻道 ID，之後主對話部署 Worker 與設定金鑰。
 ## 決策記錄
 格式：日期｜決定｜原因｜何時可推翻
 
@@ -59,3 +60,4 @@
 - D31 2026-10-21｜網站加夜間模式（TradingView 深色）：頁首 ☾／☀ 一鍵切換＋設定「外觀」淺色／夜間／跟隨系統，存 `ihs.settings.v1.theme`，預設跟隨系統（使用者指定）；head 內嵌 script 先套用避免白閃；圖表即時改色（`app.js` `PALETTE`）。取代 site-design.md「暫不做暗色模式」｜使用者要求｜使用者想把預設改為跟隨系統或拿掉
 - D32 2026-10-21｜Discord 每張卡片附型態圖（`ihs_scanner/chart_image.py`，matplotlib 1200×675、圖內文字英數、只畫 bars 檔的值）；multipart 上傳，每則 ≤10 embed、附件 <7.5MB；取消 20 筆上限與「未列出」摘要，全部逐筆送（保險上限 `NOTIFY_MAX_EVENTS` 預設 200）；圖產生失敗則該筆不附圖照送；workflow 加 `test_message`｜使用者要求附圖並全部列出（台股首日 55 筆中 35 筆被收進摘要）｜通知太多時改回上限或提高分數門檻
 - D33 2026-10-21｜台股 4h 型態長度上限改 300 根（約半年），用 `config.MARKET_OVERRIDES["tw"]`＋`market_config()` 只對台股生效；加密貨幣與台股 1d/1w 不變｜台股 4h 每天只有 2 根，1000 根≈2 年，型態過長且不像（例：1101 4h 跨一年多）；使用者同意｜台股 4h 結果太少或使用者要更長時
+- D34 2026-10-22｜右肩確認改為每次掃描一則表格（圖＋下拉選單 watch_select/_2…，台北時間標題）；右肩形成中與突破維持逐筆附圖；關注清單＝Discord 機器人＋Cloudflare Worker（`bot/`，KV 儲存，/interactions 驗簽、/api/watchlist Bearer SYNC_KEY），網站星號可選擇雲端同步；關注頻道只通知狀態改變（含消失），每則附圖＋取消關注按鈕；未設定機器人／Worker 時自動降級｜使用者選方案 C（即時點選、網站同步）｜設計見 `docs/watchlist-bot-design.md`；KV 無鎖，同秒寫入可能覆蓋（個人使用可接受）

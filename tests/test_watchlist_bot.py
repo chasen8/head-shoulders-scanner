@@ -115,7 +115,7 @@ def test_watchlist_goes_into_table_not_one_by_one_forming_confirmed_stay(tmp_pat
         ["AAAUSDT 4小時線 右肩形成中", "CCCUSDT 4小時線 已突破"]
     (t,) = tables(net)
     assert t["url"] == f"https://discord.com/api/v10/channels/{MAIN}/messages"
-    assert t["payload"]["content"] == "右肩確認（加密貨幣）2026-10-22 08:00 共 2 筆"
+    assert t["payload"]["content"] == "右肩確認（加密貨幣）2026-10-22 16:00（台北）共 2 筆"
     assert t["headers"]["Authorization"] == f"Bot {BOT}"
     assert len(t["files"]) == 1 and t["files"][0][1][2] == "image/png"
     opts = t["payload"]["components"][0]["components"][0]
@@ -137,7 +137,7 @@ def test_tw_table_title_label_and_taipei_time(tmp_path, net):
     scan, st = write_scan(tmp_path, [tw_row("2330", "台積電", score=78), tw_row("2317", None, score=70)], "tw")
     go(scan, st, bot_token=BOT, main_channel=MAIN)
     (t,) = tables(net)
-    assert t["payload"]["content"] == "右肩確認（台股）2026-10-22 16:00 共 2 筆"  # UTC 08:00 = Taipei 16:00
+    assert t["payload"]["content"] == "右肩確認（台股）2026-10-22 16:00（台北）共 2 筆"  # UTC 08:00 = Taipei 16:00
     labels = [o["label"] for o in t["payload"]["components"][0]["components"][0]["options"]]
     assert labels == ["#1 2330 台積電 1d 78分", "#2 2317 1d 70分"]
 

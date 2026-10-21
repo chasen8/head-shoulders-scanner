@@ -22,7 +22,7 @@ BG, TEXT, MUTED, ZEBRA, HEAD_BG, LINE = "#FFFFFF", "#131722", "#6A6D78", "#F5F7F
 POS, NEG = "#089981", "#F23645"
 CJK_FONTS = ("Microsoft JhengHei", "Microsoft YaHei", "Noto Sans CJK TC", "Noto Sans CJK JP", "Noto Sans CJK SC",
              "PingFang TC", "WenQuanYi Zen Hei", "WenQuanYi Micro Hei", "Droid Sans Fallback", "SimHei")
-HEADERS = ["#", "Symbol", "TF", "Score", "Price", "To neckline", "Slope %/bar", "TP1", "TP2"]
+HEADERS = ["#", "Symbol", "TF", "Score", "Price", "To neckline", "Neckline N1>N2", "TP1", "TP2"]
 WIDTHS = [0.045, 0.215, 0.05, 0.075, 0.12, 0.11, 0.115, 0.135, 0.135]  # sums to 1.0
 WIDTH_PX, ROW_PX, HEAD_PX, TITLE_PX, DPI = 1200, 34, 40, 52, 100
 
@@ -83,7 +83,7 @@ def table_cells(index: int, row: Mapping[str, Any], *, tw: bool, with_name: bool
             dist = None
     close = row.get("current_close")
     return [str(index), sym, str(row.get("timeframe", "")), f"{float(row.get('pattern_score') or 0):.1f}",
-            _price(close, tw=tw), _signed_pct(dist), _signed_pct(row.get("neckline_slope_pct_per_bar"), 3),
+            _price(close, tw=tw), _signed_pct(dist), _signed_pct(row.get("neckline_change_pct"), 1),  # D27 total neckline change, same as the site filter
             _price(row.get("tp1"), close, tw=tw), _price(row.get("tp2"), close, tw=tw)]
 
 

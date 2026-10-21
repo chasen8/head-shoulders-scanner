@@ -203,7 +203,7 @@ async function handleInteraction(body, env) {
 
   if (body.type === 3 && body.data) {
     const cid = String(body.data.custom_id || "");
-    if (cid === "watch_select") {
+    if (cid === "watch_select" || cid.startsWith("watch_select_")) { // a table message may carry up to 5 menus
       const values = Array.isArray(body.data.values) ? body.data.values : [];
       const valid = [];
       let bad = 0;
