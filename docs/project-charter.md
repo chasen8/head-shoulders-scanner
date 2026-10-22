@@ -28,6 +28,7 @@
 - 2026-10-22：D36 上線（352 測試全綠，含 BTC/AT/LDO 三個新黃金案例）。
 - 2026-10-22：Discord 登入實測成功（使用者 hua0945）；repo 公開（D37）；開始三角收斂型態（調研中）。
 - 2026-10-22：收斂三角上線（D38，382 測試全綠；幣安現貨 48 筆、偵測 7.9 秒）。待使用者：每種三角形 3–5 個範例校準；是否發 Discord、是否只列方向一致的突破。
+- 2026-10-23：止盈通知與台股 Excel 匯出上線（D39，419 測試全綠）；加密止盈頻道已驗證可找到。
 ## 決策記錄
 格式：日期｜決定｜原因｜何時可推翻
 
@@ -69,3 +70,4 @@
 - D36 2026-10-22｜依使用者三個對照案例修偵測：(A) 突破改用 high（影線穿過頸線即突破，`breakout_price`，template 預設 high）；(B) 突破優先：同一 H 已有有效候選突破後，之後 RS 的候選不成立（例外：前者突破失敗、或後者頸線排名較好），避免把突破後高點當 N2；(C) 碰頸線不算 V1 違規（在碰頸線處切段）並輸出 `neckline_touches`；去重順序：已突破→碰頸線多→下斜→分數；1w 頸線角度上限 45°；T8 改用實體低點；1w 有效下斜型態取代重疊的 1d 上斜型態（`superseded`）｜BTC 1d 誤判未突破、AT 4h 插針未算突破、LDO 週線下斜頸線沒抓到｜黃金測試 `tests/test_golden_d36.py` 鎖住；規則 B 兩個例外由 TRUST／PENDLE 反推；T8 改實體會放進 MINA 類尖峰型態；快照 84→64 筆
 - D37 2026-10-22｜程式 repo `chasen8/head-shoulders-scanner` 改為**公開**（使用者同意）；公開前檢查 git 歷史無金鑰、無個人 email（commit 用 noreply），刪除會印出伺服器頻道名稱的 setup workflow 執行紀錄並移除該步驟；secrets 不受影響；網站仍由 `head-shoulders-site` 提供｜公開 repo 的 Actions 免費不限分鐘，解除 2000 分鐘限制（取代 D16 的私有決定）｜注意：公開 repo 的排程在 60 天無提交活動時會被 GitHub 停用（scan-state 每次推送應可維持活動）
 - D38 2026-10-22｜新增收斂三角（上升／下降／對稱）：`ihs_scanner/triangles.py`＋獨立 `TRIANGLE_CONFIG`；log 價擬合阻力／支撐線、觸碰 ≥2+2 合計 ≥5、以漂移佔 H0 比例分類、apex 在右、收盤 0.5%／高低 1% 包住、突破預設收盤＋緩衝、目標＝最寬高度投射、保守目標用 Bulkowski 達標比例；同一次掃描輸出 `site/data/(tw/)triangles.json`＋`tri_bars/`，失敗不影響頭肩底；網站 ☰ 選單「收斂三角」獨立清單（`?view=triangles`），暫不提供星號與 Discord｜使用者要求，先不放首頁｜門檻為 `docs/triangle-research.md` 初值，尚未用使用者範例校準；下降三角多數向上突破（符合 Bulkowski 53%）
+- D39 2026-10-23｜止盈通知：追蹤頭肩底 confirmed（突破價＝breakout_level）與三角形 breakout_up（TP1＝保守目標、TP2＝目標），每次抓被追蹤標的已收盤 K 線，high 達 TP1／TP2 各通知一次（TP2 後結束）、TP1 前跌破失效價 failed（預設不通知，同根衝突算 failed）、期限 4h 180／1d 120／1w 52 根；首次只記錄不補發；追蹤檔 `tp_tracker(_tw).json` 存 scan-state；機器人以名稱解析頻道「台股止盈」「加密止盈」（DISCORD_GUILD_ID）；台股右肩已確認 Excel 每次掃描輸出 `site/data/tw/rs_confirmed.xlsx`，網站可下載｜使用者要求｜TP1 之後回落是否改停損於突破價待使用者決定
