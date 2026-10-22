@@ -17,6 +17,14 @@ holdIn    = input.int(0, "最長持有根數（0＝依週期：4h 180／日 120�
 waitIn    = input.int(0, "右肩後最多等幾根突破（0＝依週期：4h 30／日 20／週 8）", minval = 0, group = grpE)
 tp1Level  = input.float(1.414, "TP1 對數斐波那契倍數", minval = 1.0, group = grpE)
 
+// ───────────── 高勝率模式與分數（回測：台股日／週線 A＋TP1，勝率約 41.8% → 72.9%，每筆平均 +2.9% → +1.6%） ─────────────
+grpH = "高勝率模式／分數"
+hiMode    = input.bool(false, "高勝率模式：只做水平／上斜頸線＋收盤突破", group = grpH)
+neckMin   = input.float(-3.0, "頸線 N2/N1 漲跌下限 %", group = grpH)
+neckMax   = input.float(20.0, "頸線 N2/N1 漲跌上限 %（另受「頸線上升上限」限制）", group = grpH)
+brkMinPct = input.float(2.0, "收盤至少高出頸線 %", minval = 0.0, group = grpH)
+minScore  = input.float(0.0, "最低分數（0＝不篩；網站同公式 0–100）", minval = 0.0, maxval = 100.0, group = grpH)
+
 // ───────────── 型態門檻 ─────────────
 grpP = "型態門檻"
 autoTF      = input.bool(true, "依週期自動帶入門檻（關閉才使用下面的手動值）", group = grpP)
@@ -83,6 +91,9 @@ var float vN2 = na
 var float vRS = na
 var float pRise = na
 var int   pDetect = na
+var float pDiff = na    // |左肩跌幅 − 右肩跌幅|
+var float pProm = na    // 頭部突出度
+var float pTilt = na    // |N2 − N1| ÷ 頭高
 
 neckAt(int x) =>
     vN1 + (vN2 - vN1) * (x - iN1) / (iN2 - iN1)
@@ -102,6 +113,8 @@ if not na(pl) and strategy.position_size == 0 and plI.size() >= 3
     float pH  = na
     float pN2 = na
     float bRise = na
+    float bProm = na
+    float bTilt = na
     float minLater = 1e18   // H 與 RS 之間轉折低點的最小值（H 必須比它們低）
     for j = nL - 2 to 1
         int   hI = plI.get(j)
@@ -161,6 +174,9 @@ if not na(pl) and strategy.position_size == 0 and plI.size() >= 3
                                  and (shAvg - hP) / shAvg >= minDepth
                                  and math.abs(n2P - n1P) <= maxTilt * headH
                                  and n2P / n1P - 1.0 <= maxNeckRise / 100.0
+                            if hiMode
+                                float nchg = n2P / n1P - 1.0
+                                ok := ok and nchg >= neckMin / 100.0 and nchg <= neckMax / 100.0
                             if ok and diff < bestDiff
                                 // 頸線乾淨：N1～RS 之間（N2 除外）收盤與最高價不得明顯站上頸線
                                 bool clean = true
@@ -182,6 +198,8 @@ if not na(pl) and strategy.position_size == 0 and plI.size() >= 3
                                     pH  := hP
                                     pN2 := n2P
                                     bRise := rise
+                                    bProm := prom
+                                    bTilt := math.abs(n2P - n1P) / headH
                     minLSH := math.min(minLSH, lsP)
         minLater := math.min(minLater, hP)
     if not na(bH)
@@ -197,6 +215,9 @@ if not na(pl) and strategy.position_size == 0 and plI.size() >= 3
         vN2 := pN2
         vRS := rsP
         pRise := bRise
+        pDiff := bestDiff
+        pProm := bProm
+        pTilt := bTilt
         pDetect := bar_index
         if showPattern
             color c = color.new(#2962FF, 0)
@@ -229,8 +250,10 @@ if pActive and strategy.position_size == 0
             goLong := true
         pActive := false                          // B 只在確認當根進場一次
     else
-        float px = useWick ? high : close
-        if px > neckNow * (1 + bufPct)
+        // 高勝率模式：收盤價要高出頸線 brkMinPct%；一般模式：影線／收盤＋突破緩衝
+        float px  = hiMode ? close : (useWick ? high : close)
+        float thr = hiMode ? neckNow * (1 + brkMinPct / 100.0) : neckNow * (1 + bufPct)
+        if px > thr
             goLong := true
             pActive := false
         else if bar_index - iRS > waitMax
@@ -239,8 +262,17 @@ if pActive and strategy.position_size == 0
         float mid = (vN1 + vN2) / 2.0
         float t1 = vH * math.pow(mid / vH, tp1Level)
         float t2 = neckNow * (1 + pRise)
-        // 停損要在進場價下方、停利要在上方，否則不進場（例如上斜頸線時 TP1 可能已低於進場價）
-        if vRS < close and t1 > close and t2 > close
+        // 分數（與網站 template 公式相同）：左右肩對稱 30＋頭部深度 25＋頸線平緩 25＋突破／接近頸線 20
+        float sShoulder = 30.0 * math.max(0.0, 1.0 - pDiff / (maxDropDiff / 100.0))
+        float sHead = 12.5 * math.min(1.0, math.max(0.0, (pProm - 1.0) / 0.5)) + 12.5 * math.min(1.0, math.max(0.0, pRise / 0.40))
+        float sNeck = 25.0 * math.max(0.0, 1.0 - pTilt / maxTilt)
+        float sBrk = entryMode == "A 突破確認" ? 20.0 : 20.0 * math.max(0.0, 1.0 - math.abs(close - neckNow) / neckNow / 0.30)
+        float score = sShoulder + sHead + sNeck + sBrk
+        // 停損要在進場價下方、停利要在上方、分數要達標，否則不進場（例如上斜頸線時 TP1 可能已低於進場價）
+        if vRS < close and t1 > close and t2 > close and score >= minScore
+            if showPattern
+                label.new(bar_index, low, "分數 " + str.tostring(score, "#.0"), style = label.style_label_up,
+                     color = color.new(#2962FF, 85), textcolor = #2962FF, size = size.small)
             slPx := vRS
             tp1Px := t1
             tp2Px := t2
