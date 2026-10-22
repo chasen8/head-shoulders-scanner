@@ -478,3 +478,22 @@ def test_tw_build_writes_its_own_triangles(tmp_path, monkeypatch):
         assert r["tv_symbol"] == ("TWSE:" if r["exchange"] == "twse" else "TPEX:") + r["symbol"]
         assert r["pattern_key"].startswith(f"tri|{r['exchange']}|stock|{r['symbol']}|4h|")
         assert (out.parent / r["chart_file"]).exists()
+
+
+
+def test_invalidation_is_on_the_other_side_of_the_breakout():  # D41 fix: real TW 6143 1d (TPEx)
+    """Descending triangle broken upward close to the apex: the newest support pivot (79.30) sat above the
+    resistance at the breakout bar (77.44), so the old invalidation was ABOVE the breakout price."""
+    import pandas as pd
+    from pathlib import Path
+    df = pd.read_csv(Path(__file__).parent / "fixtures" / "6143-TPEX_yahoo_1d_triangle.csv")
+    for col in ("timestamp", "close_time"):
+        if col in df:
+            df[col] = pd.to_datetime(df[col], utc=True)
+    res = [r for r in detect_triangles(df, "1d", {"include_stale": True}, symbol="6143") if r.get("breakout_time")]
+    assert res, "the 6143 breakout should be detected"
+    for r in res:
+        if r["breakout_direction"] == "up":
+            assert r["invalidation_price"] < r["breakout_price"], r
+        else:
+            assert r["invalidation_price"] > r["breakout_price"], r

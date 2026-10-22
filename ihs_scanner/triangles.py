@@ -341,12 +341,15 @@ def _build(S: _Series, c: Mapping[str, Any], cfg: Mapping[str, Any], timeframe: 
     target_cons = brk_price + sign * height * rate
     # invalidation (report 5.8): up -> the newest pivot low of the pattern; down -> ascending: the resistance
     # price at the breakout (or now), others: the newest pivot high
+    # D41 fix: the invalidation must sit on the other side of the breakout price. A newest pivot that lies
+    # beyond the line at the breakout bar (lines already crossed) would otherwise put it above an up-breakout.
+    at = end if broke else last
     if direction == "up":
-        inval = float(S.low[int(c["all_l"][-1])])
+        inval = min(float(S.low[int(c["all_l"][-1])]), sup_price(at))
     elif ttype == "ascending":
-        inval = res_price(end if broke else last)
+        inval = res_price(at)
     else:
-        inval = float(S.high[int(c["all_h"][-1])])
+        inval = max(float(S.high[int(c["all_h"][-1])]), res_price(at))
     # current position
     lc_now = S.lc[last]
     gap_now = R(last) - Sl(last)
