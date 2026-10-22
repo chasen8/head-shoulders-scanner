@@ -1,1 +1,316 @@
-淤   屋ㄒ使78ㄘㄨ
+//@version=6
+// 頭肩底策略（依 頭肩底V2 掃描器 template 規則簡化移植；型態偵測工具，非投資建議）
+// 進場：A 突破確認（價格站上頸線）／B 右肩確認（右肩低點確認、尚未突破）
+// 停損：右肩 RS 低點；停利：TP1＝H×(頸線中點/H)^1.414、TP2＝突破價×(1＋頭到頸線漲幅)、或半半保本
+// 與掃描器的差異：沒有形狀驗證 V1–V4、頭部 ATR、頸線影線、突破優先去重與「右肩形成中」，訊號會較多。
+strategy("頭肩底策略 IHS", overlay = true, max_bars_back = 2000, max_lines_count = 500, max_labels_count = 500,
+     initial_capital = 100000, default_qty_type = strategy.percent_of_equity, default_qty_value = 10,
+     commission_type = strategy.commission.percent, commission_value = 0.1, pyramiding = 0,
+     process_orders_on_close = true)
+
+// ───────────── 進出場 ─────────────
+grpE = "進出場"
+entryMode = input.string("A 突破確認", "進場方式", options = ["A 突破確認", "B 右肩確認"], group = grpE)
+exitMode  = input.string("TP1", "停利", options = ["TP1", "TP2", "半半保本"], group = grpE)
+useWick   = input.bool(true, "最高價（影線）穿過頸線就算突破；關閉＝收盤價", group = grpE)
+holdIn    = input.int(0, "最長持有根數（0＝依週期：4h 180／日 120／週 52）", minval = 0, group = grpE)
+waitIn    = input.int(0, "右肩後最多等幾根突破（0＝依週期：4h 30／日 20／週 8）", minval = 0, group = grpE)
+tp1Level  = input.float(1.414, "TP1 對數斐波那契倍數", minval = 1.0, group = grpE)
+// 停利越近勝率越高、每筆報酬越低（回測：停利距離 < 0.5 倍停損時勝率約 82%、每筆約 +0.5%）
+tpMode    = input.string("斐波那契 TP1／TP2", "停利目標算法", options = ["斐波那契 TP1／TP2", "固定 R 倍數", "頸線＋頭高倍數"], group = grpE)
+rMult1    = input.float(1.0, "固定 R：TP1＝進場＋N×停損距離", minval = 0.1, group = grpE)
+rMult2    = input.float(2.0, "固定 R：TP2＝進場＋N×停損距離", minval = 0.1, group = grpE)
+hMult1    = input.float(0.618, "頸線＋頭高：TP1＝頸線＋N×頭高", minval = 0.1, group = grpE)
+hMult2    = input.float(1.0, "頸線＋頭高：TP2＝頸線＋N×頭高", minval = 0.1, group = grpE)
+
+// ───────────── 高勝率模式與分數（回測：台股日／週線 A＋TP1，勝率約 41.8% → 72.9%，每筆平均 +2.9% → +1.6%） ─────────────
+grpH = "高勝率模式／分數"
+hiMode    = input.bool(false, "高勝率模式：只做水平／上斜頸線＋收盤突破", group = grpH)
+neckMin   = input.float(-3.0, "頸線 N2/N1 漲跌下限 %", group = grpH)
+neckMax   = input.float(20.0, "頸線 N2/N1 漲跌上限 %（另受「頸線上升上限」限制）", group = grpH)
+brkMinPct = input.float(2.0, "收盤至少高出頸線 %", minval = 0.0, group = grpH)
+minScore  = input.float(0.0, "最低分數（0＝不篩；網站同公式 0–100）", minval = 0.0, maxval = 100.0, group = grpH)
+
+// ───────────── 型態門檻 ─────────────
+grpP = "型態門檻"
+autoTF      = input.bool(true, "依週期自動帶入門檻（關閉才使用下面的手動值）", group = grpP)
+pivIn       = input.int(5, "轉折點左右根數 N", minval = 2, group = grpP)
+minDropIn   = input.float(8.0, "肩膀最小跌幅 %（自動：4h 6／日 8／週 10）", group = grpP)
+minRiseIn   = input.float(15.0, "頭到頸線最小漲幅 %（自動：4h 12／日 15／週 20）", group = grpP)
+minDepthIn  = input.float(5.0, "頭低於兩肩平均 %（自動：4h 3／日週 5）", group = grpP)
+minBarsIn   = input.int(40, "型態最短根數 LS→RS（自動：4h 60／日 40／週 16）", group = grpP)
+maxBarsIn   = input.int(600, "型態最長根數 LS→RS（自動：4h 1000／日 600／週 200）", group = grpP)
+bufIn       = input.float(1.0, "突破緩衝 %（自動：4h 0.5／日週 1）", group = grpP)
+maxDropDiff = input.float(5.0, "兩肩跌幅最大差（百分點）", group = grpP)
+maxDropRel  = input.float(25.0, "兩肩跌幅最大相對差 %", group = grpP)
+minProm     = input.float(1.1, "頭部突出度下限（頭漲幅÷肩反彈）", group = grpP)
+maxTilt     = input.float(0.75, "頸線傾斜上限（頭高倍數）", group = grpP)
+maxNeckRise = input.float(10.0, "頸線上升上限 %", group = grpP)
+cleanClose  = input.float(0.5, "N1～RS 收盤高於頸線容忍 %", group = grpP)
+cleanHigh   = input.float(1.0, "N1～RS 最高價高於頸線容忍 %", group = grpP)
+showPattern = input.bool(true, "在圖上畫出型態", group = grpP)
+
+isW     = timeframe.isweekly or timeframe.ismonthly
+isIntra = timeframe.isintraday
+pivN    = autoTF ? (isW ? 3 : 5) : pivIn
+minDrop = (autoTF ? (isW ? 10.0 : isIntra ? 6.0 : 8.0) : minDropIn) / 100.0
+minRise = (autoTF ? (isW ? 20.0 : isIntra ? 12.0 : 15.0) : minRiseIn) / 100.0
+minDepth = (autoTF ? (isIntra ? 3.0 : 5.0) : minDepthIn) / 100.0
+minBars = autoTF ? (isW ? 16 : isIntra ? 60 : 40) : minBarsIn
+maxBars = autoTF ? (isW ? 200 : isIntra ? 1000 : 600) : maxBarsIn
+bufPct  = (autoTF ? (isIntra ? 0.5 : 1.0) : bufIn) / 100.0
+holdMax = holdIn > 0 ? holdIn : (isW ? 52 : isIntra ? 180 : 120)
+waitMax = waitIn > 0 ? waitIn : (isW ? 8 : isIntra ? 30 : 20)
+
+// ───────────── 已確認的轉折點（右邊 N 根走完才確認，不偷看未來） ─────────────
+var array<int>   plI = array.new<int>()
+var array<float> plP = array.new<float>()
+var array<int>   phI = array.new<int>()
+var array<float> phP = array.new<float>()
+
+pl = ta.pivotlow(low, pivN, pivN)
+ph = ta.pivothigh(high, pivN, pivN)
+if not na(ph)
+    phI.push(bar_index - pivN)
+    phP.push(ph)
+if not na(pl)
+    plI.push(bar_index - pivN)
+    plP.push(pl)
+while plI.size() > 0 and bar_index - plI.get(0) > maxBars + 2 * pivN
+    plI.shift()
+    plP.shift()
+while phI.size() > 0 and bar_index - phI.get(0) > maxBars + 2 * pivN
+    phI.shift()
+    phP.shift()
+
+// ───────────── 目前型態 ─────────────
+var bool  pActive = false
+var int   iLS = na
+var int   iN1 = na
+var int   iH  = na
+var int   iN2 = na
+var int   iRS = na
+var float vLS = na
+var float vN1 = na
+var float vH  = na
+var float vN2 = na
+var float vRS = na
+var float pRise = na
+var int   pDetect = na
+var float pDiff = na    // |左肩跌幅 − 右肩跌幅|
+var float pProm = na    // 頭部突出度
+var float pTilt = na    // |N2 − N1| ÷ 頭高
+
+neckAt(int x) =>
+    vN1 + (vN2 - vN1) * (x - iN1) / (iN2 - iN1)
+
+// 新的轉折低點＝右肩 RS 候選：往回找 H、N2、LS、N1
+if not na(pl) and strategy.position_size == 0 and plI.size() >= 3
+    int   rsI = bar_index - pivN
+    float rsP = pl
+    int   nL = plI.size()
+    float bestDiff = 1e9
+    int   bLS = na
+    int   bN1 = na
+    int   bH  = na
+    int   bN2 = na
+    float pLS = na
+    float pN1 = na
+    float pH  = na
+    float pN2 = na
+    float bRise = na
+    float bProm = na
+    float bTilt = na
+    float minLater = 1e18   // H 與 RS 之間轉折低點的最小值（H 必須比它們低）
+    for j = nL - 2 to 1
+        int   hI = plI.get(j)
+        float hP = plP.get(j)
+        if rsI - hI > maxBars
+            break
+        if hP < rsP and hP < minLater
+            // N2：H 與 RS 之間最高的轉折高點
+            int   n2I = -1
+            float n2P = -1.0
+            if phI.size() > 0
+                for q = phI.size() - 1 to 0
+                    int qi = phI.get(q)
+                    if qi <= hI
+                        break
+                    if qi < rsI and phP.get(q) > n2P
+                        n2P := phP.get(q)
+                        n2I := qi
+            if n2I > 0
+                float minLSH = 1e18   // LS 與 H 之間轉折低點的最小值
+                for k = j - 1 to 0
+                    int   lsI = plI.get(k)
+                    float lsP = plP.get(k)
+                    if rsI - lsI > maxBars
+                        break
+                    if lsP > hP and hP < minLSH and rsI - lsI >= minBars
+                        // N1：LS 之後第一個轉折高點，且要在 H 之前
+                        int   n1I = -1
+                        float n1P = -1.0
+                        for q = 0 to phI.size() - 1
+                            int qi = phI.get(q)
+                            if qi > lsI
+                                if qi < hI
+                                    n1I := qi
+                                    n1P := phP.get(q)
+                                break
+                        // LS 必須是 LS→N1 這段最低（衝向 N1 的起點）
+                        bool lsLowest = true
+                        if n1I > 0 and k + 1 <= nL - 1
+                            for m = k + 1 to nL - 1
+                                if plI.get(m) >= n1I
+                                    break
+                                if plP.get(m) < lsP
+                                    lsLowest := false
+                        if n1I > 0 and lsLowest
+                            float dL = (n1P - lsP) / n1P
+                            float dR = (n2P - rsP) / n2P
+                            float diff = math.abs(dL - dR)
+                            float neckH = n1P + (n2P - n1P) * (hI - n1I) / (n2I - n1I)
+                            float rise = neckH / hP - 1.0
+                            float prom = rise / math.max(n1P / lsP - 1.0, n2P / rsP - 1.0)
+                            float headH = neckH - hP
+                            float shAvg = (lsP + rsP) / 2.0
+                            bool ok = dL >= minDrop and dR >= minDrop and diff <= maxDropDiff / 100.0
+                                 and diff / math.max(dL, dR) <= maxDropRel / 100.0
+                                 and rise >= minRise and prom >= minProm
+                                 and (shAvg - hP) / shAvg >= minDepth
+                                 and math.abs(n2P - n1P) <= maxTilt * headH
+                                 and n2P / n1P - 1.0 <= maxNeckRise / 100.0
+                            if hiMode
+                                float nchg = n2P / n1P - 1.0
+                                ok := ok and nchg >= neckMin / 100.0 and nchg <= neckMax / 100.0
+                            if ok and diff < bestDiff
+                                // 頸線乾淨：N1～RS 之間（N2 除外）收盤與最高價不得明顯站上頸線
+                                bool clean = true
+                                for x = n1I + 1 to rsI - 1
+                                    if x != n2I
+                                        float nk = n1P + (n2P - n1P) * (x - n1I) / (n2I - n1I)
+                                        int off = bar_index - x
+                                        if close[off] > nk * (1 + cleanClose / 100.0) or high[off] > nk * (1 + cleanHigh / 100.0)
+                                            clean := false
+                                            break
+                                if clean
+                                    bestDiff := diff
+                                    bLS := lsI
+                                    bN1 := n1I
+                                    bH  := hI
+                                    bN2 := n2I
+                                    pLS := lsP
+                                    pN1 := n1P
+                                    pH  := hP
+                                    pN2 := n2P
+                                    bRise := rise
+                                    bProm := prom
+                                    bTilt := math.abs(n2P - n1P) / headH
+                    minLSH := math.min(minLSH, lsP)
+        minLater := math.min(minLater, hP)
+    if not na(bH)
+        pActive := true
+        iLS := bLS
+        iN1 := bN1
+        iH  := bH
+        iN2 := bN2
+        iRS := rsI
+        vLS := pLS
+        vN1 := pN1
+        vH  := pH
+        vN2 := pN2
+        vRS := rsP
+        pRise := bRise
+        pDiff := bestDiff
+        pProm := bProm
+        pTilt := bTilt
+        pDetect := bar_index
+        if showPattern
+            color c = color.new(#2962FF, 0)
+            line.new(iLS, vLS, iN1, vN1, color = color.new(#2962FF, 40))
+            line.new(iN1, vN1, iH, vH, color = color.new(#2962FF, 40))
+            line.new(iH, vH, iN2, vN2, color = color.new(#2962FF, 40))
+            line.new(iN2, vN2, iRS, vRS, color = color.new(#2962FF, 40))
+            line.new(iN1, vN1, bar_index + waitMax, neckAt(bar_index + waitMax), color = c, style = line.style_dashed, width = 2)
+            label.new(iLS, vLS, "LS", style = label.style_label_up, color = color.new(c, 100), textcolor = c, size = size.small)
+            label.new(iN1, vN1, "N1", style = label.style_label_down, color = color.new(c, 100), textcolor = c, size = size.small)
+            label.new(iH, vH, "H", style = label.style_label_up, color = color.new(c, 100), textcolor = c, size = size.small)
+            label.new(iN2, vN2, "N2", style = label.style_label_down, color = color.new(c, 100), textcolor = c, size = size.small)
+            label.new(iRS, vRS, "RS", style = label.style_label_up, color = color.new(c, 100), textcolor = c, size = size.small)
+
+// ───────────── 進場 ─────────────
+var float slPx = na
+var float tp1Px = na
+var float tp2Px = na
+var float entryPx = na
+var int   entryBar = na
+var bool  tp1Hit = false
+
+bool goLong = false
+if pActive and strategy.position_size == 0
+    float neckNow = neckAt(bar_index)
+    if low < vRS                                  // 右肩被跌破：型態作廢
+        pActive := false
+    else if entryMode == "B 右肩確認"
+        if bar_index == pDetect and close < neckNow * (1 + bufPct)
+            goLong := true
+        pActive := false                          // B 只在確認當根進場一次
+    else
+        // 高勝率模式：收盤價要高出頸線 brkMinPct%；一般模式：影線／收盤＋突破緩衝
+        float px  = hiMode ? close : (useWick ? high : close)
+        float thr = hiMode ? neckNow * (1 + brkMinPct / 100.0) : neckNow * (1 + bufPct)
+        if px > thr
+            goLong := true
+            pActive := false
+        else if bar_index - iRS > waitMax
+            pActive := false
+    if goLong
+        float mid = (vN1 + vN2) / 2.0
+        float t1 = vH * math.pow(mid / vH, tp1Level)
+        float t2 = neckNow * (1 + pRise)
+        if tpMode == "固定 R 倍數"
+            float risk = close - vRS
+            t1 := close + rMult1 * risk
+            t2 := close + rMult2 * risk
+        else if tpMode == "頸線＋頭高倍數"
+            float headH = neckAt(iH) - vH
+            t1 := neckNow + hMult1 * headH
+            t2 := neckNow + hMult2 * headH
+        // 分數（與網站 template 公式相同）：左右肩對稱 30＋頭部深度 25＋頸線平緩 25＋突破／接近頸線 20
+        float sShoulder = 30.0 * math.max(0.0, 1.0 - pDiff / (maxDropDiff / 100.0))
+        float sHead = 12.5 * math.min(1.0, math.max(0.0, (pProm - 1.0) / 0.5)) + 12.5 * math.min(1.0, math.max(0.0, pRise / 0.40))
+        float sNeck = 25.0 * math.max(0.0, 1.0 - pTilt / maxTilt)
+        float sBrk = entryMode == "A 突破確認" ? 20.0 : 20.0 * math.max(0.0, 1.0 - math.abs(close - neckNow) / neckNow / 0.30)
+        float score = sShoulder + sHead + sNeck + sBrk
+        // 停損要在進場價下方、停利要在上方、分數要達標，否則不進場（例如上斜頸線時 TP1 可能已低於進場價）
+        if vRS < close and t1 > close and t2 > close and score >= minScore
+            if showPattern
+                label.new(bar_index, low, "分數 " + str.tostring(score, "#.0"), style = label.style_label_up,
+                     color = color.new(#2962FF, 85), textcolor = #2962FF, size = size.small)
+            slPx := vRS
+            tp1Px := t1
+            tp2Px := t2
+            entryPx := close
+            entryBar := bar_index
+            tp1Hit := false
+            strategy.entry("L", strategy.long, comment = entryMode == "A 突破確認" ? "突破" : "右肩")
+        else
+            goLong := false
+
+// ───────────── 出場（進場當根就掛好停損停利） ─────────────
+if strategy.position_size > 0 or goLong
+    if strategy.position_size > 0 and high >= tp1Px
+        tp1Hit := true
+    if exitMode == "TP1"
+        strategy.exit("X", "L", stop = slPx, limit = tp1Px, comment_loss = "停損", comment_profit = "TP1")
+    else if exitMode == "TP2"
+        strategy.exit("X", "L", stop = slPx, limit = tp2Px, comment_loss = "停損", comment_profit = "TP2")
+    else
+        strategy.exit("X1", "L", qty_percent = 50, stop = slPx, limit = tp1Px, comment_loss = "停損", comment_profit = "TP1")
+        strategy.exit("X2", "L", stop = tp1Hit ? entryPx : slPx, limit = tp2Px, comment_loss = tp1Hit ? "保本" : "停損", comment_profit = "TP2")
+if strategy.position_size > 0 and bar_index - entryBar >= holdMax
+    strategy.close("L", comment = "到期")
+
+plot(strategy.position_size > 0 ? tp1Px : na, "TP1", color = color.new(#089981, 0), style = plot.style_linebr)
+plot(strategy.position_size > 0 ? tp2Px : na, "TP2", color = color.new(#22AB94, 30), style = plot.style_linebr)
+plot(strategy.position_size > 0 ? (exitMode == "半半保本" and tp1Hit ? entryPx : slPx) : na, "停損", color = color.new(#F23645, 0), style = plot.style_linebr)
