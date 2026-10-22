@@ -34,6 +34,19 @@ from ihs_scanner.sources import Instrument, SourceFetchError
 SCAN_HOUR_UTC = 6
 SCAN_MINUTE_UTC = 10
 TW_EXCHANGES = ("twse", "tpex")
+EXCEL_NAME = "rs_confirmed.xlsx"  # D39: site/data/tw/rs_confirmed.xlsx, linked from the site (TW list only)
+
+
+def write_excel(payload, path: Path) -> bool:
+    """D39: the 右肩已確認 rows of this build as Excel (ihs_scanner/excel_export.py). Never fails the build."""
+    try:
+        from ihs_scanner.excel_export import write_rs_confirmed
+        n = write_rs_confirmed(payload, path)
+    except Exception as exc:  # noqa: BLE001 - scan.json / bars are already written; only the download is missing
+        print(f"[excel] {path.name} not written: {type(exc).__name__}: {str(exc)[:160]}", file=sys.stderr)
+        return False
+    print(f"[excel] wrote {path} ({n} right-shoulder-confirmed rows)")
+    return True
 
 
 def next_tw_scan_time(now: datetime) -> datetime:
@@ -183,6 +196,7 @@ def main_tw(args, t0: float | None = None, *, client: data_tw.YahooClient | None
     print(f"wrote {out} ({sizes['scan_json'] / 1024:.0f} KB) + {sizes['bars_files']} bars files "
           f"({sizes['bars'] / 1024:.0f} KB): {len(payload['results'])} patterns {counts}; "
           f"next scan ~{payload['next_scan_at'] or 'not scheduled'}")
+    write_excel(payload, out.parent / EXCEL_NAME)
     # D38: triangles on the same K lines -> site/data/tw/triangles.json + tri_bars/ (never fails this build)
     bs.run_triangles(symbol_data, scan_out=out, market="tw", include_stale=bool(args.include_stale),
                      generated_at=payload["generated_at"], scheduled=scheduled, symbols=[i.symbol for i in insts],

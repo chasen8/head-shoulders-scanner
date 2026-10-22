@@ -1094,6 +1094,13 @@
     $("chart-legend").hidden = true;
     $("tri-legend").hidden = true;
     document.documentElement.setAttribute("data-view", tri ? "tri" : "ihs");
+    renderDownload();
+  }
+  // D39: the Taiwan 右肩已確認 Excel (data/tw/rs_confirmed.xlsx, written by every TW scan) -- TW IHS list only
+  var XLSX_URL = MARKETS.tw.dir + "rs_confirmed.xlsx";
+  function renderDownload() {
+    var row = $("dl-xlsx-row");
+    if (row) row.hidden = !(state.market === "tw" && !isTri());
   }
   function loadTri(m) {
     if (triCache[m]) return Promise.resolve(triCache[m]);
@@ -1666,6 +1673,8 @@
         "<span class=\"dnav__sub\">" + (cur ? "目前" + (n ? "・" : "") : "") + esc(n) + "</span></button></li>";
     }).join("") +
       triMenuItem() +
+      (state.market === "tw" ? "<li><a class=\"dnav__btn dnav__btn--mkt\" href=\"" + XLSX_URL + "\" download=\"rs_confirmed.xlsx\">" +
+        "<span>下載 Excel（右肩已確認）</span><span class=\"dnav__sub\">台股</span></a></li>" : "") +
       "<li><button type=\"button\" class=\"dnav__btn\" data-act=\"view\" data-view=\"watchlist\">觀察名單（" + watch.length + "）</button></li>" +
       "<li><button type=\"button\" class=\"dnav__btn\" data-act=\"view\" data-view=\"settings\">設定</button></li>" +
       "<li><button type=\"button\" class=\"dnav__btn\" data-act=\"view\" data-view=\"about\">關於</button></li></ul>";
@@ -2088,6 +2097,7 @@
     $("q").placeholder = m === "tw" ? "搜尋代號或名稱，例如 2330、台積電" : "搜尋幣種，例如 BTC";
     $("wl-n").textContent = watchInMarket(m);
     document.title = isTri() ? (m === "tw" ? "台股" : "") + "收斂三角｜頭肩底掃描" : (m === "tw" ? "台股" : "") + "頭肩底掃描";
+    renderDownload();
   }
 
   function setUrlMarket(m, keepHash) {

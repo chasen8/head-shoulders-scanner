@@ -104,6 +104,36 @@ jobs:
           args="$args --preview-dir output/notify-preview"
           python notify_watchlist.py $args
 
+      # D39：止盈追蹤（已突破的頭肩底＋向上突破的三角形，碰到 TP1／TP2 由機器人發到 #台股止盈）。
+      # 追蹤檔 tp_tracker_tw.json 存在 scan-state；分支存在但讀不到時跳過這一步（不覆寫追蹤檔）。
+      - name: Restore take-profit tracker from scan-state
+        id: tp_restore
+        if: ${{ !cancelled() && steps.build.outcome == 'success' && github.event.inputs.test_message != 'true' }}
+        run: |
+          set +e
+          git ls-remote --exit-code --heads origin scan-state >/dev/null; rc=$?
+          set -e
+          if [ "$rc" = "2" ]; then echo "no scan-state branch yet (first run)"; echo "ok=true" >> "$GITHUB_OUTPUT"; exit 0; fi
+          if [ "$rc" != "0" ] || ! git fetch --depth=1 origin scan-state; then
+            echo "::warning::could not read scan-state; take-profit step skipped this run"; echo "ok=false" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          if git cat-file -e FETCH_HEAD:tp_tracker_tw.json 2>/dev/null; then git show FETCH_HEAD:tp_tracker_tw.json > tp_tracker_tw.json
+          else echo "scan-state has no tp_tracker_tw.json yet (first run: events are only recorded)"; fi
+          echo "ok=true" >> "$GITHUB_OUTPUT"
+
+      - name: Notify take-profit
+        if: ${{ !cancelled() && steps.tp_restore.outputs.ok == 'true' }}
+        continue-on-error: true
+        env:
+          DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+          DISCORD_GUILD_ID: ${{ secrets.DISCORD_GUILD_ID }}
+          DISCORD_TP_CHANNEL_TW: ${{ secrets.DISCORD_TP_CHANNEL_TW }}
+        run: |
+          args="--scan site/data/tw/scan.json --tracker tp_tracker_tw.json"
+          [ "$DRY_RUN" = "true" ] && args="$args --dry-run"
+          args="$args --preview-dir output/notify-preview"
+          python notify_tp.py $args
+
       # D32：dry-run 時把會附在 Discord 的圖存成 artifact，方便檢查（bars 檔與 scan.json 在 site/data 內，同一個 job）。
       - name: Upload notify preview images
         if: ${{ !cancelled() && github.event.inputs.dry_run == 'true' }}
@@ -128,7 +158,9 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: state
-          path: state_tw.json
+          path: |
+            state_tw.json
+            tp_tracker_tw.json
           retention-days: 7
           if-no-files-found: warn
 
@@ -139,4 +171,5 @@ jobs:
     with:
       market: tw
       state_file: state_tw.json
+      tp_file: tp_tracker_tw.json
     secrets: inherit

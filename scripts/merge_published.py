@@ -12,9 +12,14 @@ would delete the other market's data, so each publish step:
 
 Ownership (relative paths; a directory owns everything under it):
   site  : crypto -> data/scan.json, data/bars, data/triangles.json, data/tri_bars     tw -> data/tw
-  state : crypto -> state.json, site/data/scan.json, site/data/bars, site/data/triangles.json, site/data/tri_bars
-          tw     -> state_tw.json, site/data/tw
+  state : crypto -> state.json, site/data/scan.json, site/data/bars, site/data/triangles.json, site/data/tri_bars,
+                    tp_tracker.json
+          tw     -> state_tw.json, site/data/tw, tp_tracker_tw.json
   (D38 triangles: crypto's triangles.json + tri_bars/ sit next to its scan.json; Taiwan's are inside data/tw.)
+  (D39 take-profit trackers: tp_tracker.json (crypto) / tp_tracker_tw.json (tw) on the scan-state branch.)
+
+KEEP_IF_ABSENT: paths of the PUBLISHING market that are copied from --prev when this run's tree does not have
+them (D39: the take-profit tracker; a run whose notify_tp step was skipped or crashed must not delete it).
 
 If --prev is given but missing, the step fails (exit 1) instead of publishing a tree without the other
 market; pass --allow-missing-prev only for the very first publish.
@@ -34,8 +39,12 @@ from typing import Mapping, Sequence
 OWNED: Mapping[str, Mapping[str, Sequence[str]]] = {
     "site": {"crypto": ("data/scan.json", "data/bars", "data/triangles.json", "data/tri_bars"), "tw": ("data/tw",)},
     "state": {"crypto": ("state.json", "site/data/scan.json", "site/data/bars", "site/data/triangles.json",
-                         "site/data/tri_bars"),
-              "tw": ("state_tw.json", "site/data/tw")},
+                         "site/data/tri_bars", "tp_tracker.json"),
+              "tw": ("state_tw.json", "site/data/tw", "tp_tracker_tw.json")},
+}
+KEEP_IF_ABSENT: Mapping[str, Mapping[str, Sequence[str]]] = {
+    "site": {},
+    "state": {"crypto": ("tp_tracker.json",), "tw": ("tp_tracker_tw.json",)},
 }
 SKIP_NAMES = {".git"}
 
@@ -53,8 +62,9 @@ def _copy(src: Path, dst: Path) -> None:
 
 
 def merge_tree(new_root: Path, prev_root: Path | None, out_root: Path, market: str,
-               owned: Mapping[str, Sequence[str]]) -> dict[str, list[str]]:
+               owned: Mapping[str, Sequence[str]], keep_if_absent: Sequence[str] = ()) -> dict[str, list[str]]:
     """Write new_root (minus other markets' paths) + other markets' paths from prev_root into out_root.
+    `keep_if_absent`: this market's paths taken from prev_root when new_root lacks them (D39 tracker).
 
     Returns {"kept": [paths copied from prev], "absent": [other-market paths prev does not have],
     "dropped": [other-market paths removed from new_root]}."""
@@ -89,6 +99,11 @@ def merge_tree(new_root: Path, prev_root: Path | None, out_root: Path, market: s
             report["kept"].append(p)
         else:
             report["absent"].append(p)
+    for p in keep_if_absent:
+        src = Path(prev_root) / p if prev_root is not None else None
+        if not (new_root / p).exists() and src is not None and src.exists():
+            _copy(src, out_root / p)
+            report["kept"].append(p)
     return report
 
 
@@ -111,7 +126,7 @@ def main(argv=None) -> int:
         print(f"error: new tree {args.new} not found", file=sys.stderr)
         return 1
     rep = merge_tree(Path(args.new), prev if prev is not None and prev.is_dir() else None, Path(args.out),
-                     args.market, OWNED[args.kind])
+                     args.market, OWNED[args.kind], KEEP_IF_ABSENT[args.kind].get(args.market, ()))
     print(f"[merge {args.kind}/{args.market}] kept from previous: {rep['kept'] or 'nothing'}; "
           f"not in previous: {rep['absent'] or 'nothing'}; dropped from new: {rep['dropped'] or 'nothing'}")
     return 0

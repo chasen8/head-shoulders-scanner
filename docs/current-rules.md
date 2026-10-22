@@ -175,4 +175,38 @@ neck(i)＝N1–N2 連線在第 i 根的價格；頭高＝neck(H) − H；頭到�
 - as-of t 的結果只用 df[:t+1]：線只用已確認的轉折；突破只在線已知之後檢查；`tests/test_triangles.py` 逐根截斷鎖住（突破時間與線一旦出現就不變）。
 - 效能（本機實測，目標單一序列 1000 根 < 50 ms）：幣安現貨全部 1496 條序列偵測 7.9 秒，每條平均 5.3 ms、p95 12.2 ms、最大 17.4 ms。
 - 輸出：`site/data/triangles.json`＋`site/data/tri_bars/`（台股在 `site/data/tw/`）；`pattern_key`＝`tri|交易所|市場|代號|週期|起點時間`。
-- Discord 通知、觀察名單星號：**暫不提供**（只支援頭肩底）。
+- Discord 型態通知、觀察名單星號：**暫不提供**（只支援頭肩底）；向上突破後的止盈通知見下節（D39）。
+
+---
+
+# 止盈追蹤（D39，2026-10-22）
+
+`ihs_scanner/tp_tracker.py`（判斷）＋`notify_tp.py`（抓 K 線、Discord）。設定 `TP_CONFIG`。
+
+## 1. 追蹤對象
+| 型態 | 條件 | TP1 | TP2 | 失效價 | 突破價（漲幅的基準） |
+|---|---|---|---|---|---|
+| 頭肩底 | status＝confirmed | tp1（對數斐波那契 1.414） | tp2 | invalidation_price（H.low） | `breakout_level`＝突破那根的頸線價 |
+| 收斂三角 | status＝breakout_up（向下突破不追蹤） | target_conservative | target | invalidation_price | `breakout_price`＝突破那根的阻力線價 |
+
+- D36 起頭肩底的 `breakout_price` 是突破 K 線的 **high**（影線穿過即突破），可能遠高於頸線（例 NMR 1w 頸線 11.05、high 15.50），
+  所以漲幅一律從**線上的價格**算，high 只另存 `breakout_bar_high`。
+- 以 `pattern_id` 為鍵；每次掃描把新出現的加入，已在追蹤的不重複加入。結束的項目保留 90 天（`prune_days`）再刪，避免仍在清單上的型態被重新加入。
+
+## 2. 判斷（只用已收盤 K 線，從突破那根開始，依序）
+| 狀態 | 這根 K 線 | 結果 |
+|---|---|---|
+| open | low ≤ 失效價 | failed，結束（同一根也碰到 TP 時一樣算 failed：無法得知盤中先後，保守處理） |
+| open | high ≥ TP2 | 記 TP1（high 也 ≥ TP1 時）與 TP2，結束 |
+| open | high ≥ TP1 | tp1，繼續追 TP2 |
+| tp1 | low ≤ 失效價 | failed，結束（TP1 事件保留；同根碰 TP2 也算 failed） |
+| tp1 | high ≥ TP2 | tp2，結束 |
+| 任一 | 突破後第 N 根仍未結束 | expired（N：4h 180、1d 120、1w 52，`max_bars`） |
+
+- 突破那根本身算第 0 根：價格必須先穿過線才能到上方的目標，所以突破當根的 high 碰到 TP 也算達成。
+- 每次執行都從頭重算（同樣的 K 線一定得到同樣結果），as-of t 只用到第 t 根以前的 K 線（截斷測試鎖住）；已記錄的事件不重複通知。
+
+## 3. 通知
+- 通知 TP1、TP2；failed 預設只記錄（`notify_failed=True` 才通知）；expired 只記錄。
+- 首次執行（沒有追蹤檔）與事件發生在型態 `signal_time` 之前（型態還沒被看到）：只記錄不通知。
+- 送不出去（沒有機器人、找不到頻道、Discord 拒絕）時該型態維持原狀態，下次執行重算後再送。

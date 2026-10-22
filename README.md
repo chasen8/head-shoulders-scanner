@@ -230,6 +230,8 @@ ihs_scanner/  config.py  swings.py  neckline.py  scoring.py  detector.py  scanne
               sources.py  data_binance_futures.py  data_okx.py  data_gate.py   （多交易所來源）
               validation.py  templates.py   （D26 形狀驗證 V1–V4；templates.py 由腳本產生）
               triangles.py                   （D38 收斂三角，設定在 config.TRIANGLE_CONFIG）
+              tp_tracker.py  excel_export.py （D39 止盈追蹤邏輯、台股右肩已確認 Excel）
+notify_discord.py  notify_watchlist.py  notify_tp.py   Discord 通知（型態／關注清單／止盈）
 scan.py       CLI
 scripts/fetch_golden_fixtures.py   下載黃金範例 K 線到 tests/fixtures/（公開端點：幣安現貨／USDT-M、OKX）
 scripts/build_templates.py         從黃金範例產生 ihs_scanner/templates.py（V4 模板）；--check 只比對
@@ -319,6 +321,13 @@ Bybit 403；MEXC、Bitget 200。
   結果 663 個型態（4h 299、1d 258、1w 106；形成中 380、右肩已確認 228、已突破 55），scan.json 約 3 MB、bars 約 10 MB。
 - **Discord**：同一個 webhook；標題「台股 2330 台積電 日線 右肩形成中」、欄位「市場：台股上市／台股上櫃」、價格 `NT$1,005.00`；
   狀態檔獨立 `state_tw.json`（scan-state 分支），第一次執行只發一則「台股頭肩底掃描」摘要。
+- **右肩已確認 Excel（D39）**：每次台股掃描（`build_site.py --market tw`）寫完 scan.json 後，用同一份結果（不重新下載）產生
+  `site/data/tw/rs_confirmed.xlsx`（`ihs_scanner/excel_export.py`，openpyxl）：工作表「右肩已確認」每列一個 status＝watchlist 的型態
+  （代號、名稱、市場、週期、分數、形狀分、目前價、目前頸線價、距頸線、頸線斜率、TP1、TP2（預估）、失效價、左右肩跌幅、頭到頸線漲幅、
+  碰頸線次數、LS／H／N2／RS 時間、右肩確認時間、TradingView 與網站連結），依分數排序；工作表「說明」寫資料時間（台北）、來源與欄位定義。
+  全部是掃描器的輸出值，沒有公式；時間為台北時間（4 小時含時分）。產生失敗只印警告，不影響 scan.json 與網站其他輸出。
+  網站：台股頭肩底清單上方（篩選列下面）與 ☰ 選單都有「下載 Excel（右肩已確認）」，只在台股顯示；固定網址
+  `https://chasen8.github.io/head-shoulders-site/data/tw/rs_confirmed.xlsx`。
 
 ## 定時掃描與 Discord 通知
 
@@ -382,6 +391,33 @@ embed：標題「GRAMUSDT 日線 右肩形成中／已突破」、交易所與�
 - 密鑰只從環境變數讀（GitHub secrets），不會出現在任何輸出；`--dry-run` 不送、不 POST，預覽圖存到 `--preview-dir`。
   本機預覽關注通知：`python notify_watchlist.py --dry-run --users-file users.json`（`{"users":[…]}`，不連 API）。
 
+### 止盈通知（D39）
+
+`notify_tp.py`（workflow 的「Notify take-profit」步驟，在關注通知之後；`continue-on-error`，失敗不擋發布）。規則細節見
+`docs/current-rules.md`「止盈追蹤」。
+
+- **追蹤對象**：本次掃描裡已突破的頭肩底（status `confirmed`）與**向上**突破的收斂三角（`breakout_up`；TP1＝保守目標、TP2＝目標）；
+  以 `pattern_id` 為鍵（突破後右肩／三角線不再變動）。向下突破的三角形暫不追蹤。
+- **追蹤檔**：加密貨幣 `tp_tracker.json`、台股 `tp_tracker_tw.json`，和 state.json 一樣存在 `scan-state` 分支（workflow 先取回，
+  隨 state artifact 由 publish 推回；`merge_published.py` 把兩個檔分屬兩個市場，這次沒有產生追蹤檔時保留已發布的那份）。
+  每筆存 pattern_id、kind（ihs／triangle）、symbol、name、exchange、market、tv_symbol、timeframe、突破時間與突破價、TP1、TP2、
+  失效價、status（open／tp1／tp2／failed／expired）、events（每個事件的 K 線時間、價位、第幾根、是否通知）、chart_file 與圖表骨架。
+- **每次執行**：只對 open／tp1 的項目、只抓被追蹤的標的（加密貨幣依交易所用 `ihs_scanner/data_*`、台股用 Yahoo），只用已收盤 K 線，
+  從突破那根開始重算：high ≥ TP1 → 「TP1 達成」（只發一次），high ≥ TP2 → 「TP2 達成」並結束；low ≤ 失效價 → failed 結束
+  （預設不通知，`--notify-failed` 或 `TP_CONFIG["notify_failed"]=True` 才發）；超過期限（4h 180 根、1d 120 根、1w 52 根）→ expired。
+- **首次執行**（沒有追蹤檔）：把目前已突破的型態加入並記錄已發生的 TP，**不補發**。
+- **頻道**：機器人發到伺服器（`DISCORD_GUILD_ID`）裡名稱為「加密止盈」／「台股止盈」的文字頻道（`GET /guilds/{id}/channels` 比對名稱）；
+  `DISCORD_TP_CHANNEL_CRYPTO`／`DISCORD_TP_CHANNEL_TW` 可直接指定頻道 ID。找不到頻道時 log 印「請建立頻道並確認機器人權限」，
+  該事件不記錄、下次再送，workflow 不失敗。
+- **訊息**：每個事件一則 embed，標題如「🎯 BTCUSDT 日線 TP1 達成」「🎯 台股 2330 台積電 日線 TP2 達成」；欄位：型態、交易所、
+  突破時間（台北）／突破價、達成價、從突破價算的漲幅、花了幾根 K 線（約幾天）、達成 K 線時間、TP1、TP2、失效價、TradingView 連結；
+  附型態圖（bars 檔還在就用它並補上之後的 K 線，不在了就用追蹤檔裡的圖表骨架＋抓到的 K 線；都不行就不附圖），達成處畫綠色星號。
+  每則最多 10 個 embed，遵守 429。
+- `--dry-run`：不送、不寫追蹤檔，圖存 `--preview-dir`（`tp-*.png`＋`tp-preview.json`），印摘要。
+  本機：`python notify_tp.py --dry-run`、`python notify_tp.py --scan site/data/tw/scan.json --tracker tp_tracker_tw.json --dry-run`。
+- **你要做的**：在 Discord 伺服器建立文字頻道「加密止盈」「台股止盈」，讓機器人能看到並有傳送訊息、嵌入連結、附加檔案權限
+  （`DISCORD_GUILD_ID` secret 已存在）。
+
 ### 你要做的步驟（一次性）
 
 1. Discord：頻道設定 → 整合 → Webhook → 新增 Webhook → 複製 Webhook 網址。
@@ -412,7 +448,8 @@ git fetch origin scan-state
 git checkout origin/scan-state -- site/data      # 覆蓋本機 site/data（scan.json + bars/，以及台股的 tw/）
 python -m http.server --directory site 8000      # 開 http://localhost:8000
 ```
-（`scan-state` 每次是全新的單一 commit、force push，不累積歷史；只含 `state.json`、`state_tw.json` 與 `site/data/`。）
+（`scan-state` 每次是全新的單一 commit、force push，不累積歷史；只含 `state.json`、`state_tw.json`、`tp_tracker.json`、
+`tp_tracker_tw.json` 與 `site/data/`。）
 
 ### Actions 用量估算
 

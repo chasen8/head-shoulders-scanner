@@ -74,6 +74,19 @@ def _spread(ys: list[float], lo: float, hi: float, gap: float) -> list[float]:
     return [max(lo, y) for y in out]
 
 
+def _draw_marks(ax, doc: Mapping[str, Any], t2x) -> None:
+    """D39: optional doc["marks"] = [{time, price, label}] (e.g. the bar where TP1 was reached): green star + label."""
+    for m in doc.get("marks") or []:
+        try:
+            mx, my = t2x(float(m["time"])), float(m["price"])
+        except (KeyError, TypeError, ValueError):
+            continue
+        ax.plot([mx], [my], marker="*", markersize=15, markerfacecolor=UP, markeredgecolor=BG,
+                markeredgewidth=1.0, zorder=10)
+        ax.annotate(str(m.get("label") or ""), (mx, my), xytext=(0, 12), textcoords="offset points", ha="center",
+                    va="bottom", fontsize=10, color=UP, fontweight="bold", zorder=10)
+
+
 def render_chart(row: Mapping[str, Any], doc: Mapping[str, Any]) -> bytes:
     """PNG bytes (1200x675). Raises ValueError when the bars file has no usable bars/points."""
     bars = np.asarray(doc.get("bars") or [], dtype=float)
@@ -199,6 +212,7 @@ def render_chart(row: Mapping[str, Any], doc: Mapping[str, Any]) -> bytes:
                     markeredgewidth=1.2, zorder=9)
             ax.annotate("breakout", (bx, by), xytext=(0, 11), textcoords="offset points", ha="center",
                         va="bottom", fontsize=9, color=DOWN, fontweight="bold", zorder=9)
+        _draw_marks(ax, doc, t2x)
 
         # ---- levels: TP1 / TP2 green, invalidation grey; values on the right
         dec = _decimals(float(np.median(c[sl])))
@@ -237,6 +251,151 @@ def render_chart(row: Mapping[str, Any], doc: Mapping[str, Any]) -> bytes:
         ex = f"{row.get('exchange', '')} {row.get('market', '')}".strip()
         note = "  *estimated (neckline)" if est else ""
         fig.text(0.986, 0.955, f"{ex}{note}", fontsize=10, color=MUTED, va="center", ha="right")
+
+        buf = io.BytesIO()
+        fig.savefig(buf, format="png", dpi=DPI, facecolor=BG)
+        return buf.getvalue()
+    finally:
+        plt.close(fig)
+
+
+TRI_LEVEL_STYLE = {"target_conservative": (UP, (0, (4, 3)), "TP1"), "target": (TP2, (0, (7, 3)), "TP2"),
+                   "invalidation_price": (STOP, (0, (2, 3)), "INVAL")}
+
+
+def render_triangle_chart(row: Mapping[str, Any], doc: Mapping[str, Any]) -> bytes:
+    """D39: PNG (1200x675) of one converging triangle from its tri_bars file (bars, resistance / support lines and
+    their dashed extensions, touches, breakout, TP1 = conservative target, TP2 = target, invalidation, optional
+    marks). Same style and ASCII-only text as render_chart. Raises ValueError without usable bars / lines."""
+    bars = np.asarray(doc.get("bars") or [], dtype=float)
+    res = list(doc.get("resistance_line") or [])
+    sup = list(doc.get("support_line") or [])
+    if bars.ndim != 2 or bars.shape[0] < 5 or bars.shape[1] < 5 or len(res) < 2 or len(sup) < 2:
+        raise ValueError("tri_bars file has no usable bars / lines")
+    times, o, h, low, c = bars[:, 0], bars[:, 1], bars[:, 2], bars[:, 3], bars[:, 4]
+    vol = bars[:, 5] if bars.shape[1] > 5 else np.zeros(len(bars))
+    n = len(bars)
+    last = n - 1
+    step = float(np.median(np.diff(times))) if n > 1 else 86400.0
+    tf = str(row.get("timeframe") or doc.get("timeframe") or "1d")
+    tz = timezone(timedelta(hours=8)) if _is_tw(row) else timezone.utc
+
+    def t2x(t: float) -> float:
+        if t >= times[-1]:
+            return last + (t - times[-1]) / step
+        return float(np.interp(t, times, np.arange(n)))
+
+    x_first = t2x(float(res[0]["time"]))
+    span = max(last - x_first, 10.0)
+    start = int(max(0, math.floor(x_first - max(6.0, 0.12 * span))))
+    start = max(start, last - MAX_BARS_SHOWN)
+    start = max(0, min(start, int(math.floor(x_first)) - 3))
+    ext = list(doc.get("resistance_ext") or []) + list(doc.get("support_ext") or [])
+    x_ext = max([t2x(float(p["time"])) for p in ext], default=float(last))
+    x_lines_end = min(max(last + 0.5, x_ext), last + max(8.0, (last - start) * 0.25))
+    pad = max(12.0, (last - start) * 0.24)  # room for "INVAL 1049.01" right of the line extensions
+    x_left, x_right = start - max(2.0, 0.035 * (last - start)), max(float(last), x_lines_end) + pad
+
+    win = slice(start, n)
+    line_prices = [float(p["price"]) for p in res + sup]
+    ymin = float(min(low[win].min(), min(line_prices)))
+    ymax = float(max(h[win].max(), max(line_prices)))
+    levels = [lv for lv in (doc.get("levels") or []) if lv.get("price") is not None]
+    base_span = ymax - ymin
+    clipped: set[str] = set()
+    for lv in levels:
+        p = float(lv["price"])
+        if lv.get("key") == "invalidation_price":
+            ymin = min(ymin, p)
+        elif p <= ymax + 0.9 * base_span:
+            ymax = max(ymax, p)
+        else:
+            clipped.add(str(lv.get("key")))
+    rng = max(ymax - ymin, abs(ymax) * 1e-6, 1e-12)
+    y_lo, y_hi = ymin - 0.10 * rng, ymax + 0.09 * rng
+    rng = y_hi - y_lo
+
+    fig = plt.figure(figsize=(WIDTH / DPI, HEIGHT / DPI), dpi=DPI, facecolor=BG)
+    gs = GridSpec(2, 1, height_ratios=[5, 1], hspace=0.04, left=0.012, right=0.915, top=0.90, bottom=0.075,
+                  figure=fig)
+    ax = fig.add_subplot(gs[0])
+    axv = fig.add_subplot(gs[1], sharex=ax)
+    try:
+        for a in (ax, axv):
+            a.set_facecolor(BG)
+            a.grid(True, color=GRID, linewidth=0.8, zorder=0)
+            a.set_axisbelow(True)
+            for side in ("top", "left", "right", "bottom"):
+                a.spines[side].set_color(LINE)
+            a.tick_params(colors=MUTED, labelsize=9, length=3, color=LINE)
+        ax.yaxis.tick_right()
+        axv.yaxis.tick_right()
+        axv.set_yticks([])
+
+        xs = np.arange(start, n)
+        sl = slice(start, n)
+        body_lo, body_hi = np.minimum(o[sl], c[sl]), np.maximum(o[sl], c[sl])
+        height = np.maximum(body_hi - body_lo, rng * 0.0015)
+        up = c[sl] >= o[sl]
+        ax.vlines(xs, low[sl], h[sl], colors=TEXT, linewidth=0.9, zorder=2)
+        ax.bar(xs, height, bottom=body_lo, width=0.62, color=np.where(up, BG, TEXT), edgecolor=TEXT,
+               linewidth=0.9, zorder=3)
+        axv.bar(xs, vol[sl], width=0.7, color=np.where(up, UP, DOWN), alpha=0.35, zorder=2)
+
+        for side in ("resistance", "support"):
+            pts = doc.get(f"{side}_line") or []
+            ax.plot([t2x(float(p["time"])) for p in pts], [float(p["price"]) for p in pts], color=ACCENT,
+                    linewidth=1.8, zorder=5)
+            e = [p for p in doc.get(f"{side}_ext") or [] if t2x(float(p["time"])) <= x_lines_end]
+            if e:
+                ax.plot([t2x(float(p["time"])) for p in e], [float(p["price"]) for p in e], color=ACCENT_SOFT,
+                        linewidth=1.5, linestyle=(0, (5, 3)), zorder=5)
+        for t in doc.get("touches") or []:
+            ax.plot([t2x(float(t["time"]))], [float(t["price"])], marker="o", markersize=6, markerfacecolor=ACCENT,
+                    markeredgecolor=BG, markeredgewidth=1.0, zorder=7)
+
+        bo = doc.get("breakout")
+        if bo and bo.get("time") is not None:
+            bx, by = t2x(float(bo["time"])), float(bo["price"])
+            ax.plot([bx], [by], marker="o", markersize=8, markerfacecolor=DOWN, markeredgecolor=BG,
+                    markeredgewidth=1.2, zorder=9)
+            ax.annotate("breakout", (bx, by), xytext=(0, 11), textcoords="offset points", ha="center",
+                        va="bottom", fontsize=9, color=DOWN, fontweight="bold", zorder=9)
+        _draw_marks(ax, doc, t2x)
+
+        dec = _decimals(float(np.median(c[sl])))
+        entries = []
+        for lv in levels:
+            key = str(lv.get("key"))
+            if key not in TRI_LEVEL_STYLE:
+                continue
+            color, ls, name = TRI_LEVEL_STYLE[key]
+            p = float(lv["price"])
+            if key in clipped:
+                entries.append((y_hi - 0.02 * rng, f"{name} {p:.{dec}f} ^", color))
+                continue
+            ax.hlines(p, start, last + 0.8, colors=color, linestyles=ls, linewidth=1.4, zorder=2)
+            entries.append((p, f"{name} {p:.{dec}f}", color))
+        ys = _spread([e[0] for e in entries], y_lo + 0.02 * rng, y_hi - 0.02 * rng, 0.05 * rng)
+        for (_, text, color), y in zip(entries, ys):
+            ax.text(x_right - 0.4, y, text, color=color, fontsize=10, fontweight="bold", va="center", ha="right",
+                    zorder=8, clip_on=False)
+
+        ax.set_xlim(x_left, x_right)
+        ax.set_ylim(y_lo, y_hi)
+        ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda v, _p: f"{v:.{dec}f}"))
+        plt.setp(ax.get_xticklabels(), visible=False)
+        tick_idx = np.unique(np.linspace(start + 0.07 * (last - start), last - 0.02 * (last - start), 6)
+                             .round().astype(int))
+        axv.set_xticks(tick_idx)
+        axv.set_xticklabels(_fmt_ticks(times[tick_idx], tf, tz))
+
+        ttype = str(row.get("triangle_type") or doc.get("triangle_type") or "")
+        status = str(row.get("status") or "")
+        fig.text(0.014, 0.955, f"{row.get('symbol', '?')}  {tf}  {ttype} triangle  {status}".replace("   ", " "),
+                 fontsize=16, fontweight="bold", color=TEXT, va="center")
+        ex = f"{row.get('exchange', '')} {row.get('market', '')}".strip()
+        fig.text(0.986, 0.955, ex, fontsize=10, color=MUTED, va="center", ha="right")
 
         buf = io.BytesIO()
         fig.savefig(buf, format="png", dpi=DPI, facecolor=BG)

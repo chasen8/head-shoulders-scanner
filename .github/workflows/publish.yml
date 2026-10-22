@@ -22,6 +22,11 @@ on:
         description: "state.json (crypto) | state_tw.json (tw)"
         type: string
         required: true
+      tp_file:
+        description: "D39 take-profit tracker: tp_tracker.json (crypto) | tp_tracker_tw.json (tw); kept from scan-state when this run has none"
+        type: string
+        required: false
+        default: ""
     secrets:
       SITE_DEPLOY_KEY:
         required: false
@@ -36,6 +41,7 @@ jobs:
     env:
       MARKET: ${{ inputs.market }}
       STATE_FILE: ${{ inputs.state_file }}
+      TP_FILE: ${{ inputs.tp_file }}
     steps:
       - uses: actions/checkout@v7  # for scripts/merge_published.py (stdlib only, system python3)
 
@@ -60,6 +66,10 @@ jobs:
           stage="$RUNNER_TEMP/stage"
           rm -rf "$stage" && mkdir -p "$stage/site"
           cp "$RUNNER_TEMP/new-state/$STATE_FILE" "$stage/$STATE_FILE"
+          # D39: the take-profit tracker travels in the same artifact; when this run has none (step skipped or
+          # crashed) merge_published keeps the published one (KEEP_IF_ABSENT), so it is never lost.
+          if [ -n "$TP_FILE" ] && [ -f "$RUNNER_TEMP/new-state/$TP_FILE" ]; then cp "$RUNNER_TEMP/new-state/$TP_FILE" "$stage/$TP_FILE"
+          elif [ -n "$TP_FILE" ]; then echo "no $TP_FILE in this run; the published one is kept"; fi
           cp -r "$RUNNER_TEMP/new-site/data" "$stage/site/data"
           prev="$RUNNER_TEMP/prev-state"
           if git ls-remote --exit-code --heads origin scan-state >/dev/null; then
@@ -83,7 +93,7 @@ jobs:
           git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
             commit -q -m "scan-state: $MARKET $(date -u +%Y-%m-%dT%H:%MZ) (run ${GITHUB_RUN_ID})"
           git push --force origin HEAD:scan-state
-          git ls-tree -r --name-only HEAD | grep -E '^(state|site/data/(scan\.json|tw/scan\.json))' || true
+          git ls-tree -r --name-only HEAD | grep -E '^(state|tp_tracker|site/data/(scan\.json|tw/scan\.json))' || true
 
       - name: Publish site to public repo (keeps the other market's data)
         env:

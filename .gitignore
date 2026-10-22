@@ -10,3 +10,5 @@ data/
 state.json
 state_tw.json
 !tests/fixtures/*.csv
+tp_tracker.json
+tp_tracker_tw.json

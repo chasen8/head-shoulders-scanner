@@ -6,6 +6,7 @@
 #   - 每次執行的 site/ 也上傳成 artifact（保留 7 天）；發布由 publish job（publish.yml）做。
 # 台股另有 scan-tw.yml（平日 UTC 06:10）。
 # 需要的 secret：DISCORD_WEBHOOK_URL（沒設也能跑：只更新 state，印「未設定 webhook」）。
+# D39 止盈通知：DISCORD_BOT_TOKEN＋DISCORD_GUILD_ID（用名稱找 #加密止盈；或 DISCORD_TP_CHANNEL_CRYPTO 直接指定），沒設定只印提示。
 # 資料來源：幣安現貨 data-api.binance.vision、OKX 現貨/永續、Gate 永續，全是公開端點不需金鑰（charter D3、D22）；
 # 幣安永續 fapi 在美國 runner 回 451，預設不掃。
 #
@@ -114,6 +115,36 @@ jobs:
           args="$args --preview-dir output/notify-preview"
           python notify_watchlist.py $args
 
+      # D39：止盈追蹤（已突破的頭肩底＋向上突破的三角形，碰到 TP1／TP2 由機器人發到 #加密止盈）。
+      # 追蹤檔 tp_tracker.json 存在 scan-state；分支存在但讀不到時跳過這一步（不覆寫追蹤檔）。
+      - name: Restore take-profit tracker from scan-state
+        id: tp_restore
+        if: ${{ !cancelled() && steps.build.outcome == 'success' && github.event.inputs.test_message != 'true' }}
+        run: |
+          set +e
+          git ls-remote --exit-code --heads origin scan-state >/dev/null; rc=$?
+          set -e
+          if [ "$rc" = "2" ]; then echo "no scan-state branch yet (first run)"; echo "ok=true" >> "$GITHUB_OUTPUT"; exit 0; fi
+          if [ "$rc" != "0" ] || ! git fetch --depth=1 origin scan-state; then
+            echo "::warning::could not read scan-state; take-profit step skipped this run"; echo "ok=false" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          if git cat-file -e FETCH_HEAD:tp_tracker.json 2>/dev/null; then git show FETCH_HEAD:tp_tracker.json > tp_tracker.json
+          else echo "scan-state has no tp_tracker.json yet (first run: events are only recorded)"; fi
+          echo "ok=true" >> "$GITHUB_OUTPUT"
+
+      - name: Notify take-profit
+        if: ${{ !cancelled() && steps.tp_restore.outputs.ok == 'true' }}
+        continue-on-error: true
+        env:
+          DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+          DISCORD_GUILD_ID: ${{ secrets.DISCORD_GUILD_ID }}
+          DISCORD_TP_CHANNEL_CRYPTO: ${{ secrets.DISCORD_TP_CHANNEL_CRYPTO }}
+        run: |
+          args="--scan site/data/scan.json --tracker tp_tracker.json"
+          [ "$DRY_RUN" = "true" ] && args="$args --dry-run"
+          args="$args --preview-dir output/notify-preview"
+          python notify_tp.py $args
+
       # notify 送失敗時也要存 state（沒送成功的型態不會被記錄，下次重試），所以用 !cancelled()。
       # scan-state 與公開網站在 publish job 推送（D29：保留台股那一邊的檔案）；dry-run 不推。
       # D32：dry-run 時把會附在 Discord 的圖存成 artifact，方便檢查（bars 檔與 scan.json 在 site/data 內，同一個 job）。
@@ -140,7 +171,9 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: state
-          path: state.json
+          path: |
+            state.json
+            tp_tracker.json
           retention-days: 7
           if-no-files-found: warn
 
@@ -154,4 +187,5 @@ jobs:
     with:
       market: crypto
       state_file: state.json
+      tp_file: tp_tracker.json
     secrets: inherit
