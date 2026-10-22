@@ -27,6 +27,11 @@ on:
         type: string
         required: false
         default: ""
+      alert_file:
+        description: "D41 alert dedupe state: alert_state.json (crypto) | alert_state_tw.json (tw); kept from scan-state when this run has none"
+        type: string
+        required: false
+        default: ""
     secrets:
       SITE_DEPLOY_KEY:
         required: false
@@ -42,6 +47,7 @@ jobs:
       MARKET: ${{ inputs.market }}
       STATE_FILE: ${{ inputs.state_file }}
       TP_FILE: ${{ inputs.tp_file }}
+      ALERT_FILE: ${{ inputs.alert_file }}
     steps:
       - uses: actions/checkout@v7  # for scripts/merge_published.py (stdlib only, system python3)
 
@@ -70,6 +76,8 @@ jobs:
           # crashed) merge_published keeps the published one (KEEP_IF_ABSENT), so it is never lost.
           if [ -n "$TP_FILE" ] && [ -f "$RUNNER_TEMP/new-state/$TP_FILE" ]; then cp "$RUNNER_TEMP/new-state/$TP_FILE" "$stage/$TP_FILE"
           elif [ -n "$TP_FILE" ]; then echo "no $TP_FILE in this run; the published one is kept"; fi
+          # D41: same for the alert dedupe state
+          if [ -n "$ALERT_FILE" ] && [ -f "$RUNNER_TEMP/new-state/$ALERT_FILE" ]; then cp "$RUNNER_TEMP/new-state/$ALERT_FILE" "$stage/$ALERT_FILE"; fi
           cp -r "$RUNNER_TEMP/new-site/data" "$stage/site/data"
           prev="$RUNNER_TEMP/prev-state"
           if git ls-remote --exit-code --heads origin scan-state >/dev/null; then
@@ -93,7 +101,7 @@ jobs:
           git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
             commit -q -m "scan-state: $MARKET $(date -u +%Y-%m-%dT%H:%MZ) (run ${GITHUB_RUN_ID})"
           git push --force origin HEAD:scan-state
-          git ls-tree -r --name-only HEAD | grep -E '^(state|tp_tracker|site/data/(scan\.json|tw/scan\.json))' || true
+          git ls-tree -r --name-only HEAD | grep -E '^(state|tp_tracker|alert_state|site/data/(track_record|scan\.json|tw/scan\.json))' || true
 
       - name: Publish site to public repo (keeps the other market's data)
         env:
@@ -119,3 +127,15 @@ jobs:
           rm -f "$key"
           ls data data/tw 2>/dev/null | head -20 || true
           echo "網站已發布：https://chasen8.github.io/head-shoulders-site/"
+
+      # D41 (b1)：發布失敗 -> 機器人發到 #測試（需要呼叫端給 actions: read）。
+      - name: Alert on failure
+        if: ${{ failure() }}
+        continue-on-error: true
+        env:
+          DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+          DISCORD_GUILD_ID: ${{ secrets.DISCORD_GUILD_ID }}
+          DISCORD_ALERT_CHANNEL_ID: ${{ secrets.DISCORD_ALERT_CHANNEL_ID }}
+          DISCORD_ALERT_CHANNEL_NAME: ${{ vars.DISCORD_ALERT_CHANNEL_NAME }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python3 scripts/health_alert.py failure --market "$MARKET" --stage publish

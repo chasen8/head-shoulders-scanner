@@ -11,12 +11,16 @@ would delete the other market's data, so each publish step:
   4. writes the result to `--out` (which the workflow commits and pushes).
 
 Ownership (relative paths; a directory owns everything under it):
-  site  : crypto -> data/scan.json, data/bars, data/triangles.json, data/tri_bars     tw -> data/tw
+  site  : crypto -> data/scan.json, data/bars, data/triangles.json, data/tri_bars, data/track_record.json
+          tw     -> data/tw   (incl. data/tw/track_record.json)
   state : crypto -> state.json, site/data/scan.json, site/data/bars, site/data/triangles.json, site/data/tri_bars,
-                    tp_tracker.json
-          tw     -> state_tw.json, site/data/tw, tp_tracker_tw.json
+                    site/data/track_record.json, tp_tracker.json, alert_state.json
+          tw     -> state_tw.json, site/data/tw, tp_tracker_tw.json, alert_state_tw.json
   (D38 triangles: crypto's triangles.json + tri_bars/ sit next to its scan.json; Taiwan's are inside data/tw.)
   (D39 take-profit trackers: tp_tracker.json (crypto) / tp_tracker_tw.json (tw) on the scan-state branch.)
+  (D41 alert dedupe state alert_state(_tw).json: scan-state only, kept like the tracker.)
+  (D41 track record: data/track_record.json (crypto) / data/tw/track_record.json (tw), made from the tracker by
+   notify_tp.py; kept from --prev when a run did not produce one, like the tracker itself.)
 
 KEEP_IF_ABSENT: paths of the PUBLISHING market that are copied from --prev when this run's tree does not have
 them (D39: the take-profit tracker; a run whose notify_tp step was skipped or crashed must not delete it).
@@ -37,14 +41,16 @@ from pathlib import Path, PurePosixPath
 from typing import Mapping, Sequence
 
 OWNED: Mapping[str, Mapping[str, Sequence[str]]] = {
-    "site": {"crypto": ("data/scan.json", "data/bars", "data/triangles.json", "data/tri_bars"), "tw": ("data/tw",)},
+    "site": {"crypto": ("data/scan.json", "data/bars", "data/triangles.json", "data/tri_bars",
+                        "data/track_record.json"), "tw": ("data/tw",)},
     "state": {"crypto": ("state.json", "site/data/scan.json", "site/data/bars", "site/data/triangles.json",
-                         "site/data/tri_bars", "tp_tracker.json"),
-              "tw": ("state_tw.json", "site/data/tw", "tp_tracker_tw.json")},
+                         "site/data/tri_bars", "site/data/track_record.json", "tp_tracker.json", "alert_state.json"),
+              "tw": ("state_tw.json", "site/data/tw", "tp_tracker_tw.json", "alert_state_tw.json")},
 }
 KEEP_IF_ABSENT: Mapping[str, Mapping[str, Sequence[str]]] = {
-    "site": {},
-    "state": {"crypto": ("tp_tracker.json",), "tw": ("tp_tracker_tw.json",)},
+    "site": {"crypto": ("data/track_record.json",), "tw": ("data/tw/track_record.json",)},
+    "state": {"crypto": ("tp_tracker.json", "site/data/track_record.json", "alert_state.json"),
+              "tw": ("tp_tracker_tw.json", "site/data/tw/track_record.json", "alert_state_tw.json")},
 }
 SKIP_NAMES = {".git"}
 

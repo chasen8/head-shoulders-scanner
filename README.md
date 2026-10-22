@@ -441,6 +441,16 @@ gh workflow run scan-tw.yml --repo chasen8/head-shoulders-scanner -f dry_run=tru
 ```
 `-f notify_all=true`：沒有 state 時逐筆通知。本機試跑：`python notify_discord.py --dry-run`（讀 `site/data/scan.json` 與 `state.json`）。
 
+### 實際戰績頁與系統通知（D41）
+
+- **實際戰績**：網站 ☰ →「實際戰績」（`?view=record&market=tw`）。資料 `site/data/track_record.json`（台股 `site/data/tw/`）每次止盈追蹤後由
+  `ihs_scanner/track_record.py` 從 `tp_tracker(_tw).json` 產生；本機重做：
+  `python -m ihs_scanner.track_record --tracker tp_tracker_tw.json --out site/data/tw/track_record.json --market tw`。規則與分母定義見 `docs/current-rules.md` 最後一節。
+- **系統出錯通知**：`scripts/health_alert.py`（標準庫）。掃描／發布 job 失敗、build 成功但失敗率 > 5% 或有來源錯誤、`watchdog.yml`（每 3 小時）發現加密 > 10 小時或台股（平日）> 30 小時沒更新、
+  scan workflow 被 GitHub 停用，都由機器人發到伺服器的「測試」頻道（`DISCORD_ALERT_CHANNEL_NAME`／`DISCORD_ALERT_CHANNEL_ID` 可覆寫；沒有機器人設定只寫 log）。同一問題 24 小時內不重複。
+- **每日心跳**預設關閉；要開：`gh variable set HEARTBEAT_ENABLED --body true`（台北 09 點左右發一則「系統正常」）；測試：`gh workflow run watchdog.yml -f heartbeat=true`。
+- 本機試跑：`python scripts/health_alert.py watchdog --state alert_state_watchdog.json`（沒有機器人環境變數時只印判斷結果）。
+
 ### 從 scan-state 分支取最新結果在本機看網站
 
 ```

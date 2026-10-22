@@ -34,7 +34,7 @@ TP_CONFIG: dict[str, Any] = {
     # bars after the breakout bar before an untouched item expires (4h 180 = 30 days, 1d 120, 1w 52 = 1 year)
     "max_bars": {"4h": 180, "1d": 120, "1w": 52},
     "notify_failed": False,  # a failure (low <= invalidation) is recorded; True also sends it to Discord
-    "prune_days": 90,        # finished items are kept this long so a still-listed pattern is not re-added
+    "prune_days": 365,       # finished items are kept this long (not re-added while listed; D41 track-record page)
 }
 TIMEFRAME_SECONDS = {"4h": 4 * 3600, "1d": 86400, "1w": 7 * 86400}
 OPEN_STATUSES = ("open", "tp1")
@@ -163,11 +163,11 @@ def evaluate(item: Mapping[str, Any], bars: pd.DataFrame, *, now: datetime,
     tp1, tp2, stop = float(item["tp1"]), float(item["tp2"]), float(item["invalidation_price"])
     df = closed_after_breakout(item, bars, now)
     status, events = "open", []
-    last_k, last_time = -1, None
+    last_k, last_time, last_close = -1, None, None
     for k, bar in enumerate(df.itertuples(index=False)):
         if k > limit:
             break
-        last_k, last_time = k, utc_text(bar.timestamp)
+        last_k, last_time, last_close = k, utc_text(bar.timestamp), float(bar.close)
         stopped = float(bar.low) <= stop
         if status == "open":
             if stopped:
@@ -197,7 +197,7 @@ def evaluate(item: Mapping[str, Any], bars: pd.DataFrame, *, now: datetime,
             status = "expired"
             break
     return {"status": status, "events": events, "bars_since_breakout": last_k if last_k >= 0 else None,
-            "last_bar_time": last_time}
+            "last_bar_time": last_time, "last_close": last_close}
 
 
 def bars_needed(item: Mapping[str, Any], now: datetime, *, max_bars: Mapping[str, int] | None = None,

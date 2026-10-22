@@ -35,6 +35,7 @@ on:
 
 permissions:
   contents: write  # publish job 推 scan-state 分支
+  actions: read    # D41：失敗通知要讀這次 run 的 job／步驟結果
 
 # 此 workflow 只由 schedule / workflow_dispatch 觸發；沒有 push 觸發，
 # 所以推 scan-state 分支不會引發任何 workflow 迴圈（且 GITHUB_TOKEN 的 push 本來就不會觸發 workflow）。
@@ -70,6 +71,23 @@ jobs:
       - name: Scan and write site/data/scan.json
         id: build
         run: python build_site.py --scheduled
+
+      # D41 (b2)：build 成功但失敗序列 >5% 或有 source_errors -> 機器人發到 #測試（同一問題 24 小時內不重複，狀態 alert_state.json 存 scan-state）。
+      # 只警告、不影響流程；dry-run／test_message 不跑。沒有 scan-state 或讀不到時當作第一次。
+      - name: Scan health check
+        if: ${{ !cancelled() && steps.build.outcome == 'success' && github.event.inputs.dry_run != 'true' && github.event.inputs.test_message != 'true' }}
+        continue-on-error: true
+        env:
+          DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+          DISCORD_GUILD_ID: ${{ secrets.DISCORD_GUILD_ID }}
+          DISCORD_ALERT_CHANNEL_ID: ${{ secrets.DISCORD_ALERT_CHANNEL_ID }}
+          DISCORD_ALERT_CHANNEL_NAME: ${{ vars.DISCORD_ALERT_CHANNEL_NAME }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          if git fetch --depth=1 origin scan-state 2>/dev/null && git cat-file -e FETCH_HEAD:alert_state.json 2>/dev/null; then
+            git show FETCH_HEAD:alert_state.json > alert_state.json
+          fi
+          python3 scripts/health_alert.py scan-health --market crypto --scan site/data/scan.json --state alert_state.json
 
       - name: Restore previous state from scan-state
         id: restore
@@ -174,8 +192,21 @@ jobs:
           path: |
             state.json
             tp_tracker.json
+            alert_state.json
           retention-days: 7
           if-no-files-found: warn
+
+      # D41 (b1)：這個 job 任何步驟失敗 -> 機器人發到 #測試，附失敗步驟名稱與 run 網址（需要 actions: read）。
+      - name: Alert on failure
+        if: ${{ failure() && github.event.inputs.dry_run != 'true' && github.event.inputs.test_message != 'true' }}
+        continue-on-error: true
+        env:
+          DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+          DISCORD_GUILD_ID: ${{ secrets.DISCORD_GUILD_ID }}
+          DISCORD_ALERT_CHANNEL_ID: ${{ secrets.DISCORD_ALERT_CHANNEL_ID }}
+          DISCORD_ALERT_CHANNEL_NAME: ${{ vars.DISCORD_ALERT_CHANNEL_NAME }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python3 scripts/health_alert.py failure --market crypto --stage scan
 
   # D25 + D29：scan-state 分支與公開網站 chasen8/head-shoulders-site 都是 force push 單一 commit。
   # 台股（scan-tw.yml）也推同一個地方，所以發布改由共用的 publish.yml 做：只換掉加密貨幣自己的檔案、
@@ -188,4 +219,5 @@ jobs:
       market: crypto
       state_file: state.json
       tp_file: tp_tracker.json
+      alert_file: alert_state.json
     secrets: inherit

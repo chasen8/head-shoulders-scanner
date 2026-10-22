@@ -519,11 +519,18 @@ def run(scan_path: Path, tracker_path: Path, *, triangles_path: Path | None = No
         it["status"] = res["status"]
         it["bars_since_breakout"] = res["bars_since_breakout"]
         it["last_bar_time"] = res["last_bar_time"]
+        if res.get("last_close") is not None:  # D41: the track-record page's return of an open item
+            it["last_close"] = res["last_close"]
         it["last_checked_at"] = now_text
         if res["status"] in tt.END_STATUSES and not it.get("ended_at"):
             it["ended_at"] = now_text
     items = tt.prune(items, now, int(cfg["prune_days"]))
     save_tracker(tracker_path, items, market, now)
+    try:  # D41: the track-record page (site/data[/tw]/track_record.json); never fails the run
+        from ihs_scanner import track_record
+        track_record.write_from_tracker(tracker_path, scan_dir / "track_record.json", market, now)
+    except Exception as exc:  # noqa: BLE001
+        print(f"[tp] track_record.json not written: {type(exc).__name__}: {str(exc)[:120]}", file=sys.stderr)
     print(f"[tp] tracker written: {len(items)} items {tt.summarize(items.values())}"
           f"{f'; {pending} pattern(s) left unchanged for retry' if pending else ''}")
     return rc

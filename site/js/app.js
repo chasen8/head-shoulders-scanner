@@ -1081,7 +1081,9 @@
   var IHS_SORT_HTML = null;
   // Show the controls of the current view: type filter + triangle sorts, or neckline filter + IHS sorts and the star toggle.
   function renderViewChrome() {
-    var tri = isTri();
+    var tri = isTri(), rc = isRec();
+    $("record").hidden = !rc;
+    document.querySelector(".board").hidden = rc;
     if (IHS_SORT_HTML === null) IHS_SORT_HTML = $("sort").innerHTML;
     $("grp-ttype").hidden = !tri;
     $("grp-neck").hidden = tri;
@@ -1089,18 +1091,18 @@
     $("sort").value = tri ? state.tsort : state.sort;
     $("only-wl").hidden = tri;
     var howIhs = document.querySelector("[aria-labelledby=\"howto-title\"]");
-    if (howIhs) howIhs.hidden = tri;
-    $("howto-tri").hidden = !tri;
+    if (howIhs) howIhs.hidden = tri || rc;
+    $("howto-tri").hidden = !tri || rc;
     $("chart-legend").hidden = true;
     $("tri-legend").hidden = true;
-    document.documentElement.setAttribute("data-view", tri ? "tri" : "ihs");
+    document.documentElement.setAttribute("data-view", rc ? "rec" : tri ? "tri" : "ihs");
     renderDownload();
   }
   // D39: the Taiwan 右肩已確認 Excel (data/tw/rs_confirmed.xlsx, written by every TW scan) -- TW IHS list only
   var XLSX_URL = MARKETS.tw.dir + "rs_confirmed.xlsx";
   function renderDownload() {
     var row = $("dl-xlsx-row");
-    if (row) row.hidden = !(state.market === "tw" && !isTri());
+    if (row) row.hidden = !(state.market === "tw" && !isTri() && !isRec());
   }
   function loadTri(m) {
     if (triCache[m]) return Promise.resolve(triCache[m]);
@@ -1165,6 +1167,289 @@
     state.q = ""; $("q").value = ""; state.shown = PAGE;
     setUrlMarket(m, false);
     return switchMarket(m, prev);
+  }
+
+  /* ---------- D41 track record (data/track_record.json; every number comes from ihs_scanner/track_record.py) ---------- */
+  var REC_STATUS_LABEL = { open: "追蹤中", tp1: "已達 TP1", tp2: "已達 TP2", failed: "失效", expired: "過期" };
+  var REC_STATUS_ORDER = ["open", "tp1", "tp2", "failed", "expired"];
+  var REC_PT_LABEL = { ihs: "頭肩底", ascending: "上升三角", descending: "下降三角", symmetrical: "對稱三角" };
+  var REC_PT_ORDER = ["ihs", "ascending", "descending", "symmetrical"];
+  var REC_SORT_OPTIONS = [["recent", "最新突破"], ["ret_desc", "報酬高到低"], ["ret_asc", "報酬低到高"], ["held", "持有最久"], ["name", "名稱"]];
+  var REC_PAGE = 60;
+  var recCache = {}, recErr = {};
+  var rec = { status: "all", pt: "all", tf: "all", sort: "recent", retro: false, shown: REC_PAGE, open: {} };
+
+  function isRec() { return state.view === "rec"; }
+  function recUrl(m) { return MARKETS[m].dir + "track_record.json"; }
+  function loadRec(m) {
+    if (recCache[m]) return Promise.resolve(recCache[m]);
+    return fetch(recUrl(m), { cache: "no-store" })
+      .then(function (res) { if (!res.ok) throw new Error("HTTP " + res.status); return res.json(); })
+      .then(function (data) {
+        if (!data || !Array.isArray(data.items) || !data.summary) throw new Error("檔案格式不對");
+        recCache[m] = data; delete recErr[m];
+        return data;
+      }, function (err) { recErr[m] = err; throw err; });
+  }
+  function recPt(it) { return it.kind === "triangle" ? (it.triangle_type || "symmetrical") : "ihs"; }
+  function recRate(x) { return typeof x === "number" ? (x * 100).toFixed(0) + "%" : "—"; }
+  function recRet(x) { return typeof x === "number" ? signedPct(x) : null; }
+  function recRetHtml(x, unknown) {
+    var t = recRet(x);
+    if (t === null) return "<span class=\"ret ret--na\">" + esc(unknown || "—") + "</span>";
+    return "<span class=\"ret " + (x > 0 ? "ret--up" : x < 0 ? "ret--down" : "") + "\">" + esc(t) + "</span>";
+  }
+  function recDays(it) {
+    if (typeof it.days !== "number") return "—";
+    var d = it.days < 10 ? it.days.toFixed(1) : String(Math.round(it.days));
+    return (typeof it.bars === "number" ? it.bars + " 根・" : "") + d + " 天";
+  }
+  function recStatusTag(st) { return "<span class=\"status rst rst--" + esc(st) + "\">" + esc(REC_STATUS_LABEL[st] || st) + "</span>"; }
+  function recItems() {
+    var d = recCache[state.market];
+    return d ? d.items.filter(function (it) { return rec.retro || !it.retro; }) : [];
+  }
+  function recPass(it, skip) {
+    return (skip === "status" || rec.status === "all" || it.status === rec.status) &&
+      (skip === "pt" || rec.pt === "all" || recPt(it) === rec.pt) &&
+      (skip === "tf" || rec.tf === "all" || it.timeframe === rec.tf);
+  }
+  var REC_SORTS = {
+    recent: function (a, b) { return Date.parse(b.breakout_time) - Date.parse(a.breakout_time); },
+    ret_desc: function (a, b) { return (typeof b["return"] === "number" ? b["return"] : -9) - (typeof a["return"] === "number" ? a["return"] : -9); },
+    ret_asc: function (a, b) { return (typeof a["return"] === "number" ? a["return"] : 9) - (typeof b["return"] === "number" ? b["return"] : 9); },
+    held: function (a, b) { return (b.days || 0) - (a.days || 0); },
+    name: function (a, b) { return a.symbol < b.symbol ? -1 : a.symbol > b.symbol ? 1 : 0; }
+  };
+  function recChip(group, value, label, count) {
+    var cur = rec[group];
+    return "<button type=\"button\" class=\"chip\" data-rec=\"" + group + "\" data-value=\"" + esc(value) + "\" aria-pressed=\"" + (cur === value) + "\">" +
+      esc(label) + (count === undefined ? "" : "<span class=\"chip__n\">" + count + "</span>") + "</button>";
+  }
+  function recGroupLabel(g) {
+    var k = g.kind === "ihs" ? "頭肩底" : g.kind === "triangle" ? "收斂三角" : "全部型態";
+    return k + "・" + (g.timeframe ? tfName(g.timeframe) : "全部週期");
+  }
+  // One card per overall number + a table by kind x timeframe (all numbers straight from summary)
+  function recSummaryHtml(d) {
+    var groups = (rec.retro ? d.summary.all : d.summary.live) || [];
+    var all = groups.filter(function (g) { return !g.kind && !g.timeframe; })[0];
+    if (!all) return "";
+    if (!all.n) {
+      return "<p class=\"rempty\">" + (rec.retro ? "" : "還沒有即時追蹤到的結果（目前追蹤中的還沒有達成 TP1、失效或過期）。") +
+        (all.open ? "追蹤中 " + all.open + " 筆。" : "") + "</p>";
+    }
+    var card = function (label, val, sub) {
+      return "<div class=\"rcard\"><span class=\"rcard__k\">" + esc(label) + "</span><b class=\"rcard__v\">" + val + "</b>" +
+        (sub ? "<span class=\"rcard__s\">" + esc(sub) + "</span>" : "") + "</div>";
+    };
+    var h = "<div class=\"rcards\">" +
+      card("已結算／達 TP1", String(all.n), "另有 " + all.open + " 筆追蹤中") +
+      card("TP1 達成率", recRate(all.tp1_rate), all.tp1 + " / " + all.n) +
+      card("TP2 達成率", recRate(all.tp2_rate), all.tp2 + " / " + all.n) +
+      card("失效率", recRate(all.failed_rate), all.failed + " / " + all.n + (all.failed_after_tp1 ? "（其中 " + all.failed_after_tp1 + " 筆先達 TP1）" : "")) +
+      card("過期率", recRate(all.expired_rate), all.expired + " / " + all.n) +
+      card("平均報酬", recRetHtml(all.avg_return, "—"), all.n_return + " 筆有報酬資料") +
+      "</div>";
+    var rows = groups.filter(function (g) { return g.n > 0 || g.open > 0; });
+    h += "<div class=\"rtable-wrap\"><table class=\"rtable\"><caption class=\"vh\">依型態與週期的彙總</caption><thead><tr>" +
+      ["型態・週期", "樣本", "TP1", "TP2", "失效", "過期", "平均報酬", "追蹤中"].map(function (t, i) {
+        return "<th scope=\"col\"" + (i ? " class=\"num\"" : "") + ">" + t + "</th>";
+      }).join("") + "</tr></thead><tbody>" + rows.map(function (g) {
+        return "<tr" + (!g.kind && !g.timeframe ? " class=\"is-total\"" : "") + "><th scope=\"row\">" + esc(recGroupLabel(g)) + "</th>" +
+          "<td class=\"num\">" + g.n + "</td><td class=\"num\">" + recRate(g.tp1_rate) + "</td><td class=\"num\">" + recRate(g.tp2_rate) + "</td>" +
+          "<td class=\"num\">" + recRate(g.failed_rate) + "</td><td class=\"num\">" + recRate(g.expired_rate) + "</td>" +
+          "<td class=\"num\">" + recRetHtml(g.avg_return, "—") + "</td><td class=\"num\">" + g.open + "</td></tr>";
+      }).join("") + "</tbody></table></div>";
+    return h;
+  }
+  // Price ladder: invalidation / breakout / TP1 / TP2 on one axis plus the result dot (positions only; values from JSON)
+  function recLadder(it) {
+    var lv = [["失效", it.invalidation_price, "stop"], ["突破", it.breakout_price, "brk"], ["TP1", it.tp1, "tp"], ["TP2", it.tp2, "tp2"]]
+      .filter(function (l) { return typeof l[1] === "number"; });
+    if (lv.length < 2) return "";
+    var vals = lv.map(function (l) { return l[1]; });
+    if (typeof it.result_price === "number") vals.push(it.result_price);
+    var lo = Math.min.apply(null, vals), hi = Math.max.apply(null, vals), W = 320, P = 26, Y = 34;
+    var x = function (p) { return (P + (p - lo) / ((hi - lo) || 1) * (W - 2 * P)).toFixed(1); };
+    var s = "<svg class=\"ladder\" viewBox=\"0 0 " + W + " 70\" role=\"img\" aria-label=\"失效價、突破價、TP1、TP2 與結果的相對位置\">" +
+      "<line class=\"ladder__axis\" x1=\"" + P + "\" y1=\"" + Y + "\" x2=\"" + (W - P) + "\" y2=\"" + Y + "\"/>";
+    lv.forEach(function (l, i) {
+      var up = i % 2 === 0, tx = x(l[1]);
+      s += "<line class=\"ladder__tick ladder__tick--" + l[2] + "\" x1=\"" + tx + "\" y1=\"" + (Y - 6) + "\" x2=\"" + tx + "\" y2=\"" + (Y + 6) + "\"/>" +
+        "<text class=\"ladder__lbl\" x=\"" + tx + "\" y=\"" + (up ? 18 : 56) + "\" text-anchor=\"middle\">" + esc(l[0]) + "</text>" +
+        "<text class=\"ladder__px\" x=\"" + tx + "\" y=\"" + (up ? 28 : 66) + "\" text-anchor=\"middle\">" + esc(fmtPrice(l[1], it.breakout_price)) + "</text>";
+    });
+    if (typeof it.result_price === "number") {
+      s += "<circle class=\"ladder__dot ladder__dot--" + esc(it.status) + "\" cx=\"" + x(it.result_price) + "\" cy=\"" + Y + "\" r=\"5\"><title>" +
+        esc((it.result_basis === "last_close" ? "最新收盤 " : "結果 ") + fmtPrice(it.result_price, it.breakout_price)) + "</title></circle>";
+    }
+    return s + "</svg>";
+  }
+  function recExists(it) {
+    if (it.kind === "triangle") return !!(triCache[state.market] && triCache[state.market].results.some(function (r) { return r.pattern_id === it.pattern_id; }));
+    return !!(dataCache[state.market] && dataCache[state.market].results.some(function (r) { return r.pattern_id === it.pattern_id; }));
+  }
+  function recDetail(it) {
+    var px = function (p) { return fmtPrice(p, it.breakout_price); };
+    var basis = { tp1: "TP1 價", tp2: "TP2 價", failed: "失效價", expired: "到期收盤", last_close: "最新收盤" }[it.result_basis];
+    var kv = [
+      ["突破時間", fmtBar(it.breakout_time, it.timeframe)], ["突破價", px(it.breakout_price)],
+      ["TP1", px(it.tp1) + (it.tp1_time ? "（" + fmtBar(it.tp1_time, it.timeframe) + " 達成）" : "")],
+      ["TP2", px(it.tp2) + (it.tp2_time ? "（" + fmtBar(it.tp2_time, it.timeframe) + " 達成）" : "")],
+      ["失效價", px(it.invalidation_price)]
+    ];
+    if (it.result_time) kv.push([it.status === "open" ? "最新收盤 K 線" : "結果 K 線", fmtBar(it.result_time, it.timeframe)]);
+    if (typeof it.result_price === "number") kv.push([basis ? "結果價（" + basis + "）" : "結果價", px(it.result_price)]);
+    kv.push(["持有", recDays(it)]);
+    if (typeof it.score === "number") kv.push(["偵測分數", it.score.toFixed(1)]);
+    var h = "<div class=\"rdet\">" + recLadder(it) + "<dl class=\"rdet__kv\">" + kv.map(function (p) {
+      return "<div><dt>" + esc(p[0]) + "</dt><dd>" + esc(p[1]) + "</dd></div>";
+    }).join("") + "</dl>";
+    if (it.retro) h += "<p class=\"rdet__note\">這筆在開始追蹤時結果就已經發生（追蹤開始前達成），不是即時追蹤到的。</p>";
+    if (it.anomaly) h += "<p class=\"rdet__note\">資料異常：失效價高於突破價（或 TP1 不高於突破價），這筆在第一根就會算失效，不計入彙總、不算報酬。</p>";
+    if (!it.anomaly && it.status === "expired" && typeof it["return"] !== "number") h += "<p class=\"rdet__note\">過期時的收盤價沒有記錄，報酬未知。</p>";
+    if (!it.anomaly && it.status === "open" && typeof it["return"] !== "number") h += "<p class=\"rdet__note\">追蹤檔還沒有記錄最新收盤，下一次掃描後會出現。</p>";
+    h += "<p class=\"rdet__links\">" + (recExists(it)
+      ? "<button type=\"button\" class=\"rlink\" data-act=\"rec-goto\" data-id=\"" + esc(it.pattern_id) + "\" data-kind=\"" + esc(it.kind) + "\">在掃描頁查看這個型態</button>"
+      : "<span class=\"rdet__gone\">這個型態已不在目前的掃描清單中。</span>") +
+      "<a class=\"rlink\" href=\"" + esc(tvUrl(it)) + "\" target=\"_blank\" rel=\"noopener\">TradingView</a></p></div>";
+    return h;
+  }
+  function recRowHtml(it) {
+    var open = !!rec.open[it.pattern_id], id = "rr-" + esc(String(it.pattern_id).replace(/[^A-Za-z0-9]/g, "_"));
+    return "<li class=\"rrow" + (open ? " is-open" : "") + "\"><button type=\"button\" class=\"rrow__btn\" data-act=\"rec-toggle\" data-id=\"" + esc(it.pattern_id) +
+      "\" aria-expanded=\"" + open + "\" aria-controls=\"" + id + "\">" +
+      "<span class=\"rrow__sym\"><span class=\"sym\">" + symHtml(it) + "</span><span class=\"tf\">" + esc(tfName(it.timeframe)) + "</span>" +
+      "<span class=\"mkt\">" + esc(it.pattern_label || REC_PT_LABEL[recPt(it)] || "") + (it.retro ? "・追蹤前已發生" : "") + (it.anomaly ? "・資料異常" : "") + "</span></span>" +
+      "<span class=\"rrow__st\">" + recStatusTag(it.status) + "</span>" +
+      "<span class=\"rrow__ret\">" + recRetHtml(it["return"], it.anomaly ? "—" : it.status === "expired" ? "未知" : it.status === "open" ? "尚無收盤" : "—") + "</span>" +
+      "<span class=\"rrow__held\">" + esc(recDays(it)) + "</span>" +
+      "<span class=\"rrow__date\">" + esc(fmtBar(it.breakout_time, it.timeframe)) + "</span></button>" +
+      "<div class=\"rrow__more\" id=\"" + id + "\"" + (open ? "" : " hidden") + ">" + (open ? recDetail(it) : "") + "</div></li>";
+  }
+  function recListHtml(d) {
+    var base = recItems();
+    var cnt = function (skip, test) { return base.filter(function (it) { return recPass(it, skip) && test(it); }).length; };
+    var rows = base.filter(function (it) { return recPass(it); }).sort(REC_SORTS[rec.sort] || REC_SORTS.recent);
+    var nRetro = d.items.filter(function (it) { return it.retro && recPass(it); }).length;
+    var h = "<div class=\"rfilters\">" +
+      "<div class=\"filters__group\" role=\"group\" aria-labelledby=\"rf-st\"><span class=\"filters__name\" id=\"rf-st\">狀態</span><div class=\"chips\">" +
+      recChip("status", "all", "全部", cnt("status", function () { return true; })) + REC_STATUS_ORDER.map(function (s) {
+        return recChip("status", s, REC_STATUS_LABEL[s], cnt("status", function (it) { return it.status === s; }));
+      }).join("") + "</div></div>" +
+      "<div class=\"filters__group\" role=\"group\" aria-labelledby=\"rf-pt\"><span class=\"filters__name\" id=\"rf-pt\">型態</span><div class=\"chips\">" +
+      recChip("pt", "all", "全部", cnt("pt", function () { return true; })) + REC_PT_ORDER.map(function (p) {
+        return recChip("pt", p, REC_PT_LABEL[p], cnt("pt", function (it) { return recPt(it) === p; }));
+      }).join("") + "</div></div>" +
+      "<div class=\"filters__group\" role=\"group\" aria-labelledby=\"rf-tf\"><span class=\"filters__name\" id=\"rf-tf\">週期</span><div class=\"chips\">" +
+      recChip("tf", "all", "全部", cnt("tf", function () { return true; })) + ["4h", "1d", "1w"].map(function (t) {
+        return recChip("tf", t, TF_LABEL[t], cnt("tf", function (it) { return it.timeframe === t; }));
+      }).join("") + "</div></div>" +
+      "<div class=\"filters__group\"><label class=\"filters__name\" for=\"rec-sort\">排序</label><select id=\"rec-sort\">" +
+      REC_SORT_OPTIONS.map(function (o) { return "<option value=\"" + o[0] + "\"" + (rec.sort === o[0] ? " selected" : "") + ">" + o[1] + "</option>"; }).join("") +
+      "</select></div>" +
+      (d.counts && d.counts.retro ? "<div class=\"filters__group\"><span class=\"filters__name\">範圍</span><div class=\"chips\">" +
+        "<button type=\"button\" class=\"chip\" data-rec=\"retro\" aria-pressed=\"" + rec.retro + "\">含追蹤前就已達成的結果<span class=\"chip__n\">" + d.counts.retro + "</span></button></div></div>" : "") +
+      "</div>";
+    h += "<p class=\"panel__count\" aria-live=\"polite\">共 " + rows.length + " 筆" + (rec.retro ? "" : (nRetro ? "（另有 " + nRetro + " 筆追蹤前已發生的結果未列出）" : "")) + "</p>";
+    if (!rows.length) return h + "<p class=\"rempty\">沒有符合條件的紀錄。</p>";
+    h += "<ol class=\"rlist\">" + rows.slice(0, rec.shown).map(recRowHtml).join("") + "</ol>";
+    if (rows.length > rec.shown) h += "<button type=\"button\" class=\"more\" data-act=\"rec-more\">再顯示 " + Math.min(REC_PAGE, rows.length - rec.shown) + " 筆</button>";
+    return h;
+  }
+  function recNotesHtml(d) {
+    var since = d.tracking_since ? fmtDay(d.tracking_since, true) : "—";
+    return "<ul class=\"rnotes\"><li><b>追蹤自 " + esc(since) + " 開始</b>，只計入開始追蹤之後的突破。</li>" +
+      "<li>這是上線後的真實結果，樣本少時僅供參考。</li><li>型態偵測結果的回顧，<b>不是投資建議</b>。</li>" +
+      (d.counts && d.counts.anomaly ? "<li>有 " + d.counts.anomaly + " 筆資料異常（失效價高於突破價），列在明細但不計入彙總。</li>" : "") + "</ul>" +
+      "<details class=\"rdef\"><summary>怎麼算？</summary><div>" +
+      "<p><b>追蹤對象：</b>已突破的頭肩底，以及向上突破的收斂三角。報酬以「突破價」（突破當根的頸線／阻力線價）為基準。</p>" +
+      "<p><b>狀態：</b>先碰到 TP1 → 已達 TP1（繼續追蹤 TP2）；碰到 TP2 → 已達 TP2（結束）；TP 之前（或 TP1 之後）最低價跌到失效價 → 失效；期限內（4 小時線 180 根、日線 120 根、週線 52 根）什麼都沒碰到 → 過期。同一根 K 線同時碰到失效價與 TP，保守算失效。</p>" +
+      "<p><b>分母：</b>樣本＝已結束（TP2、失效、過期）加上已達 TP1 的筆數；還在追蹤、什麼都還沒發生的不計入各種比率。TP1 達成率＝曾達 TP1 的筆數（含之後達 TP2 或失效的）÷ 樣本；TP2／失效／過期率各為該狀態筆數 ÷ 樣本，所以失效率包含「先達 TP1 再失效」的筆數。</p>" +
+      "<p><b>報酬：</b>達成 TP 用 TP 價、失效用失效價、過期用到期收盤（舊紀錄沒有收盤價就標「未知」、不算進平均）、追蹤中用最新收盤；只達 TP1 還在追蹤的用 TP1 價（保守值）。平均報酬只算有報酬資料的樣本，沒有扣手續費與滑價。</p>" +
+      "<p><b>「追蹤前已發生」：</b>剛開始追蹤時就已經達成的結果，不是即時追蹤到的，預設不列入彙總與清單，可用「含追蹤前就已達成的結果」打開。</p>" +
+      "</div></details>";
+  }
+  function renderRecord() {
+    var d = recCache[state.market];
+    if (!d) return;
+    var upd = d.tracker_updated_at || d.generated_at;
+    $("meta").innerHTML = "<b class=\"meta__mkt\">" + esc(MARKETS[state.market].label + "・實際戰績") + "</b>追蹤檔更新於 <time datetime=\"" + esc(upd) + "\">" +
+      fmtStamp(upd) + "</time>（" + tzLabel() + "），共 " + d.counts.items + " 筆追蹤" + (d.counts.retro ? "（含 " + d.counts.retro + " 筆追蹤前已發生）" : "") + "。";
+    $("scope").textContent = MARKETS[state.market].label + "：已突破型態的 TP1／TP2／失效結果";
+    var keepY = window.scrollY;
+    $("record").innerHTML = "<div class=\"record__in\"><h2 class=\"record__title\">" + esc(MARKETS[state.market].label) + "實際戰績</h2>" +
+      recNotesHtml(d) + "<section aria-labelledby=\"rs-t\"><h3 class=\"record__h\" id=\"rs-t\">彙總</h3>" + recSummaryHtml(d) + "</section>" +
+      "<section aria-labelledby=\"rl-t\"><h3 class=\"record__h\" id=\"rl-t\">明細</h3><div id=\"rec-list\">" + recListHtml(d) + "</div></section></div>";
+    window.scrollTo(0, keepY);
+  }
+  function renderRecList() { // filters / sort / expand: only the detail list is redrawn (keeps the summary + scroll)
+    var el = $("rec-list"), d = recCache[state.market];
+    if (!el || !d) { renderRecord(); return; }
+    var y = window.scrollY, a = document.activeElement, sel = null;
+    if (a && el.contains(a)) { // keep keyboard focus on the same control after the redraw
+      if (a.id) sel = "#" + a.id;
+      else if (a.getAttribute("data-rec")) sel = "[data-rec=\"" + a.getAttribute("data-rec") + "\"][data-value=\"" + (a.getAttribute("data-value") || "") + "\"]";
+      else if (a.getAttribute("data-act") === "rec-toggle") sel = "[data-act=\"rec-toggle\"][data-id=\"" + a.getAttribute("data-id").replace(/["\\]/g, "") + "\"]";
+    }
+    el.innerHTML = recListHtml(d);
+    if (sel) { try { var n = el.querySelector(sel); if (n) n.focus({ preventScroll: true }); } catch (err) { /* ignore */ } }
+    window.scrollTo(0, y);
+  }
+  function recFail(m, err) {
+    var missing = err && /HTTP 404/.test(String(err.message || err));
+    $("meta").innerHTML = "<b class=\"meta__mkt\">" + esc(MARKETS[m].label + "・實際戰績") + "</b>" + (missing ? "實際戰績資料還沒產生。" : "讀不到實際戰績資料。");
+    $("record").innerHTML = "<div class=\"record__in\"><div class=\"notice" + (missing ? "" : " notice--error") + "\"><h3>" +
+      (missing ? "實際戰績還沒有資料" : "讀不到實際戰績資料") + "</h3><p>" +
+      (missing ? "止盈追蹤每次掃描後更新；第一次掃描完成後這裡就會出現已突破型態的結果。" : "<code>" + esc(recUrl(m)) + "</code> 載入失敗（" + esc(err && err.message ? err.message : err) + "）。") +
+      "</p><button type=\"button\" id=\"rec-back\">回到頭肩底</button></div></div>";
+    $("rec-back").addEventListener("click", function () { showIhs(m); });
+  }
+  // Open the track record of market m. Pattern lists are loaded in the background so "查看型態" links know what still exists.
+  function showRecord(m) {
+    if (!MARKETS[m]) m = "crypto";
+    var changed = m !== state.market || !isRec();
+    state.view = "rec"; state.market = m;
+    if (changed) rec.shown = REC_PAGE;
+    if (settings.market !== m) { settings.market = m; saveSettings(); }
+    setUrlMarket(m, false);
+    renderMarketChrome();
+    renderViewChrome();
+    $("meta").textContent = "正在讀取" + MARKETS[m].label + "實際戰績…";
+    if (!recCache[m]) $("record").innerHTML = "<div class=\"record__in\"><p class=\"rempty\">讀取中…</p></div>";
+    var again = function () { if (isRec() && state.market === m && recCache[m]) renderRecList(); };
+    loadMarket(m).then(again, function () { /* links just stay hidden */ });
+    loadTri(m).then(again, function () { /* same */ });
+    return loadRec(m).then(function () {
+      if (!isRec() || state.market !== m) return;
+      renderRecord();
+      if (drawerEl().classList.contains("is-open")) renderDrawer();
+    }, function (err) {
+      if (!isRec() || state.market !== m) return;
+      recFail(m, err);
+      if (drawerEl().classList.contains("is-open")) renderDrawer();
+    });
+  }
+  function onRecClick(e) {
+    var f = e.target.closest("[data-rec]");
+    if (f) {
+      var g = f.getAttribute("data-rec");
+      if (g === "retro") rec.retro = !rec.retro; else rec[g] = f.getAttribute("data-value");
+      rec.shown = REC_PAGE;
+      if (g === "retro") renderRecord(); else renderRecList();
+      return;
+    }
+    var t = e.target.closest("[data-act]");
+    if (!t) return;
+    var act = t.getAttribute("data-act"), id = t.getAttribute("data-id");
+    if (act === "rec-toggle") { rec.open[id] = !rec.open[id]; renderRecList(); }
+    else if (act === "rec-more") { rec.shown += REC_PAGE; renderRecList(); }
+    else if (act === "rec-goto") {
+      var m = state.market;
+      if (t.getAttribute("data-kind") === "triangle") showTriangles(m, id);
+      else { state.selected = id; showIhs(m); }
+    }
   }
 
   /* ---------- wiring ---------- */
@@ -1623,7 +1908,7 @@
     if (el) el.focus();
   }
   function setInert(on) {
-    ["topbar", "board", "colophon"].forEach(function (c) {
+    ["topbar", "board", "record", "colophon"].forEach(function (c) {
       var el = document.querySelector("." + c);
       if (!el) return;
       try { el.inert = on; } catch (e) { /* no inert support: the focus trap still holds */ }
@@ -1666,13 +1951,13 @@
 
   function menuHtml() {
     return "<ul class=\"dnav\">" + MARKET_ORDER.map(function (m) {
-      var cur = m === state.market && !isTri(), d = dataCache[m];
+      var cur = m === state.market && !isTri() && !isRec(), d = dataCache[m];
       var n = d ? d.results.length + " 個型態" : (loadErr[m] ? "尚無資料" : "");
       return "<li><button type=\"button\" class=\"dnav__btn dnav__btn--mkt\" data-act=\"market\" data-market=\"" + m + "\"" +
         (cur ? " aria-current=\"page\"" : "") + "><span>" + esc(MARKETS[m].label) + "</span>" +
         "<span class=\"dnav__sub\">" + (cur ? "目前" + (n ? "・" : "") : "") + esc(n) + "</span></button></li>";
     }).join("") +
-      triMenuItem() +
+      triMenuItem() + recMenuItem() +
       (state.market === "tw" ? "<li><a class=\"dnav__btn dnav__btn--mkt\" href=\"" + XLSX_URL + "\" download=\"rs_confirmed.xlsx\">" +
         "<span>下載 Excel（右肩已確認）</span><span class=\"dnav__sub\">台股</span></a></li>" : "") +
       "<li><button type=\"button\" class=\"dnav__btn\" data-act=\"view\" data-view=\"watchlist\">觀察名單（" + watch.length + "）</button></li>" +
@@ -1686,6 +1971,12 @@
     return "<li><button type=\"button\" class=\"dnav__btn dnav__btn--mkt dnav__btn--tri\" data-act=\"tri\"" +
       (cur ? " aria-current=\"page\"" : "") + "><span>收斂三角</span><span class=\"dnav__sub\">" +
       esc(MARKETS[state.market].label + (n ? "・" + n : "")) + "</span></button></li>";
+  }
+  // D41: the track record of the current market
+  function recMenuItem() {
+    var d = recCache[state.market];
+    return "<li><button type=\"button\" class=\"dnav__btn dnav__btn--mkt dnav__btn--tri\" data-act=\"rec\"" + (isRec() ? " aria-current=\"page\"" : "") +
+      "><span>實際戰績</span><span class=\"dnav__sub\">" + esc(MARKETS[state.market].label + (d ? "・" + d.counts.items + " 筆" : "")) + "</span></button></li>";
   }
   function watchHtml() {
     var h = "<button type=\"button\" class=\"dback\" data-act=\"back\">‹ 選單</button>";
@@ -1878,8 +2169,11 @@
     else if (act === "market") {
       state.onlyWl = false; $("only-wl").setAttribute("aria-pressed", "false");
       closeDrawer();
-      if (isTri()) showIhs(t.getAttribute("data-market"));
+      if (isTri() || isRec()) showIhs(t.getAttribute("data-market"));
       else switchMarket(t.getAttribute("data-market"));
+    } else if (act === "rec") {
+      closeDrawer();
+      showRecord(state.market);
     } else if (act === "tri") {
       closeDrawer();
       showTriangles(state.market);
@@ -1889,7 +2183,7 @@
       state.q = ""; $("q").value = ""; state.tf = "all"; state.status = "all"; state.neck = "all"; state.onlyWl = false; state.shown = PAGE;
       $("only-wl").setAttribute("aria-pressed", "false");
       closeDrawer($("detail"));
-      if (isTri()) { state.view = "ihs"; state.selected = null; renderViewChrome(); setUrlMarket(rowMarket(r), false); }
+      if (isTri() || isRec()) { state.view = "ihs"; state.selected = null; renderViewChrome(); setUrlMarket(rowMarket(r), false); }
       switchMarket(rowMarket(r), r.pattern_id);
     } else if (act === "export-file") {
       try {
@@ -1963,6 +2257,10 @@
       applyTheme();
     });
     $("drawer-body").addEventListener("click", onDrawerClick);
+    $("record").addEventListener("click", onRecClick);
+    $("record").addEventListener("change", function (e) {
+      if (e.target.id === "rec-sort") { rec.sort = e.target.value; renderRecList(); }
+    });
     $("drawer-body").addEventListener("change", function (e) {
       if (e.target.id === "imp-file") {
         var f = e.target.files && e.target.files[0];
@@ -2096,7 +2394,7 @@
     $("q-label").textContent = m === "tw" ? "搜尋股票" : "搜尋幣種";
     $("q").placeholder = m === "tw" ? "搜尋代號或名稱，例如 2330、台積電" : "搜尋幣種，例如 BTC";
     $("wl-n").textContent = watchInMarket(m);
-    document.title = isTri() ? (m === "tw" ? "台股" : "") + "收斂三角｜頭肩底掃描" : (m === "tw" ? "台股" : "") + "頭肩底掃描";
+    document.title = isRec() ? (m === "tw" ? "台股" : "") + "實際戰績｜頭肩底掃描" : isTri() ? (m === "tw" ? "台股" : "") + "收斂三角｜頭肩底掃描" : (m === "tw" ? "台股" : "") + "頭肩底掃描";
     renderDownload();
   }
 
@@ -2104,7 +2402,7 @@
     try {
       var qs = new URLSearchParams(location.search);
       if (m === "crypto") qs.delete("market"); else qs.set("market", m);
-      if (isTri()) qs.set("view", "triangles"); else qs.delete("view");
+      if (isTri()) qs.set("view", "triangles"); else if (isRec()) qs.set("view", "record"); else qs.delete("view");
       var q = qs.toString();
       history.replaceState(null, "", location.pathname + (q ? "?" + q : "") + (keepHash ? location.hash : ""));
     } catch (e) { /* file:// etc. */ }
@@ -2112,6 +2410,7 @@
 
   // Switch the list, filters, counts and detail to market m. selectId: a pattern to open after loading.
   function switchMarket(m, selectId) {
+    if (isRec()) return showRecord(m);
     if (isTri()) return showTriangles(m, selectId);
     if (!MARKETS[m]) m = "crypto";
     var changed = m !== state.market;
@@ -2151,6 +2450,20 @@
     var m = qs && MARKETS[qs.get("market")] ? qs.get("market")
       : /^(twse|tpex)\|/.test(hash) ? "tw" : /^[a-z]+\|/.test(hash) ? "crypto" : settings.market;
     state.market = MARKETS[m] ? m : "crypto";
+    if (qs && qs.get("view") === "record") { // D41: ?view=record[&market=tw][&status=tp2&pt=ihs&tf=1d&sort=ret_desc&retro=1]
+      state.view = "rec";
+      if (REC_STATUS_LABEL[qs.get("status")]) rec.status = qs.get("status");
+      if (REC_PT_LABEL[qs.get("pt")]) rec.pt = qs.get("pt");
+      if (TF_LABEL[qs.get("tf")]) rec.tf = qs.get("tf");
+      if (REC_SORTS[qs.get("sort")]) rec.sort = qs.get("sort");
+      if (qs.get("retro") === "1") rec.retro = true;
+      showRecord(state.market).then(function () {
+        try { applyTestParams(qs); } catch (e) { /* ignore */ }
+      });
+      if (loginNotice) showToast(loginNotice, loginOk);
+      if (loggedIn()) syncAll();
+      return;
+    }
     if (qs && qs.get("view") === "triangles") { // D38: ?view=triangles[&market=tw][&tf=1d&status=forming&type=ascending&q=BTC]
       state.view = "tri";
       if (TF_LABEL[qs.get("tf")]) state.ttf = qs.get("tf");

@@ -1,0 +1,62 @@
+# 看門狗（charter D41 b3/b4）：每 3 小時看一次公開網站的 data/scan.json、data/tw/scan.json 的 generated_at，
+# 太久沒更新、或 scan 的 workflow 被 GitHub 停用，就由機器人發到 Discord #測試。
+#   - 加密貨幣：超過 10 小時（排程每 4 小時，等於漏了兩輪）。
+#   - 台股：只在台北平日檢查；扣掉週末後超過 30 小時。國定假日 scan-tw 照跑（只是 K 線沒有新的），
+#     generated_at 照常更新，所以連假不會誤報；連假期間 workflow 若真的沒跑才會報。
+#   - 同一個問題 24 小時內不重複：看門狗不能寫 scan-state（會和掃描搶 force push），所以用 actions/cache
+#     存 alert_state_watchdog.json（每次 run 存一份新的、下一次用 restore-keys 取最新的；快取遺失 = 可能多報一次）。
+#   - b4 心跳（每天台北 09 點「系統正常」）預設關閉；要開：repo 變數 HEARTBEAT_ENABLED=true
+#     （gh variable set HEARTBEAT_ENABLED --body true），或手動執行時選 heartbeat。
+# 很輕量：不裝 requirements，只用 python3 標準庫（scripts/health_alert.py）。
+# 需要的 secret：DISCORD_BOT_TOKEN、DISCORD_GUILD_ID（沒設只印 log）；可選 DISCORD_ALERT_CHANNEL_ID、
+# repo 變數 DISCORD_ALERT_CHANNEL_NAME（預設找名為「測試」的頻道）。
+name: Watchdog
+
+on:
+  schedule:
+    # UTC 01,04,...,22 時的第 23 分（避開整點）；01:23 UTC = 台北 09:23，心跳用這一次。
+    - cron: "23 1,4,7,10,13,16,19,22 * * *"
+  workflow_dispatch:
+    inputs:
+      heartbeat:
+        description: "不管有沒有問題都不發；沒問題時發一則「系統正常」（測試用）"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  actions: read  # 查 scan workflows 是否被停用
+
+concurrency:
+  group: watchdog
+  cancel-in-progress: false
+
+jobs:
+  watchdog:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Restore alert state (dedupe)
+        uses: actions/cache@v6
+        with:
+          path: alert_state_watchdog.json
+          key: watchdog-alert-${{ github.run_id }}
+          restore-keys: |
+            watchdog-alert-
+
+      - name: Check
+        env:
+          DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+          DISCORD_GUILD_ID: ${{ secrets.DISCORD_GUILD_ID }}
+          DISCORD_ALERT_CHANNEL_ID: ${{ secrets.DISCORD_ALERT_CHANNEL_ID }}
+          DISCORD_ALERT_CHANNEL_NAME: ${{ vars.DISCORD_ALERT_CHANNEL_NAME }}
+          GITHUB_TOKEN: ${{ github.token }}
+          HEARTBEAT_ENABLED: ${{ vars.HEARTBEAT_ENABLED }}
+          HEARTBEAT_FORCE: ${{ github.event.inputs.heartbeat }}
+        run: |
+          mode=off
+          [ "$HEARTBEAT_ENABLED" = "true" ] && mode=auto
+          [ "$HEARTBEAT_FORCE" = "true" ] && mode=force
+          python3 scripts/health_alert.py watchdog --state alert_state_watchdog.json --heartbeat "$mode"

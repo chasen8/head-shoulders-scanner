@@ -210,3 +210,20 @@ neck(i)＝N1–N2 連線在第 i 根的價格；頭高＝neck(H) − H；頭到�
 - 通知 TP1、TP2；failed 預設只記錄（`notify_failed=True` 才通知）；expired 只記錄。
 - 首次執行（沒有追蹤檔）與事件發生在型態 `signal_time` 之前（型態還沒被看到）：只記錄不通知。
 - 送不出去（沒有機器人、找不到頻道、Discord 拒絕）時該型態維持原狀態，下次執行重算後再送。
+
+# 實際戰績頁與系統通知（D41，2026-10-23）
+
+## 實際戰績（`ihs_scanner/track_record.py`，不改任何偵測或止盈判斷）
+- 每次止盈追蹤後，由追蹤檔產生 `site/data/track_record.json`（台股 `site/data/tw/`），隨各自市場發布、互不覆蓋（`scripts/merge_published.py`，與追蹤檔同樣「這次沒產生就保留已發布的」）。
+- 追蹤檔補記 `last_close`（最近一根已收盤 K 線的收盤價，給「追蹤中」的報酬用）；舊檔沒有這欄、也沒有過期收盤的，報酬標「未知」。已結束項目保留天數 90 → 365（讓戰績不會三個月後就消失）。
+- 單筆報酬＝結果價 ÷ 突破價 − 1：TP2 用 TP2 價、只達 TP1 還在追蹤用 TP1 價、失效用失效價、過期用到期收盤、追蹤中用最新收盤。
+- **分母（樣本）**＝已達 TP1、已達 TP2、失效、過期的筆數；還在追蹤、什麼都沒發生的不計。TP1 率＝曾達 TP1（含後來達 TP2 或失效）÷ 樣本；TP2／失效／過期率＝該狀態 ÷ 樣本；平均報酬只算有報酬資料的樣本；不含手續費與滑價。
+- 分組：型態（頭肩底／收斂三角）× 週期，另有各維度合計與全部。
+- `retro`＝追蹤開始前就發生的結果（首次啟動或事件早於訊號時間），預設不計入；`anomaly`＝失效價 ≥ 突破價或 TP1 ≤ 突破價（例如部分下降三角被標成向上突破），不計入彙總、不算報酬。
+
+## 系統出錯通知（`scripts/health_alert.py`，只用標準庫）
+- 頻道：機器人在 `DISCORD_GUILD_ID` 伺服器找名為「測試」的文字頻道（`DISCORD_ALERT_CHANNEL_NAME` 改名稱、`DISCORD_ALERT_CHANNEL_ID` 直接指定）；找不到只寫 log。訊息與 log 會遮蔽金鑰，錯誤文字中的網址只留網域。
+- b1 失敗：scan-and-notify、scan-tw、publish 的 job 失敗時發「⚠️ 加密貨幣／台股掃描失敗」「網站發布失敗」，附失敗步驟名稱與 run 網址（workflow 需 `actions: read`）。dry-run、test_message 不發；逾時或被取消沒有步驟可跑，由看門狗補位。
+- b2 資料異常：build 成功但失敗序列 ÷ 總序列 > 5%（`CONFIG["max_failure_ratio"]`），或 `source_errors` 有值、三角形失敗率過高 → 警告；同一問題 24 小時內不重複（`alert_state.json`／`alert_state_tw.json` 存 scan-state）；送失敗不記錄、下次重試。
+- b3 看門狗（`watchdog.yml`，UTC 01、04、…、22 時的第 23 分，不裝套件）：讀公開網站兩份 `scan.json` 的 `generated_at`；加密 > 10 小時、台股（台北平日才檢查，扣掉週末小時）> 30 小時警告；另查兩個掃描 workflow 是否被 GitHub 停用。連假：台股 workflow 照跑（只是沒有新 K 線），`generated_at` 照常更新，所以不誤報；連假期間 workflow 真的沒跑才會報。24 小時去重用 actions/cache 存狀態（快取遺失最多多報一次）。
+- b4 心跳：預設關閉；repo 變數 `HEARTBEAT_ENABLED=true` 後，每天台北 09 點左右發一則「✅ 系統正常」（上次更新時間與目前型態數；沒有「昨日通知數」，因為通知數沒有存起來）。手動執行 watchdog 可勾 heartbeat 測試。
