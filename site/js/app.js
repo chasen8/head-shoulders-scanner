@@ -2394,7 +2394,7 @@
     $("q-label").textContent = m === "tw" ? "搜尋股票" : "搜尋幣種";
     $("q").placeholder = m === "tw" ? "搜尋代號或名稱，例如 2330、台積電" : "搜尋幣種，例如 BTC";
     $("wl-n").textContent = watchInMarket(m);
-    document.title = isRec() ? (m === "tw" ? "台股" : "") + "實際戰績｜頭肩底掃描" : isTri() ? (m === "tw" ? "台股" : "") + "收斂三角｜頭肩底掃描" : (m === "tw" ? "台股" : "") + "頭肩底掃描";
+    document.title = isRec() ? (m === "tw" ? "台股" : "") + "實際戰績｜預米蛋餅" : isTri() ? (m === "tw" ? "台股" : "") + "收斂三角｜預米蛋餅" : (m === "tw" ? "台股" : "") + "預米蛋餅";
     renderDownload();
   }
 
