@@ -1,4 +1,4 @@
-"""Download the D22 golden-example and D36 case K lines into tests/fixtures/<name>.csv (public, no key).
+"""Download the D22 golden-example, D36 and D45 case K lines into tests/fixtures/<name>.csv (public, no key).
 
     /c/trading-data/ihs-scanner-v2/venv/Scripts/python.exe scripts/fetch_golden_fixtures.py [--force]
 
@@ -6,6 +6,7 @@ Sources (all public market data):
   binance_spot  https://data-api.binance.vision/api/v3/klines
   binance_usdm  https://fapi.binance.com/fapi/v1/klines
   okx_spot      https://www.okx.com/api/v5/market/history-candles  (bar 1Dutc / 4H, UTC aligned)
+  gate_perp     https://api.gateio.ws/api/v4/futures/usdt/candlesticks  (D45; from / to in seconds)
 
 Each fixture keeps up to BARS_BEFORE closed bars before the screenshot time plus up to BARS_AFTER
 bars after it (only bars that are closed now). Columns: timestamp (ISO UTC open time), open, high,
@@ -24,7 +25,7 @@ import requests
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from tests.golden_examples import BARS_AFTER, BARS_BEFORE, D36_CASES, GOLDEN_EXAMPLES  # noqa: E402
+from tests.golden_examples import BARS_AFTER, BARS_BEFORE, D36_CASES, D45_CASES, GOLDEN_EXAMPLES  # noqa: E402
 
 FIXTURE_DIR = ROOT / "tests" / "fixtures"
 BAR_MS = {"4h": 4 * 3600 * 1000, "1d": 86400 * 1000, "1w": 7 * 86400 * 1000}
@@ -84,6 +85,19 @@ def _okx(inst: str, tf: str, start_ms: int, end_ms: int) -> list[list]:
     return rows
 
 
+def _gate(contract: str, tf: str, start_ms: int, end_ms: int) -> list[list]:
+    """The scanner's own fetcher (newest <= 2000 closed bars). Gate's from/to query returned a flat zero-volume
+    bar for 2026-10-25 00:00 that the plain `limit` query (what the scan uses) does not."""
+    from ihs_scanner import data_gate
+    now = int(time.time() * 1000)
+    need = min(data_gate.MAX_PER_REQUEST - 1, (now - start_ms) // BAR_MS[tf] + 1)
+    df = data_gate.fetch_klines(contract, tf, int(need))
+    ms = ((df["timestamp"] - pd.Timestamp(0, tz="UTC")) // pd.Timedelta(milliseconds=1)).astype("int64")
+    df = df[(ms >= start_ms) & (ms <= end_ms)]
+    return [[int(t), float(o), float(h), float(lo), float(c), float(v)] for t, o, h, lo, c, v in
+            zip(ms[df.index], df["open"], df["high"], df["low"], df["close"], df["volume"])]
+
+
 def fetch_example(name: str, spec: dict) -> pd.DataFrame:
     tf = spec["timeframe"]
     bar = BAR_MS[tf]
@@ -100,6 +114,8 @@ def fetch_example(name: str, spec: dict) -> pd.DataFrame:
         rows = _binance("https://fapi.binance.com", "/fapi/v1/klines", spec["symbol"], tf, start, end)
     elif src == "okx_spot":
         rows = _okx(spec["symbol"], tf, start, end)
+    elif src == "gate_perp":
+        rows = _gate(spec["symbol"], tf, start, end)
     else:
         raise ValueError(f"unknown source {src!r}")
     df = pd.DataFrame(rows, columns=["timestamp", "open", "high", "low", "close", "volume"])
@@ -114,7 +130,7 @@ def main(argv=None) -> int:
     ap.add_argument("--force", action="store_true", help="re-download existing fixtures")
     args = ap.parse_args(argv)
     FIXTURE_DIR.mkdir(parents=True, exist_ok=True)
-    for name, spec in {**GOLDEN_EXAMPLES, **D36_CASES}.items():
+    for name, spec in {**GOLDEN_EXAMPLES, **D36_CASES, **D45_CASES}.items():
         path = FIXTURE_DIR / f"{name}.csv"
         if path.exists() and not args.force:
             print(f"[skip] {path.name} exists")

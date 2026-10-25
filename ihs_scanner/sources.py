@@ -74,6 +74,69 @@ def merge_instruments(by_source: Mapping[str, Sequence[Instrument]],
     return out
 
 
+MaxPositionFn = Callable[[Sequence[Instrument]], Mapping[str, "float | None"]]
+
+
+@dataclass
+class PositionFilterResult:
+    merged: list[Instrument]
+    excluded: list[dict[str, Any]]           # {symbol, base, source, native, max_position_usdt, replaced_by}
+    checked: dict[str, int]                  # source -> instruments whose limit was looked up
+    unknown: dict[str, int]                  # source -> looked up but no value (kept)
+    errors: list[dict[str, Any]]             # {source, error}: the whole lookup failed (all kept)
+
+
+def merge_with_position_limit(by_source: Mapping[str, Sequence[Instrument]],
+                              max_position: Mapping[str, MaxPositionFn], min_value: float,
+                              priority: Sequence[str] = SOURCE_PRIORITY,
+                              errors: tuple[type[BaseException], ...] = (Exception,)) -> PositionFilterResult:
+    """D45: merge_instruments + drop perp instruments whose max position value (USDT) < min_value.
+
+    Sources run in D22 priority order. For a source with a lookup in `max_position`, only the instruments whose base
+    is not already taken by an earlier source are looked up (saves requests); an excluded instrument does NOT claim
+    its base, so a later source (e.g. Gate perp after OKX perp) can still supply that coin when its own limit is
+    high enough (`replaced_by`). Unknown values (None, or a failed lookup) keep the instrument. min_value <= 0 or no
+    lookups -> exactly merge_instruments."""
+    seen: set[str] = set()
+    out: list[Instrument] = []
+    excluded: list[dict[str, Any]] = []
+    checked: dict[str, int] = {}
+    unknown: dict[str, int] = {}
+    errs: list[dict[str, Any]] = []
+    for key in priority:
+        cands = []
+        for inst in sorted(by_source.get(key, ()), key=lambda i: i.symbol):
+            if dedupe_key(inst.base) not in seen:
+                cands.append(inst)
+        fn = max_position.get(key) if min_value > 0 else None
+        values: Mapping[str, float | None] = {}
+        if fn is not None and cands:
+            checked[key] = len(cands)
+            try:
+                values = fn(cands)
+            except errors as exc:  # lookup failed: keep everything, record why
+                errs.append({"source": key, "error": f"{type(exc).__name__}: {exc}"[:240]})
+                values = {}
+        for inst in cands:
+            k = dedupe_key(inst.base)
+            if k in seen:  # two instruments of one coin in the same source (PEPE / 1000PEPE)
+                continue
+            if fn is not None:
+                v = values.get(inst.native)
+                if v is None:
+                    unknown[key] = unknown.get(key, 0) + 1
+                elif v < min_value:
+                    excluded.append({"symbol": inst.symbol, "base": inst.base, "source": key, "native": inst.native,
+                                     "max_position_usdt": round(float(v), 2)})
+                    continue
+            seen.add(k)
+            out.append(inst)
+    taken = {dedupe_key(i.base): i.source for i in out}
+    for e in excluded:
+        e["replaced_by"] = taken.get(dedupe_key(e["base"]))
+    return PositionFilterResult(out, excluded, checked, unknown, errs)
+
+
 def keep_base(base: str, usdt_bases: Iterable[str], excluded: Iterable[str] = EXCLUDED_BASE_ASSETS) -> bool:
     """False for stablecoin/fiat bases and leveraged tokens (same rules as the Binance spot list)."""
     return base.upper() not in {e.upper() for e in excluded} and not is_leveraged_base(base, usdt_bases)

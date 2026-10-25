@@ -9,6 +9,7 @@ or error code 50011.
 """
 from __future__ import annotations
 
+import math
 import time
 from typing import Any, Mapping
 
@@ -101,3 +102,88 @@ def fetch_klines(inst_id: str, timeframe: str, limit: int = 1000, *, session=Non
         if len(data) < batch:
             break  # no more history
     return ohlcv_frame(rows, timeframe, now_ms=now_ms, limit=limit)
+
+
+# ---------------------------------------------------------------------------------------------------------------
+# D45 max position value of a USDT swap (public endpoints only, no key):
+#   GET /api/v5/public/instruments?instType=SWAP        ctVal (base coin per contract), ctMult, instFamily,
+#                                                       posLmtAmt / posLmtPct (user-level position limit)
+#   GET /api/v5/public/position-tiers?instType=SWAP&tdMode=cross&instFamily=<up to 5, comma separated>
+#                                                       maxSz per tier = contracts; the highest tier's maxSz is the
+#                                                       largest position one account can hold
+#   GET /api/v5/public/mark-price?instType=SWAP          markPx (USDT)
+#   GET /api/v5/public/open-interest?instType=SWAP       oiUsd (for the posLmtPct part)
+# value (USDT) = min(highest-tier maxSz * ctVal * ctMult * markPx, user limit), user limit = max(posLmtAmt,
+#   oiUsd * posLmtPct / 100) when posLmtAmt is set (OKX docs: the effective user limit is max(posLmtAmt,
+#   oiUSD x posLmtPct)). posLmtAmt is >= 250,000 USD on every swap (2026-10-25), so the tier term decides.
+# Rate limit: position-tiers 10 req / 2 s per IP -> paced at 4 req/s (TIERS_REQUESTS_PER_SECOND).
+POSITION_TIERS_PATH = "/api/v5/public/position-tiers"
+MARK_PRICE_PATH = "/api/v5/public/mark-price"
+OPEN_INTEREST_PATH = "/api/v5/public/open-interest"
+TIERS_PER_REQUEST = 5
+TIERS_REQUESTS_PER_SECOND = 4.0
+
+
+def new_tiers_limiter() -> IntervalLimiter:
+    return IntervalLimiter(1.0 / TIERS_REQUESTS_PER_SECOND)
+
+
+def _f(x: Any) -> float | None:
+    try:
+        v = float(x)
+    except (TypeError, ValueError):
+        return None
+    return v if math.isfinite(v) else None
+
+
+def position_value(inst: Mapping[str, Any], max_sz: float | None, mark: float | None,
+                   oi_usd: float | None = None) -> float | None:
+    """Max position notional in USDT for one linear USDT swap (formula above); None when a piece is missing."""
+    ct_val, ct_mult = _f(inst.get("ctVal")), _f(inst.get("ctMult")) or 1.0
+    if max_sz is None or mark is None or ct_val is None or max_sz <= 0 or mark <= 0 or ct_val <= 0:
+        return None
+    value = max_sz * ct_val * ct_mult * mark
+    lmt_amt, lmt_pct = _f(inst.get("posLmtAmt")), _f(inst.get("posLmtPct"))
+    if lmt_amt is not None and lmt_amt > 0:
+        value = min(value, max(lmt_amt, (oi_usd or 0.0) * (lmt_pct or 0.0) / 100.0))
+    return value
+
+
+def max_position_values(session, inst_ids, *, limiter: IntervalLimiter | None = None,
+                        tiers_limiter: IntervalLimiter | None = None, sleep=time.sleep) -> dict[str, float | None]:
+    """{instId: max position notional (USDT) or None} for the given <BASE>-USDT-SWAP ids. A failed tiers batch
+    leaves its ids None (unknown -> the caller keeps them); a failed instruments / mark-price call raises."""
+    inst_ids = list(dict.fromkeys(inst_ids))
+    if not inst_ids:
+        return {}
+    tiers_limiter = tiers_limiter or new_tiers_limiter()
+
+    def public(path: str, what: str) -> list:
+        return _data(get_json(session, BASE_URL + path, {"instType": "SWAP"}, limiter=limiter, timeout=30.0,
+                              rate_limited=_rate_limited, sleep=sleep), what)
+
+    rows = {r.get("instId"): r for r in public(INSTRUMENTS_PATH, "instruments SWAP")}
+    marks = {r.get("instId"): _f(r.get("markPx")) for r in public(MARK_PRICE_PATH, "mark-price SWAP")}
+    try:
+        oi = {r.get("instId"): _f(r.get("oiUsd")) for r in public(OPEN_INTEREST_PATH, "open-interest SWAP")}
+    except SourceFetchError:
+        oi = {}  # then the user limit is posLmtAmt alone, a lower bound of the real one
+    families = list(dict.fromkeys(rows[i]["instFamily"] for i in inst_ids if (rows.get(i) or {}).get("instFamily")))
+    max_sz: dict[str, float] = {}
+    for k in range(0, len(families), TIERS_PER_REQUEST):
+        batch = families[k:k + TIERS_PER_REQUEST]
+        try:
+            data = _data(get_json(session, BASE_URL + POSITION_TIERS_PATH,
+                                  {"instType": "SWAP", "tdMode": "cross", "instFamily": ",".join(batch)},
+                                  limiter=tiers_limiter, rate_limited=_rate_limited, sleep=sleep), "position-tiers")
+        except SourceFetchError:
+            continue
+        for t in data:
+            fam, sz = t.get("instFamily"), _f(t.get("maxSz"))
+            if fam and sz is not None:
+                max_sz[fam] = max(max_sz.get(fam, 0.0), sz)
+    out: dict[str, float | None] = {}
+    for i in inst_ids:
+        r = rows.get(i)
+        out[i] = None if r is None else position_value(r, max_sz.get(r.get("instFamily")), marks.get(i), oi.get(i))
+    return out

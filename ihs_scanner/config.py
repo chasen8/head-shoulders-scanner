@@ -15,6 +15,12 @@ from copy import deepcopy
 from typing import Any, Mapping
 
 TIMEFRAMES = ("4h", "1d", "1w")
+
+# D45 symbol-list filter (build_site.py, before any K line is fetched): a perpetual whose largest position one
+# account can open is worth less than this many USDT is not scanned (OKX: highest position tier; Gate:
+# risk_limit_max; formulas in data_okx / data_gate). Spot has no position limit and is not filtered; binance-perp's
+# brackets need a signed request, so it is not filtered either. 0 = off (build_site.py --min-max-position).
+MIN_MAX_POSITION_USDT = 10_000.0
 PROFILES = ("template", "classic")
 DEFAULT_PROFILE = "template"  # D23
 
@@ -241,6 +247,13 @@ CLASSIC_CONFIG: dict[str, Any] = {
     # T8 lead-in price: "low" (D23) or "body" = min(open, close): a single flash-crash wick (LDOUSDT 1w
     #   2025-10-06, low 0.2314 with open 1.16 / close 0.92) is not "price was below the head".
     "head_lead_in_price": "low",
+    # --- D45 shoulder lows must not be lone long lower wicks (user's SKYAIUSDT Gate perp 4h case: LS = the
+    #   2026-10-04 12:00 flash-crash bar, open 0.04064 / close 0.03509 / low 0.03103, wick 0.38 head heights,
+    #   2.3 ATR). Mirror of T10 for the lows: for P in (LS, RS),
+    #     shoulder_wick = (min(min(open, close) over bars P.index-w .. P.index+w) - P.low) / head_height
+    #   w = pivot window; bars past the last bar are not read (a forming RS uses the bars it has). Accept iff
+    #   max over LS, RS <= value. The examples measure 0.014-0.131 (LDOUSDT 1w LS the largest); None = off.
+    "max_shoulder_wick_of_head": None,
 }
 
 # D23 template profile: calibrated on the five golden examples (per-example values:
@@ -298,6 +311,8 @@ TEMPLATE_OVERRIDES: dict[str, Any] = {
     "dedup_priority": "breakout_touches_slope",
     "supersede_by_higher_timeframe": True,
     "head_lead_in_price": "body",
+    # D45: golden examples + D36 cases 0.014-0.131, SKYAI 4h flash-crash LS 0.379 -> 0.25 (about 2x the examples)
+    "max_shoulder_wick_of_head": 0.25,
 }
 
 

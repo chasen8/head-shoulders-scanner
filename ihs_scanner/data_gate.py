@@ -70,3 +70,28 @@ def fetch_klines(contract: str, timeframe: str, limit: int = 1000, *, session=No
         raise SourceFetchError(f"Gate candlesticks {contract}: {str(data)[:160]}")
     rows = [[int(r["t"]) * 1000, r["o"], r["h"], r["l"], r["c"], r["v"]] for r in data]
     return ohlcv_frame(rows, timeframe, now_ms=now_ms, limit=limit)
+
+
+# D45 max position value: GET /api/v4/futures/usdt/contracts `risk_limit_max` = the largest risk limit (position
+# value) one account can raise its position to, in the settle currency (USDT). Unit check: the public
+# /futures/usdt/risk_limit_tiers `deduction` is (mmr_k - mmr_(k-1)) * risk_limit_(k-1) in USDT (SKYAI_USDT tier 2:
+# (0.035 - 0.025) * 10000 = 100), so risk_limit is a USDT notional, not contracts (no * quanto_multiplier * price).
+# risk_limit_base is only the first tier (a lower leverage raises the limit up to risk_limit_max).
+def position_value(row: Mapping[str, Any]) -> float | None:
+    try:
+        v = float(row.get("risk_limit_max"))
+    except (TypeError, ValueError):
+        return None
+    return v if 0 < v < float("inf") else None
+
+
+def max_position_values(session, contracts, *, limiter: IntervalLimiter | None = None) -> dict[str, float | None]:
+    """{contract name: max position notional (USDT) or None} from one contracts call."""
+    names = list(dict.fromkeys(contracts))
+    if not names:
+        return {}
+    payload = get_json(session, BASE_URL + CONTRACTS_PATH, None, limiter=limiter, timeout=30.0)
+    if not isinstance(payload, list):
+        raise SourceFetchError(f"Gate contracts: {str(payload)[:160]}")
+    rows = {r.get("name"): r for r in payload if isinstance(r, Mapping)}
+    return {n: (position_value(rows[n]) if n in rows else None) for n in names}

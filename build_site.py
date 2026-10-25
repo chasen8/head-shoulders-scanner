@@ -42,14 +42,15 @@ import pandas as pd
 import requests
 
 from ihs_scanner import data_binance_futures, data_gate, data_okx
-from ihs_scanner.config import TIMEFRAMES, merge_config
+from ihs_scanner.config import MIN_MAX_POSITION_USDT, TIMEFRAMES, merge_config
 from ihs_scanner.data_binance import (BinanceFetchError, WeightLimiter, fetch_klines, fetch_quote_volumes,
                                       list_usdt_symbols)
 from ihs_scanner.keys import pattern_key
 from ihs_scanner.neckline import calculate_neckline
 from ihs_scanner.scanner import (OUTPUT_FIELDS, _to_jsonable, scan_symbols, sort_results,
                                  supersede_by_higher_timeframe)
-from ihs_scanner.sources import SOURCE_PRIORITY, Instrument, SourceFetchError, merge_instruments
+from ihs_scanner.sources import (SOURCE_PRIORITY, Instrument, PositionFilterResult, SourceFetchError,
+                                 merge_with_position_limit)
 from ihs_scanner.swings import get_timestamps
 from ihs_scanner.validation import CHECKS, shape_checks
 
@@ -84,6 +85,12 @@ LEVELS = (("tp1", "TP1"), ("tp2", "TP2"), ("invalidation_price", "失效"))
 DEFAULT_SOURCES = ("binance-spot", "okx-spot", "okx-perp", "gate-perp")
 ALL_SOURCES = SOURCE_PRIORITY
 FETCH_ERRORS = (BinanceFetchError, SourceFetchError, ValueError, requests.RequestException)
+# D45: why a source has no max-position filter (scan.json max_position_filter.not_applied)
+MAX_POSITION_NOT_APPLIED = {
+    "binance-spot": "spot: no position limit",
+    "okx-spot": "spot: no position limit",
+    "binance-perp": "position brackets (/fapi/v1/leverageBracket) need a signed request; not filtered",
+}
 
 
 def _csv_list(text: str) -> list[str]:
@@ -232,13 +239,16 @@ def build_payload(symbol_data: Mapping[str, Mapping[str, pd.DataFrame]], cfg: Ma
                   market: str = "crypto",
                   next_scan: Callable[[datetime], datetime] | None = None,
                   data_source: str | None = None,
-                  extra_settings: Mapping[str, Any] | None = None) -> tuple[dict[str, Any], dict[str, dict[str, Any]]]:
+                  extra_settings: Mapping[str, Any] | None = None,
+                  position_filter: Mapping[str, Any] | None = None) -> tuple[dict[str, Any], dict[str, dict[str, Any]]]:
     """Returns (scan.json payload, {bars file name: chart data}).
 
     Each symbol/timeframe is scanned on its own; a detector exception is recorded in `failures`
     (stage "scan") instead of aborting the build. scheduled=False -> next_scan_at is null.
     market: "crypto" or "tw" (D29); next_scan: the market's cron schedule (default: every 4 h);
-    instruments with a `name` (Taiwan stocks) put it on every row and bars file."""
+    instruments with a `name` (Taiwan stocks) put it on every row and bars file.
+    position_filter (D45, position_filter_meta()): per filtered source `excluded_max_position` /
+    `max_position_unknown` in source_counts, and the whole record as payload `max_position_filter`."""
     next_scan = next_scan or next_scan_time
     generated_at = generated_at or datetime.now(timezone.utc)
     failures = list(failures or [])
@@ -314,6 +324,10 @@ def build_payload(symbol_data: Mapping[str, Mapping[str, pd.DataFrame]], cfg: Ma
         source_counts.setdefault(inst_of(sym).source, dict(blank))["failed_series"] += 1
     for key, n in (source_listed or {}).items():
         source_counts.setdefault(key, dict(blank))["listed"] = n
+    for key in (position_filter or {}).get("applied_sources", ()):
+        c = source_counts.setdefault(key, dict(blank))
+        c["excluded_max_position"] = sum(1 for e in position_filter["excluded"] if e["source"] == key)
+        c["max_position_unknown"] = int(position_filter["unknown"].get(key, 0))
     payload = {
         "schema_version": SCHEMA_VERSION,
         "market": market,
@@ -347,6 +361,7 @@ def build_payload(symbol_data: Mapping[str, Mapping[str, pd.DataFrame]], cfg: Ma
         "series_scanned": series,
         "failures": failures,
         "skipped": list(skipped or []),
+        "max_position_filter": dict(position_filter) if position_filter else None,  # D45
         "superseded": superseded,  # D36: smaller-timeframe patterns replaced by a larger timeframe (not in results)
         "last_closed": last_closed,
         "results": rows,
@@ -734,9 +749,11 @@ def spot_instruments(symbols: Sequence[str]) -> list[Instrument]:
 
 def make_sources(args, spot_limiter: WeightLimiter) -> dict[str, dict[str, Any]]:
     """key -> {"list": f(session) -> [Instrument], "fetch": f(inst, tf, limit, session) -> DataFrame,
-    "limiter": rate limiter or None}. Looked up through module globals so tests can monkeypatch."""
+    "limiter": rate limiter or None, optional "max_position": f(session, [Instrument]) -> {native: USDT or None}
+    (D45, perps only)}. Looked up through module globals so tests can monkeypatch."""
     perp_limiter = WeightLimiter(threshold=data_binance_futures.DEFAULT_WEIGHT_THRESHOLD)
     okx_limiter, gate_limiter = data_okx.new_limiter(), data_gate.new_limiter()
+    okx_tiers_limiter = data_okx.new_tiers_limiter()
     use_all = args.symbols.strip().lower() == "all"
 
     def list_spot(session):
@@ -767,14 +784,49 @@ def make_sources(args, spot_limiter: WeightLimiter) -> dict[str, dict[str, Any]]
         "okx-perp": {
             "list": lambda sess: data_okx.list_instruments(sess, "perp", limiter=okx_limiter),
             "limiter": okx_limiter,
+            "max_position": lambda sess, insts: data_okx.max_position_values(
+                sess, [i.native for i in insts], limiter=okx_limiter, tiers_limiter=okx_tiers_limiter),
             "fetch": lambda inst, tf, limit, sess: data_okx.fetch_klines(inst.native, tf, limit, session=sess,
                                                                          limiter=okx_limiter)},
         "gate-perp": {
             "list": lambda sess: data_gate.list_instruments(sess, limiter=gate_limiter),
             "limiter": gate_limiter,
+            "max_position": lambda sess, insts: data_gate.max_position_values(
+                sess, [i.native for i in insts], limiter=gate_limiter),
             "fetch": lambda inst, tf, limit, sess: data_gate.fetch_klines(inst.native, tf, limit, session=sess,
                                                                           limiter=gate_limiter)},
     }
+
+
+def position_filter_meta(pf: PositionFilterResult, min_value: float, source_keys: Sequence[str]) -> dict[str, Any]:
+    """D45 scan.json `max_position_filter`: threshold, filtered sources, every excluded instrument (and which source
+    supplies that coin instead, if any), lookups without a value (kept) and failed lookups (kept)."""
+    return {
+        "min_usdt": min_value,
+        "applied_sources": [k for k in source_keys if k in pf.checked],
+        "not_applied": {k: MAX_POSITION_NOT_APPLIED[k] for k in source_keys if k in MAX_POSITION_NOT_APPLIED},
+        "checked": dict(pf.checked),
+        "unknown": dict(pf.unknown),
+        "excluded": list(pf.excluded),
+        "errors": list(pf.errors),
+    }
+
+
+def print_position_filter(meta: Mapping[str, Any]) -> None:
+    if meta["min_usdt"] <= 0:
+        print("[max position] filter off")
+        return
+    parts = []
+    for k in meta["applied_sources"]:
+        n_ex = sum(1 for e in meta["excluded"] if e["source"] == k)
+        parts.append(f"{k}: {meta['checked'].get(k, 0)} checked, {n_ex} excluded, "
+                     f"{meta['unknown'].get(k, 0)} unknown (kept)")
+    print(f"[max position] < {meta['min_usdt']:,.0f} USDT: " + ("; ".join(parts) or "no perp source checked"))
+    for e in meta["excluded"]:
+        print(f"  excluded {e['source']} {e['symbol']} max {e['max_position_usdt']:,.0f} USDT"
+              + (f" -> scanned from {e['replaced_by']}" if e["replaced_by"] else ""))
+    for e in meta["errors"]:
+        print(f"[max position FAIL] {e['source']}: {e['error']} (all kept)", file=sys.stderr)
 
 
 def parse_sources(text: str | None) -> list[str]:
@@ -811,6 +863,9 @@ def parse_args(argv=None) -> argparse.Namespace:
                    help="closed klines per symbol/timeframe (1w is capped at %d)" % LIMIT_CAP_BY_TIMEFRAME["1w"])
     p.add_argument("--min-quote-volume", type=float, default=0.0,
                    help="binance-spot only: skip symbols whose 24h quote volume (USDT) is below this; 0 = no filter")
+    p.add_argument("--min-max-position", type=float, default=MIN_MAX_POSITION_USDT,
+                   help="D45: skip OKX / Gate perpetuals whose largest openable position is worth less than this "
+                        "many USDT (spot is not filtered); 0 = off (default %(default).0f)")
     p.add_argument("--workers", type=int, default=MAX_WORKERS, help=f"fetch threads (max {MAX_WORKERS})")
     p.add_argument("--weight-threshold", type=int, default=4500,
                    help="binance-spot: pause until the next minute when used weight/min would exceed this "
@@ -866,7 +921,13 @@ def main(argv=None) -> int:
                 return 1
             source_errors.append({"source": key, "stage": "list", "error": _short_error(exc)})
             print(f"[source FAIL] {key}: could not list instruments: {_short_error(exc)}", file=sys.stderr)
-    merged = merge_instruments(by_source)
+    pf = merge_with_position_limit(  # D45: drop small-limit perps before any K line is fetched
+        by_source, {k: (lambda insts, _f=sources[k]["max_position"]: _f(list_session, insts))
+                    for k in by_source if sources[k].get("max_position")},
+        float(args.min_max_position), errors=FETCH_ERRORS)
+    merged = pf.merged
+    position_filter = position_filter_meta(pf, float(args.min_max_position), list(by_source))
+    print_position_filter(position_filter)
     if not merged:
         print("error: no symbols to scan", file=sys.stderr)
         return 2
@@ -889,7 +950,7 @@ def main(argv=None) -> int:
                                     scheduled=scheduled, failures=failures, skipped=skipped,
                                     symbols_source="all" if use_all else "list", instruments=instruments,
                                     sources=source_keys, source_listed=source_listed,
-                                    source_errors=source_errors)
+                                    source_errors=source_errors, position_filter=position_filter)
     total = payload["series_total"]
     failed_series = {(f["symbol"], f["timeframe"]) for f in payload["failures"]}
     ratio = len(failed_series) / total if total else 1.0

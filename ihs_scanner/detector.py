@@ -247,6 +247,7 @@ def find_pattern_candidates(df: pd.DataFrame, timeframe: str,
     post_brk_reject = bool(cfg["reject_post_breakout_rs"])
     touch_tol = float(cfg["neckline_touch_tolerance"])
     v1_skip_touch = bool(cfg["v1_ignore_neckline_touches"])
+    max_sh_wick = _opt_float(cfg["max_shoulder_wick_of_head"])  # D45
     lead_key = str(cfg["head_lead_in_price"])
     if lead_key not in ("low", "body"):
         raise ValueError(f"head_lead_in_price must be 'low' or 'body', got {lead_key!r}")
@@ -258,6 +259,7 @@ def find_pattern_candidates(df: pd.DataFrame, timeframe: str,
     volume = df["volume"].to_numpy(dtype=float)
     open_ = df["open"].to_numpy(dtype=float)
     body_top = np.maximum(open_, close)
+    body_low = np.minimum(open_, close)
     lead_px = low if lead_key == "low" else np.minimum(open_, close)  # D36: T8 lead-in price
     brk_px = close if brk_basis == "close" else high  # D36 A: the price that has to cross the neckline
     start_px = df[start_price_key].to_numpy(dtype=float)
@@ -457,6 +459,11 @@ def find_pattern_candidates(df: pd.DataFrame, timeframe: str,
             wick_of_head = max((P.price - float(np.max(body_top[max(0, P.index - N):P.index + N + 1])))
                                for P in (N1, N2)) / head_height
             if max_wick is not None and wick_of_head > max_wick:
+                continue
+            # D45: shoulder lows are not lone long lower wicks (body lows within +-N bars, never past the last bar)
+            shoulder_wick = max((float(np.min(body_low[max(0, P.index - N):min(last, P.index + N) + 1])) - P.price)
+                                for P in (LS, RS)) / head_height
+            if max_sh_wick is not None and shoulder_wick > max_sh_wick:
                 continue
             # D23 T4: no bar strictly between N1 and RS (N2 itself excluded) pokes above the neckline
             # (extended past N2) by more than the tolerance
@@ -662,6 +669,7 @@ def find_pattern_candidates(df: pd.DataFrame, timeframe: str,
                 "neckline_max_violation": violation,
                 "neckline_change": neck_change,
                 "neckline_wick_of_head": wick_of_head,
+                "shoulder_wick_of_head": shoulder_wick,  # D45
                 "neckline_touches": touches,  # D36
                 # D26 shape validation (ratios in head heights; v3_* see config.py)
                 "v1_max_counter_swing": swing,

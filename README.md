@@ -56,6 +56,7 @@ cd site && /c/trading-data/ihs-scanner-v2/venv/Scripts/python.exe -m http.server
 | `--timeframes` | `4h,1d,1w` | |
 | `--limit` | 1000 | 每組已收盤 K 線數；`1w` 上限 500（`LIMIT_CAP_BY_TIMEFRAME`） |
 | `--min-quote-volume` | 0 | >0 時用 24h ticker（weight 80）過濾幣安現貨 24h 成交額（USDT）低於此值的幣；其他來源不過濾（小幣要掃） |
+| `--min-max-position` | 10000 | D45：永續合約「單一帳戶最大可開倉位價值」低於此值（USDT）的幣在抓 K 線前就排除（OKX 永續、Gate 永續；現貨與幣安永續不過濾，見「資料來源」）；0＝關閉。預設值在 `config.MIN_MAX_POSITION_USDT` |
 | `--workers` | 4 | 抓取執行緒（最多 4）；各來源各有自己的節流器（幣安 weight、OKX 12 次/秒、Gate 10 次/秒） |
 | `--weight-threshold` | 4500 | 本分鐘已用 weight（讀 `X-MBX-USED-WEIGHT-1M`）再加下一個請求會超過此值就等到下一分鐘；IP 上限 6000 |
 | `--include-stale` | 關 | 也輸出過期型態（本機預覽用） |
@@ -161,6 +162,7 @@ D23 template 規則（classic 全關；符號：`drop_L=(N1.high−LS.low)/N1.hi
 | `supersede_by_higher_timeframe` | True（classic：False） | D36 跨週期（scanner／build_site 彙整階段）：同幣同來源，1w 有下斜頸線型態且 [LS, RS] 涵蓋 1d 型態的 H，而 1d 頸線上斜 → 1d 不輸出，記在 scan.json `superseded`（`SUPERSEDE_PAIRS` 目前只有 1w→1d） |
 | `max_neckline_rise` | 0.10 | T9 上升頸線上限 `N2.high/N1.high−1` |
 | `max_neckline_wick_of_head` | 0.32 | T10 N1/N2 不可是孤立長上影：(high − ±N 根內實體最高) / head_height |
+| `max_shoulder_wick_of_head` | 0.25（classic：None＝關） | D45 LS/RS 不可是孤立長下影：(±N 根內實體最低 min(開,收) − low) / head_height（形成中的 RS 只看已有的 K 線）；範例 0.014–0.131，SKYAI 4h 插針左肩 0.379 |
 | `score_method` | `template` | `spec`（規格第九步）或 `template`（見下） |
 | `ideal_head_prominence` / `ideal_head_rise` | 1.5 / 0.40 | template 分數滿分點 |
 
@@ -201,6 +203,7 @@ V3b、V3c 不判形狀，只把狀態改成 `stale`（`stale_reason`）：
   任何 low 跌破 H 即作廢）／`watchlist`（未突破）／`confirmed`（已突破且夠新）／`stale`
 - D23 欄位（比例皆為小數，0.244＝24.4%）：`drop_left_pct`、`drop_right_pct`、`shoulder_drop_diff`、`head_rise_pct`、
   `head_prominence`、`neckline_tilt_of_head`、`neckline_max_violation`、`neckline_change`、`neckline_wick_of_head`、`head_height`
+- D45：`shoulder_wick_of_head`（兩肩中較長的孤立下影，頭高倍數）
 - D36：`neckline_touches`（N1、N2 之外碰頸線次數）、`breakout_basis`（`high`／`close`）；`breakout_price` 是突破那根被拿來比的價格（`high` 模式為最高價）
 - 目標價（只是顯示資訊）：`breakout_level`＝已突破時突破那根的頸線價，否則目前這根的頸線價（預估）；
   `tp1 = H.low × (neckline_mid / H.low) ^ 1.414`（D28：頭部到頸線中點的對數斐波那契 1.414，`tp1_fib_level`／`tp1_fib_log` 可調；`neckline_mid`＝N1、N2 時間中點的頸線價，不隨突破移動）；`tp2 = breakout_level × (1 + head_rise_pct)`（使用者圖上算法）；
@@ -244,6 +247,9 @@ tests/        pytest（不碰網路；截斷／不 repaint 測試在 test_trunca
 在排除該範例自己的模板後再偵測，要求 V1–V4 全過，`-s` 會印出每條驗證的值、門檻與餘裕。
 D36 三個案例（`D36_CASES`：BTCUSDT 1d 突破優先、ATUSDT 4h 影線突破、LDOUSDT 1w／1d 下斜週線頸線）在
 `tests/test_golden_d36.py`（含截斷／不 repaint）；不加進 `GOLDEN_EXAMPLES`，因為那 5 個範例同時是 V4 模板。
+D45 案例（`D45_CASES`：SKYAIUSDT Gate 永續 4h，左肩不可是 2026-10-04 插針長下影）在 `tests/test_golden_d45.py`；
+fixture 由 `scripts/fetch_golden_fixtures.py` 用掃描器自己的 `data_gate.fetch_klines` 下載（Gate 的 from/to 查詢在
+2026-10-25 00:00 回傳過一根零成交量的平 K，與掃描用的 limit 查詢不同）。
 
 ## 資料來源（D22）
 
@@ -263,7 +269,26 @@ Bybit 403；MEXC、Bitget 200。
 （`1000PEPE` 與 `PEPE` 視為同一幣）。不用成交量門檻過濾小幣。非主來源列表失敗記在 `scan.json` 的
 `source_errors`、不中止；單一 symbol 抓取失敗記在 `failures`（含 `exchange`／`market`）。
 `scan.json` 的 `source_counts` 列每個來源的 `listed`（去重前）、`symbols`（實際掃描）、`scanned_symbols`、
-`series_scanned`、`failed_series`。
+`series_scanned`、`failed_series`；有套用 D45 過濾的來源另有 `excluded_max_position`、`max_position_unknown`。
+
+### 最大可開倉位過濾（D45）
+
+在 symbol 清單階段（抓 K 線之前）排除「單一帳戶最大可開倉位價值」< `--min-max-position`（預設 10,000 USDT）的永續合約。
+只查「還沒被更高優先來源佔走」的幣（省請求）；被排除的幣**不佔用**該 base，所以下一個來源（例如 OKX 永續被排除 →
+Gate 永續）上限夠就改由它掃（`replaced_by`）。查不到上限（缺標記價、查詢失敗）一律**保留**並記錄。
+
+| 來源 | 上限算法（全部公開端點） |
+|---|---|
+| `okx-perp` | `/api/v5/public/position-tiers`（instType=SWAP、tdMode=cross、instFamily 每次 5 個，4 次/秒）最高檔 `maxSz`（張）× `ctVal` × `ctMult` × 標記價（`/public/mark-price`）；再與使用者層級上限 max(`posLmtAmt`, `oiUsd` × `posLmtPct`%) 取小（`/public/open-interest`） |
+| `gate-perp` | `/api/v4/futures/usdt/contracts` 的 `risk_limit_max`（USDT 名目；`risk_limit_tiers` 的 deduction 算式驗證單位是 USDT，不再乘張數面值） |
+| `binance-perp` | 不過濾：分級上限 `/fapi/v1/leverageBracket` 需要簽章（USER_DATA） |
+| 現貨 | 不過濾：現貨沒有倉位上限；`exchangeInfo` 的 NOTIONAL `maxNotional`（全部 9,000,000）、OKX `maxMktAmt` 都是**單筆訂單**上限 |
+
+`scan.json` 的 `max_position_filter`：`min_usdt`、`applied_sources`、`not_applied`（原因）、`checked`、`unknown`、
+`excluded`（`symbol`、`source`、`native`、`max_position_usdt`、`replaced_by`）、`errors`。log 會印
+`[max position] < 10,000 USDT: okx-perp: N checked, X excluded, U unknown (kept); ...`。
+被排除的幣不會出現在頭肩底、收斂三角與 Discord 型態通知；止盈追蹤（D39）已在追蹤的項目照常追到結束
+（`notify_tp.py` 依追蹤檔自己抓 K 線），只是不會再新增。
 
 ## 台股（D29）
 

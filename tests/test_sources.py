@@ -258,6 +258,9 @@ def _patch_sources(monkeypatch, *, fail_okx_list=False, bad_symbols=()):
     monkeypatch.setattr(build_site, "fetch_klines", fetch)
     monkeypatch.setattr(build_site.data_okx, "fetch_klines", lambda nid, tf, limit=1000, **k: fetch(nid, tf))
     monkeypatch.setattr(build_site.data_gate, "fetch_klines", lambda nid, tf, limit=1000, **k: fetch(nid, tf))
+    # D45 max-position lookups: no network; every perp has a large limit
+    monkeypatch.setattr(build_site.data_okx, "max_position_values", lambda sess, ids, **k: {i: 1e9 for i in ids})
+    monkeypatch.setattr(build_site.data_gate, "max_position_values", lambda sess, ids, **k: {i: 1e9 for i in ids})
 
 
 def test_build_all_sources_dedupes_and_tags(tmp_path, monkeypatch):

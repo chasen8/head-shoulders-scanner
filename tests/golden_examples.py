@@ -133,3 +133,16 @@ D36_CASES = {
         "screenshot_utc": D36_SCREENSHOT_UTC,
     },
 }
+
+# D45: the user's SKYAIUSDT Gate perpetual 4h case (site showed "RS confirmed", score 82.6 -- reproduced as of the bar
+# opening 2026-10-25 00:00 UTC). Our LS was the 2026-10-04 12:00 flash-crash bar (open 0.04064, close 0.03509,
+# low 0.03103: a lone lower wick of 0.38 head heights); the user: "左肩很明顯是錯的". N1 ~10-06, H 10-18 20:00
+# (0.02509), N2 ~10-21, RS ~10-22/23. Not added to GOLDEN_EXAMPLES (those feed the V4 templates).
+D45_CASES = {
+    "SKYAIUSDT_gate_perp_4h": {
+        "source": "gate_perp", "symbol": "SKYAI_USDT", "timeframe": "4h",
+        "screenshot_utc": "2026-10-25T04:00:00Z",  # last closed bar opens 10-25 00:00 UTC
+        "wick_ls": ("2026-10-04T12:00:00Z", 0.03103),
+        "H": ("2026-10-18T20:00:00Z", 0.02509),
+    },
+}
