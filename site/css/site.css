@@ -782,3 +782,4 @@ body.nav-open .sprite { display: none; }
 @media (prefers-reduced-motion: reduce) {
   .sprite__btn { animation: none; }
 }
+.w52 { white-space: nowrap; }

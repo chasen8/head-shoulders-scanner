@@ -38,6 +38,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Callable, Mapping, Sequence
 
+import numpy as np
 import pandas as pd
 import requests
 
@@ -189,6 +190,31 @@ def chart_for(result: Mapping[str, Any], df: pd.DataFrame, angle_scale: float) -
     }
 
 
+# 52-week position (local trial): window of daily closes per market, and bar durations for the as-of cut.
+WEEK52_DAYS = {"crypto": 365, "tw": 252}
+_TF_DELTA = {"4h": pd.Timedelta(hours=4), "1d": pd.Timedelta(days=1), "1w": pd.Timedelta(days=7)}
+
+
+def week52_fields(df: pd.DataFrame, daily: pd.DataFrame | None, timeframe: str, days: int) -> dict[str, Any]:
+    """`pos_52w` = (price - low) / (high - low) and `near_high_52w` = price / high, on CLOSES of the last `days`
+    daily bars (price = the series' last closed bar, always included). Only daily bars that had CLOSED by the
+    series' last bar's close are used (no look-ahead; 4h/1w use the same symbol's daily series). Fewer than
+    `days` such daily bars, no daily series, or a flat range -> both None."""
+    none = {"pos_52w": None, "near_high_52w": None}
+    if daily is None or not len(df) or not len(daily):
+        return none
+    asof = get_timestamps(df)[-1] + _TF_DELTA[timeframe]
+    dts = get_timestamps(daily)
+    closes = daily["close"].to_numpy(dtype=float)[(dts + _TF_DELTA["1d"]) <= asof][-days:]
+    price = float(df["close"].iloc[-1])
+    if len(closes) < days or not math.isfinite(price) or not np.isfinite(closes).all():
+        return none
+    hi, lo = max(float(closes.max()), price), min(float(closes.min()), price)
+    if hi <= lo or hi <= 0:
+        return none
+    return {"pos_52w": round((price - lo) / (hi - lo), 4), "near_high_52w": round(price / hi, 4)}
+
+
 def rs_provisional(result: Mapping[str, Any]) -> bool:
     """True while the right shoulder is still forming (D23 status "forming": no RS_confirm_time)."""
     return result.get("RS_confirm_time") is None
@@ -292,6 +318,8 @@ def build_payload(symbol_data: Mapping[str, Mapping[str, pd.DataFrame]], cfg: Ma
         row["neckline_side"] = _neckline_side(r)
         row["rs_provisional"] = rs_provisional(r)
         row["neckline_change_pct"], row["neckline_trend"] = neckline_trend(row)
+        row.update(week52_fields(symbol_data[r["symbol"]][r["timeframe"]], symbol_data[r["symbol"]].get("1d"),
+                                 r["timeframe"], WEEK52_DAYS.get(market, 365)))
         row["shape_checks"] = shape_checks(r, cfg)  # D26: value / limit / pass decided here (D17)
         name = chart_file_name(r)
         row["chart_file"] = f"{BARS_DIRNAME}/{name}"

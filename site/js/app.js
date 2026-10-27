@@ -215,7 +215,12 @@
     recent: function (a, b) {
       return (Date.parse(b.signal_time) - Date.parse(a.signal_time)) || (a.rank - b.rank);
     },
-    name: function (a, b) { return a.symbol < b.symbol ? -1 : a.symbol > b.symbol ? 1 : a.rank - b.rank; }
+    name: function (a, b) { return a.symbol < b.symbol ? -1 : a.symbol > b.symbol ? 1 : a.rank - b.rank; },
+    // 52-week position (local trial): rows without the field (old data / short history) go last
+    high52: function (a, b) {
+      var x = typeof a.near_high_52w === "number" ? a.near_high_52w : -1, y = typeof b.near_high_52w === "number" ? b.near_high_52w : -1;
+      return (y - x) || (a.rank - b.rank);
+    }
   };
   function filtered() {
     return state.data.results.filter(function (r) { return pass(r); }).sort(SORTS[state.sort] || SORTS.score);
@@ -279,6 +284,7 @@
   }
 
   /* ---------- list ---------- */
+  function w52Text(r) { return typeof r.pos_52w === "number" ? "52 週 " + Math.round(r.pos_52w * 100) + "%" : ""; }
   function rowHtml(r) {
     return "<li class=\"rowwrap\"><button type=\"button\" class=\"row\" data-id=\"" + esc(r.pattern_id) + "\" aria-current=\"" +
       (state.selected === r.pattern_id) + "\" aria-label=\"" + esc(symText(r) + " " + tfName(r.timeframe) + "，" +
@@ -292,7 +298,8 @@
       "</span><span class=\"dist\">" + esc(distText(r)) + "</span>" +
       (neckText(r) ? "<span class=\"dist\">" + esc(neckText(r)) + "</span>" : "") +
       (r.shape_score !== null && r.shape_score !== undefined
-        ? "<span class=\"shp\">形狀 " + r.shape_score.toFixed(0) + "</span>" : "") + "</span>" +
+        ? "<span class=\"shp\">形狀 " + r.shape_score.toFixed(0) + "</span>" : "") +
+      (w52Text(r) ? "<span class=\"shp w52\" title=\"目前價在過去一年收盤區間的位置（0% 最低、100% 最高）\">" + esc(w52Text(r)) + "</span>" : "") + "</span>" +
       "</button>" + starBtn(r, "") + "</li>";
   }
 
@@ -471,10 +478,13 @@
         ? "<dt>頸線斜率（N1→N2）</dt><dd>" + signedPct(r.neckline_change_pct) + (NECK_LABEL[r.neckline_trend] ? "（" + NECK_LABEL[r.neckline_trend] + "）" : "") + "</dd>" : "") +
       "<dt>頸線角度</dt><dd>" + r.neckline_angle.toFixed(1) + "°</dd>" +
       "<dt>目前價</dt><dd>" + px(r.current_close) + "</dd>" +
+      (typeof r.pos_52w === "number"
+        ? "<dt>52 週區間位置</dt><dd>" + Math.round(r.pos_52w * 100) + "%（為 52 週高點的 " + Math.round(r.near_high_52w * 100) + "%）</dd>" : "") +
       "<dt>目前頸線價</dt><dd>" + px(r.current_neckline_price) + "</dd>" +
       "<dt>突破量比</dt><dd>" + (r.volume_ratio === null ? (r.breakout_detected ? "—" : "未突破") : r.volume_ratio.toFixed(2) + " 倍") + "</dd>" +
       "<dt>最後一根 K 線</dt><dd>" + fmtBar(r.as_of_time, tf) + (tf === "1w" ? " 當週" : "") + "</dd>" +
-      "</dl></section>" +
+      "</dl>" + (typeof r.pos_52w === "number"
+        ? "<p class=\"note\">52 週區間位置：0% 在一年最低、100% 在一年最高（用收盤價）；回測中接近一年高點的台股型態表現相對較好，但未勝過持有 0050。</p>" : "") + "</section>" +
       "<section><h3>五個點</h3><table class=\"points\"><thead><tr><th scope=\"col\">點</th><th scope=\"col\">K 線</th><th scope=\"col\">價格</th></tr></thead><tbody>" +
       POINTS.map(function (k) {
         var prov = k === "RS" && r.rs_provisional;
@@ -2547,6 +2557,7 @@
   var SPRITE_CHIPS = ["這個型態怎麼看", "最接近突破的是？", "分數最高的？", "什麼是失效價", "TP1 怎麼算", "給我一個提示"];
   // first match wins, so the more specific patterns come first
   var SPRITE_GLOSSARY = [
+    [/52\s*週|五十二週|一年高|年高|一年低|年線位置/, "「52 週區間位置」＝目前價在過去一年收盤價區間的位置：0% 在一年最低、100% 在一年最高（台股用 252 個交易日、加密貨幣用 365 天）。回測中接近一年高點的台股型態表現相對較好，但沒有勝過持有 0050，也還不到統計顯著。清單可以用排序「接近 52 週高點」。"],
     [/買|賣|進場|出場|推薦|明牌|該不該|能不能/, "我不能給買賣建議喔。我可以告訴你哪些型態最接近突破、分數最高，或幫你看某個型態離失效價和 TP1 多遠，決定還是要你自己來。"],
     [/回測|勝率|0050|有用嗎|準嗎|準不準|賺/, "老實說：台股頭肩底試過的進出場方法，沒有一組在訓練期和測試期都贏過直接持有 0050；離 52 週新高近的訊號比隨機挑好，但仍沒贏 0050。把它當觀察工具，部位要控制。"],
     [/失效|停損|止損/, "失效價＝頭部的最低點。收盤跌破它，代表這個頭肩底不成立了。"],
