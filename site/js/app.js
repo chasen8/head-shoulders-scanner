@@ -40,17 +40,17 @@
   // Chart colours: keep in sync with the :root / html[data-theme="dark"] tokens in css/site.css
   var PALETTE = {
     light: {
-      bg: "#FFFFFF", text: "#131722", muted: "#6A6D78", faint: "#787B86", line: "#E0E3EB", grid: "#F0F3FA",
-      accent: "#2962FF", up: "#089981", down: "#F23645", forming: "#FF9800",
-      tp: "#089981", tp2: "#22AB94", stop: "#787B86", accentSoft: "rgba(41,98,255,0.5)",
-      shape: "rgba(41,98,255,0.6)", cross: "#9598A1", crossLabel: "#131722",
+      bg: "#FFFBF3", text: "#2B1E12", muted: "#6B5640", faint: "#8F7B63", line: "#EBDDC6", grid: "#F5ECDC",
+      accent: "#A85A08", up: "#089981", down: "#F23645", forming: "#8B5CF6",
+      tp: "#089981", tp2: "#22AB94", stop: "#8F7B63", accentSoft: "rgba(168,90,8,0.5)",
+      shape: "rgba(168,90,8,0.6)", cross: "#A8957C", crossLabel: "#2B1E12",
       volUp: "rgba(8,153,129,0.32)", volDown: "rgba(242,54,69,0.32)"
     },
     dark: {
-      bg: "#131722", text: "#D1D4DC", muted: "#9598A1", faint: "#787B86", line: "#2A2E39", grid: "#1E222D",
-      accent: "#5B8CFF", up: "#089981", down: "#F23645", forming: "#FF9800",
-      tp: "#089981", tp2: "#22AB94", stop: "#868993", accentSoft: "rgba(91,140,255,0.55)",
-      shape: "rgba(91,140,255,0.65)", cross: "#758696", crossLabel: "#363A45",
+      bg: "#1A1410", text: "#F3E9D8", muted: "#BCA98E", faint: "#8F7D66", line: "#3A2E24", grid: "#241C16",
+      accent: "#F5B83D", up: "#089981", down: "#F23645", forming: "#A78BFA",
+      tp: "#089981", tp2: "#22AB94", stop: "#9A8873", accentSoft: "rgba(245,184,61,0.55)",
+      shape: "rgba(245,184,61,0.65)", cross: "#8F7D66", crossLabel: "#4A3B2E",
       volUp: "rgba(8,153,129,0.4)", volDown: "rgba(242,54,69,0.4)"
     }
   };
@@ -1462,6 +1462,7 @@
       b.setAttribute("aria-current", String(b.getAttribute("data-id") === id));
     });
     renderDetail(r);
+    spriteRefresh();
     if (fromUser) {
       try { history.replaceState(null, "", "#" + encodeURIComponent(id)); } catch (e) { /* file:// etc. */ }
       if (narrow.matches) {
@@ -2344,6 +2345,7 @@
     }
     var dv = qs.get("drawer");
     if (VIEW_TITLE[dv]) openDrawer(dv);
+    if (qs.get("sprite") === "open") spriteOpen(true); // D47: screenshot the tip bubble
   }
 
   function showControls(on) {
@@ -2498,8 +2500,79 @@
     $("splash-go").focus();
   }
 
+  /* ---------- D47 蛋餅精靈: rule-based tips (no AI, no advice) ---------- */
+  var SPRITE_GENERAL = [
+    "失效價是頭部的最低點；收盤跌破它，這個頭肩底就不成立了。",
+    "網站只用已收盤的 K 線計算；「右肩形成中」的右肩位置會隨新 K 線移動，等右肩確認會比較穩。",
+    "回測結果：台股頭肩底試過的進出場方法，沒有一組在訓練期和測試期都贏過直接持有 0050。把它當觀察工具，部位要控制。",
+    "回測裡，離 52 週新高越近（相對強勢）的訊號，表現比隨機挑選好，但仍沒有贏過 0050。",
+    "移動停損可以讓單筆的報酬風險比變好看，但回測的長期期望值幾乎沒變。",
+    "按清單旁的 ☆ 可以加入觀察名單；用 Discord 登入後，狀態改變時機器人會通知你。"
+  ];
+  var sprite = { tips: [], i: 0 };
+  function signedPct(x) { return (x >= 0 ? "+" : "") + pct(x); }
+  function spritePatternTips(r) {
+    var name = "<b>" + esc(symText(r)) + "</b> " + esc(tfName(r.timeframe)), c = r.current_close, t = [];
+    var px = function (p) { return esc(fmtPrice(p, c)); };
+    t.push(name + "：" + (r.status === "forming" ? "右肩還在形成，圖上的 RS 是暫定點，之後的 K 線可能讓它移動。"
+      : r.status === "watchlist" ? "右肩已確認、還沒突破頸線，目前" + esc(distText(r)) + "，突破價約 " + px(r.breakout_level) + "。"
+      : r.status === "confirmed" ? "已經突破頸線" + (r.bars_since_breakout !== null && r.bars_since_breakout !== undefined ? "（" + r.bars_since_breakout + " 根 K 線前）" : "") + "。" +
+        (r.volume_ratio >= 1.5 ? "突破那根的成交量是 20 根均量的 " + r.volume_ratio.toFixed(1) + " 倍。" : "")
+      : "這個型態已過期，參考看看就好。"));
+    if (c > 0 && r.invalidation_price > 0 && r.tp1 > 0) {
+      var risk = c - r.invalidation_price, reward = r.tp1 - c;
+      var s = name + "：失效價 " + px(r.invalidation_price) + "（距現價 " + signedPct(r.invalidation_price / c - 1) + "），TP1 " + px(r.tp1) +
+        "（" + signedPct(r.tp1 / c - 1) + "）。";
+      if (risk > 0 && reward > 0) s += "以現價算，往 TP1 的空間是往失效價的 <b>" + (reward / risk).toFixed(1) + " 倍</b>" + (reward < risk ? "，報酬風險比偏低。" : "。");
+      else if (reward <= 0) s += "現價已經超過 TP1，下一個目標是 TP2 " + px(r.tp2) + "。";
+      t.push(s);
+    }
+    if (r.shape_score !== null && r.shape_score !== undefined && r.shape_score < 50) {
+      t.push(name + "：形狀分 " + r.shape_score.toFixed(0) + "，和標準頭肩底的樣子差比較多，建議多看一眼圖。");
+    }
+    return t;
+  }
+  function spriteOverviewTips() {
+    var m = MARKETS[state.market].label, d = state.data;
+    if (isRec()) return ["這裡是" + m + "已突破型態後來的結果（碰到 TP1、TP2 或失效價）。看勝率也要看筆數，筆數少的時候參考價值有限。"];
+    if (isTri()) return ["收斂三角的方向以實際突破為準：Bulkowski 的統計裡，下降三角反而有一半以上是向上突破。"];
+    if (!d) return [];
+    var n = { forming: 0, watchlist: 0, confirmed: 0 };
+    d.results.forEach(function (r) { if (n[r.status] !== undefined) n[r.status]++; });
+    var t = [m + "目前有 " + d.results.length + " 個頭肩底：已突破 " + n.confirmed + "、右肩已確認 " + n.watchlist + "、右肩形成中 " + n.forming + "。"];
+    var near = d.results.filter(function (r) { return r.status === "watchlist" && r.neckline_side === "below"; })
+      .sort(function (a, b) { return Math.abs(a.distance_to_neckline) - Math.abs(b.distance_to_neckline); })[0];
+    if (near) t.push("右肩已確認的型態裡，最接近突破的是 <b>" + esc(symText(near)) + "</b> " + esc(tfName(near.timeframe)) + "，" + esc(distText(near)) + "。");
+    return t;
+  }
+  function spriteBuild() {
+    var r = !isTri() && !isRec() && state.data && state.selected
+      ? state.data.results.find(function (x) { return x.pattern_id === state.selected; }) : null;
+    sprite.tips = (r ? spritePatternTips(r) : []).concat(spriteOverviewTips(), SPRITE_GENERAL);
+    sprite.i = 0;
+  }
+  function spriteShow() {
+    $("sprite-text").innerHTML = sprite.tips[sprite.i];
+    $("sprite-n").textContent = (sprite.i + 1) + " / " + sprite.tips.length;
+  }
+  function spriteOpen(on) {
+    $("sprite-bubble").hidden = !on;
+    $("sprite-btn").setAttribute("aria-expanded", String(on));
+    if (on) { spriteBuild(); spriteShow(); }
+  }
+  function spriteRefresh() { if (!$("sprite-bubble").hidden) { spriteBuild(); spriteShow(); } }
+  function setupSprite() {
+    $("sprite-btn").addEventListener("click", function () { spriteOpen($("sprite-bubble").hidden); });
+    $("sprite-close").addEventListener("click", function () { spriteOpen(false); $("sprite-btn").focus(); });
+    $("sprite-next").addEventListener("click", function () { sprite.i = (sprite.i + 1) % sprite.tips.length; spriteShow(); });
+    $("sprite").addEventListener("keydown", function (e) {
+      if (e.key === "Escape" && !$("sprite-bubble").hidden) { spriteOpen(false); $("sprite-btn").focus(); }
+    });
+  }
+
   function start() {
     setupSplash();
+    setupSprite();
     bind();
     bindExtras();
     applySettingsToState();
