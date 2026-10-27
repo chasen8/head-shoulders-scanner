@@ -1462,7 +1462,6 @@
       b.setAttribute("aria-current", String(b.getAttribute("data-id") === id));
     });
     renderDetail(r);
-    spriteRefresh();
     if (fromUser) {
       try { history.replaceState(null, "", "#" + encodeURIComponent(id)); } catch (e) { /* file:// etc. */ }
       if (narrow.matches) {
@@ -2345,7 +2344,7 @@
     }
     var dv = qs.get("drawer");
     if (VIEW_TITLE[dv]) openDrawer(dv);
-    if (qs.get("sprite") === "open") spriteOpen(true); // D47: screenshot the tip bubble
+    if (qs.get("sprite")) { spriteOpen(true); if (qs.get("sprite") !== "open") spriteAsk(qs.get("sprite")); } // D48: ?sprite=open|<question> for screenshots
   }
 
   function showControls(on) {
@@ -2509,7 +2508,6 @@
     "移動停損可以讓單筆的報酬風險比變好看，但回測的長期期望值幾乎沒變。",
     "按清單旁的 ☆ 可以加入觀察名單；用 Discord 登入後，狀態改變時機器人會通知你。"
   ];
-  var sprite = { tips: [], i: 0 };
   function signedPct(x) { return (x >= 0 ? "+" : "") + pct(x); }
   function spritePatternTips(r) {
     var name = "<b>" + esc(symText(r)) + "</b> " + esc(tfName(r.timeframe)), c = r.current_close, t = [];
@@ -2545,26 +2543,136 @@
     if (near) t.push("右肩已確認的型態裡，最接近突破的是 <b>" + esc(symText(near)) + "</b> " + esc(tfName(near.timeframe)) + "，" + esc(distText(near)) + "。");
     return t;
   }
-  function spriteBuild() {
-    var r = !isTri() && !isRec() && state.data && state.selected
-      ? state.data.results.find(function (x) { return x.pattern_id === state.selected; }) : null;
-    sprite.tips = (r ? spritePatternTips(r) : []).concat(spriteOverviewTips(), SPRITE_GENERAL);
-    sprite.i = 0;
+  // D48 Q&A: keyword-matched answers over the scan data already published with the site (no AI, no API cost).
+  var SPRITE_CHIPS = ["這個型態怎麼看", "最接近突破的是？", "分數最高的？", "什麼是失效價", "TP1 怎麼算", "給我一個提示"];
+  // first match wins, so the more specific patterns come first
+  var SPRITE_GLOSSARY = [
+    [/買|賣|進場|出場|推薦|明牌|該不該|能不能/, "我不能給買賣建議喔。我可以告訴你哪些型態最接近突破、分數最高，或幫你看某個型態離失效價和 TP1 多遠，決定還是要你自己來。"],
+    [/回測|勝率|0050|有用嗎|準嗎|準不準|賺/, "老實說：台股頭肩底試過的進出場方法，沒有一組在訓練期和測試期都贏過直接持有 0050；離 52 週新高近的訊號比隨機挑好，但仍沒贏 0050。把它當觀察工具，部位要控制。"],
+    [/失效|停損|止損/, "失效價＝頭部的最低點。收盤跌破它，代表這個頭肩底不成立了。"],
+    [/tp1|第一目標|斐波|fib/i, "TP1：以頭部低點為 0、頸線中點為 1，畫對數斐波那契，取 1.414 的位置。"],
+    [/tp2|第二目標/i, "TP2＝突破價 ×（1＋頭部到頸線的漲幅）。還沒突破時用目前頸線價當突破價，所以是預估。"],
+    [/目標/, "頭肩底有兩個目標：TP1（對數斐波那契 1.414）和 TP2（突破價 ×（1＋頭到頸線漲幅））。問我「TP1 怎麼算」或「TP2 怎麼算」看細節。"],
+    [/斜率/, "頸線斜率看 N1 到 N2 的價格變化：往下斜、水平或往上斜。清單上方的「頸線斜率」可以篩選。"],
+    [/頸線/, "頸線是左右兩個反彈高點 N1、N2 連成的線。右肩之後的 K 線最高價（含影線）穿過頸線再加一點緩衝，就算突破。"],
+    [/形成中/, "「右肩形成中」：右肩的最低點還沒被確認，圖上的 RS 是暫定點，會隨新 K 線移動。"],
+    [/已確認/, "「右肩已確認」：右肩已經成形、還沒突破頸線。這階段要看的是能不能有效突破頸線。"],
+    [/過期/, "放太久沒動靜、或突破已經很久的型態會標成「已過期」，參考就好。"],
+    [/突破/, "右肩之後 K 線的最高價（含影線）穿過頸線再加一點緩衝，就算「已突破」。"],
+    [/形狀/, "形狀分（0–100）衡量和標準頭肩底有多像：五點之間有沒有夾著更大的轉折、走勢有沒有貼著骨架等。越高越標準。"],
+    [/分數|評分|幾分/, "分數滿分 100：左右肩對稱 30、頭部深度 25、頸線平緩 25、突破或接近頸線 20。"],
+    [/三角|收斂/, "收斂三角由阻力線（連高點）和支撐線（連低點）往右收斂組成。從選單的台股／加密貨幣 →「收斂三角」可以看。方向以實際突破為準。"],
+    [/風報|報酬風險|rr|盈虧/i, "報酬風險比＝往目標的空間 ÷ 往停損的空間。先點開一個型態，再問我「這個型態怎麼看」，我會用現價算往 TP1 和往失效價的比例。"],
+    [/頭肩|五點|左肩|右肩|頭部/, "頭肩底由五個點組成：左肩 LS、頸線點 N1、頭 H、頸線點 N2、右肩 RS。頭是最低點，左右肩高度接近，N1 和 N2 連成頸線。"],
+    [/觀察|星號|收藏|關注/, "在清單或詳細頁按 ☆ 就能加入觀察名單；用 Discord 登入後會同步到機器人，狀態改變時通知你。"],
+    [/discord|通知|登入/i, "在「設定 → 雲端同步」用 Discord 登入，觀察名單會同步到 Discord 機器人，型態狀態改變時會 @你或私訊你。"],
+    [/多久|更新|什麼時候|幾點/, "加密貨幣每 4 小時掃描一次；台股每個交易日收盤後（台北 14:10 左右）掃描一次。都只用已收盤的 K 線。"]
+  ];
+  var SPRITE_STOP = { TP1: 1, TP2: 1, RR: 1, AI: 1, OK: 1, USDT: 1, RS: 1, LS: 1, N1: 1, N2: 1, ATR: 1, DISCORD: 1, FIB: 1 };
+  var sprite = { greeted: false, tip: -1 };
+  function spriteMsg(html, me) {
+    var log = $("sprite-log"), el = document.createElement("div");
+    el.className = "sm " + (me ? "sm--me" : "sm--bot");
+    el.innerHTML = html;
+    log.appendChild(el);
+    while (log.children.length > 30) log.removeChild(log.firstChild);
+    log.scrollTop = log.scrollHeight;
   }
-  function spriteShow() {
-    $("sprite-text").innerHTML = sprite.tips[sprite.i];
-    $("sprite-n").textContent = (sprite.i + 1) + " / " + sprite.tips.length;
+  function spriteGo(rows) { // buttons that open a pattern (head-and-shoulders or triangle)
+    return "<div class=\"sm__go\">" + rows.map(function (x) {
+      return "<button type=\"button\" data-go=\"" + x.kind + "\" data-market=\"" + rowMarket(x.r) + "\" data-id=\"" + esc(x.r.pattern_id) + "\">" + x.label + " ›</button>";
+    }).join("") + "</div>";
+  }
+  function ihsLabel(r) {
+    return "<b>" + esc(symText(r)) + "</b> " + esc(tfName(r.timeframe)) + "・" + esc(STATUS_LABEL[r.status] || r.status) + "・" + r.pattern_score.toFixed(1) + " 分";
+  }
+  function triLabel(r) {
+    return "<b>" + esc(symText(r)) + "</b> " + esc(tfName(r.timeframe)) + "・" + esc(TRI_TYPE_LABEL[r.triangle_type] || "收斂三角") + "・" + esc(TRI_STATUS_LABEL[r.status] || r.status);
+  }
+  function spriteFind(q) { // pattern rows whose symbol / name appears in the question
+    var toks = (q.toUpperCase().match(/[A-Z0-9]{2,15}/g) || []).filter(function (t) {
+      return !SPRITE_STOP[t] && !/^\d{1,2}[HDW]$/.test(t);
+    }).map(function (t) { return t.replace(/USDT$/, "") || t; });
+    var hit = function (r) {
+      if (rowMarket(r) === "tw") return toks.indexOf(r.symbol) >= 0 || (!!r.name && r.name.length >= 2 && q.indexOf(r.name) >= 0);
+      return toks.indexOf(symParts(r.symbol).base) >= 0;
+    };
+    var out = [];
+    MARKET_ORDER.forEach(function (m) {
+      if (dataCache[m]) dataCache[m].results.forEach(function (r) { if (hit(r)) out.push({ kind: "ihs", r: r, label: "頭肩底 " + ihsLabel(r) }); });
+      if (triCache[m]) triCache[m].results.forEach(function (r) { if (hit(r)) out.push({ kind: "tri", r: r, label: "收斂三角 " + triLabel(r) }); });
+    });
+    return { rows: out, toks: toks };
+  }
+  function selectedRow() {
+    return !isTri() && !isRec() && state.data && state.selected
+      ? state.data.results.find(function (x) { return x.pattern_id === state.selected; }) || null : null;
+  }
+  function spriteAnswer(q) {
+    var d = dataCache[state.market], lab = MARKETS[state.market].label;
+    if (/提示|小技巧/.test(q)) { sprite.tip = (sprite.tip + 1) % SPRITE_GENERAL.length; return SPRITE_GENERAL[sprite.tip]; }
+    var f = spriteFind(q);
+    if (f.rows.length) return "找到 " + f.rows.length + " 個型態" + (f.rows.length > 6 ? "（先列 6 個）" : "") + "：" + spriteGo(f.rows.slice(0, 6));
+    if (/這個|這張|這檔|這支|怎麼看|解讀|分析|看法/.test(q)) {
+      var r = selectedRow();
+      return r ? spritePatternTips(r).join("<br>") : "先在清單點一個頭肩底型態，再問我「這個型態怎麼看」，我會用它的資料說明。";
+    }
+    if (/接近|快突破|快要突破|準備突破/.test(q)) {
+      if (!d) return "資料還在讀取，等一下再問我。";
+      var near = d.results.filter(function (r) { return r.status === "watchlist" && r.neckline_side === "below"; })
+        .sort(function (a, b) { return Math.abs(a.distance_to_neckline) - Math.abs(b.distance_to_neckline); }).slice(0, 3);
+      return near.length ? lab + "右肩已確認、最接近頸線的 " + near.length + " 個：" + spriteGo(near.map(function (r) {
+        return { kind: "ihs", r: r, label: ihsLabel(r) + "・" + esc(distText(r)) };
+      })) : lab + "目前沒有右肩已確認、還在頸線下方的型態。";
+    }
+    if (/最高|排名|前幾|最強|最好/.test(q)) {
+      if (!d) return "資料還在讀取，等一下再問我。";
+      var top = d.results.filter(function (r) { return r.status !== "stale"; })
+        .sort(function (a, b) { return b.pattern_score - a.pattern_score; }).slice(0, 3);
+      return lab + "分數最高的 " + top.length + " 個（分數高不代表一定會漲）：" + spriteGo(top.map(function (r) { return { kind: "ihs", r: r, label: ihsLabel(r) }; }));
+    }
+    if (/概況|有哪些|有什麼|今天|現在|總共|幾個|多少個/.test(q)) return spriteOverviewTips().join("<br>") || "資料還在讀取，等一下再問我。";
+    for (var i = 0; i < SPRITE_GLOSSARY.length; i++) if (SPRITE_GLOSSARY[i][0].test(q)) return SPRITE_GLOSSARY[i][1];
+    if (f.toks.length) return "目前的掃描結果裡沒有 <b>" + esc(f.toks.join("、")) + "</b> 的頭肩底或收斂三角。代號可以打英文（BTC）或台股代號、名稱（2330、台積電）。";
+    return "這題我還不會 😅 可以問我：某個幣或股票有沒有型態（例如 BTC、2330）、「這個型態怎麼看」、「最接近突破的是？」，或名詞像失效價、頸線、TP1、形狀分。";
+  }
+  function spriteAsk(q) {
+    q = String(q || "").trim();
+    if (!q) return;
+    spriteMsg(esc(q), true);
+    var loads = [];
+    MARKET_ORDER.forEach(function (m) { // symbol questions look in both markets
+      if (!dataCache[m] && !loadErr[m]) loads.push(loadMarket(m).then(null, function () { /* answer with what we have */ }));
+      if (!triCache[m] && !triErr[m]) loads.push(loadTri(m).then(null, function () { /* ignore */ }));
+    });
+    Promise.all(loads).then(function () { spriteMsg(spriteAnswer(q), false); });
   }
   function spriteOpen(on) {
     $("sprite-bubble").hidden = !on;
     $("sprite-btn").setAttribute("aria-expanded", String(on));
-    if (on) { spriteBuild(); spriteShow(); }
+    if (!on) return;
+    if (!sprite.greeted) {
+      sprite.greeted = true;
+      $("sprite-chips").innerHTML = SPRITE_CHIPS.map(function (c) { return "<button type=\"button\">" + esc(c) + "</button>"; }).join("");
+      spriteMsg("嗨！我是蛋餅精靈。可以問我某個幣或股票有沒有型態（例如 BTC、2330、台積電），或點下面的問題。", false);
+    }
+    $("sprite-q").focus();
   }
-  function spriteRefresh() { if (!$("sprite-bubble").hidden) { spriteBuild(); spriteShow(); } }
   function setupSprite() {
     $("sprite-btn").addEventListener("click", function () { spriteOpen($("sprite-bubble").hidden); });
     $("sprite-close").addEventListener("click", function () { spriteOpen(false); $("sprite-btn").focus(); });
-    $("sprite-next").addEventListener("click", function () { sprite.i = (sprite.i + 1) % sprite.tips.length; spriteShow(); });
+    $("sprite-form").addEventListener("submit", function (e) { e.preventDefault(); var i = $("sprite-q"); spriteAsk(i.value); i.value = ""; });
+    $("sprite-chips").addEventListener("click", function (e) { var b = e.target.closest("button"); if (b) spriteAsk(b.textContent); });
+    $("sprite-log").addEventListener("click", function (e) {
+      var b = e.target.closest("[data-go]");
+      if (!b) return;
+      var m = b.getAttribute("data-market"), id = b.getAttribute("data-id");
+      if (b.getAttribute("data-go") === "tri") { showTriangles(m, id); return; }
+      state.q = ""; $("q").value = ""; state.tf = "all"; state.status = "all"; state.neck = "all"; state.onlyWl = false; state.shown = PAGE;
+      $("only-wl").setAttribute("aria-pressed", "false");
+      if (isTri() || isRec()) { state.view = "ihs"; state.selected = null; renderViewChrome(); setUrlMarket(m, false); }
+      switchMarket(m, id);
+    });
     $("sprite").addEventListener("keydown", function (e) {
       if (e.key === "Escape" && !$("sprite-bubble").hidden) { spriteOpen(false); $("sprite-btn").focus(); }
     });

@@ -177,22 +177,24 @@
   </footer>
 
   <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
-  <!-- D47 蛋餅精靈: rule-based tips about the current list / pattern (not AI, not investment advice) -->
+  <!-- D47/D48 蛋餅精靈: keyword-matched Q&A over the scan data (no AI, no API cost) -->
   <div class="sprite" id="sprite">
     <section class="sprite__bubble" id="sprite-bubble" aria-labelledby="sprite-title" hidden>
       <div class="sprite__head">
-        <h2 class="sprite__title" id="sprite-title">蛋餅精靈的小提示</h2>
-        <button type="button" class="sprite__x" id="sprite-close" aria-label="關閉小提示">
+        <h2 class="sprite__title" id="sprite-title">問問蛋餅精靈</h2>
+        <button type="button" class="sprite__x" id="sprite-close" aria-label="關閉">
           <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>
         </button>
       </div>
-      <p class="sprite__text" id="sprite-text" aria-live="polite"></p>
-      <div class="sprite__foot">
-        <span class="sprite__n" id="sprite-n"></span>
-        <button type="button" class="sprite__next" id="sprite-next">下一個提示</button>
-      </div>
+      <div class="sprite__log" id="sprite-log" role="log" aria-live="polite"></div>
+      <div class="sprite__chips" id="sprite-chips"></div>
+      <form class="sprite__ask" id="sprite-form">
+        <label class="vh" for="sprite-q">問蛋餅精靈</label>
+        <input id="sprite-q" type="text" placeholder="例如：BTC 有型態嗎？" autocomplete="off" maxlength="60">
+        <button type="submit" class="sprite__send">問</button>
+      </form>
     </section>
-    <button type="button" class="sprite__btn" id="sprite-btn" aria-expanded="false" aria-controls="sprite-bubble" aria-label="蛋餅精靈：看小提示" title="蛋餅精靈">
+    <button type="button" class="sprite__btn" id="sprite-btn" aria-expanded="false" aria-controls="sprite-bubble" aria-label="問問蛋餅精靈" title="蛋餅精靈">
       <img src="img/mascot.svg" alt="" width="64" height="64">
     </button>
   </div>
