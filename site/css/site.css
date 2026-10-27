@@ -754,7 +754,6 @@ html.show-splash .splash {
   font-size: 13px; font-weight: 600; cursor: pointer;
 }
 .sprite__next:hover { opacity: 0.9; }
-.sprite__note { margin-top: 8px; font-size: 11px; color: var(--muted); }
 body.nav-open .sprite { display: none; }
 @media (max-width: 600px) {
   .sprite { right: 12px; bottom: 12px; }
