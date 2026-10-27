@@ -493,3 +493,60 @@ def triangle_config(overrides: Mapping[str, Any] | None = None, market: str | No
     raise KeyError). Merging a full triangle config again is a no-op."""
     base = merge_config(TRIANGLE_MARKET_OVERRIDES.get(market or "crypto", {}), base=TRIANGLE_CONFIG)
     return merge_config(overrides, base=base) if overrides else base
+
+
+# ---------------------------------------------------------------------------------------------------------------
+# D49 double bottom ("W", ihs_scanner/double_bottom.py). A separate config: nothing here is read by the IHS or the
+# triangle detector. Notation: B1 / B2 = first / second bottom (swing lows, low prices), P = the highest high between
+# them (a swing high; the horizontal neckline), H = min(B1, B2). Every threshold below is an engineering assumption
+# chosen BEFORE looking at any backtest outcome (reasons: docs/backtest-double-bottom.md section 2); the only
+# literature numbers are Lo, Mamaysky & Wang 2000's 1.5% (DBOT: two bottoms within 1.5% of their average) and its
+# >= 22 trading days between the bottoms. Bulkowski's per-pattern thresholds were not available
+# (docs/pattern-winrate-research.md section 6).
+DOUBLE_BOTTOM_CONFIG: dict[str, Any] = {
+    "pivot_window_by_timeframe": {"4h": 5, "1d": 5, "1w": 3},  # = IHS (D19)
+    "atr_length": 14,
+    # bottoms close together: -max_undercut*tol <= B2 - B1 <= tol,
+    # tol = clip(bottom_tol_atr_mult * ATR[B2], floor * avg(B1, B2), cap * avg(B1, B2))
+    "bottom_tol_atr_mult": 1.0,
+    "bottom_tol_floor_pct": 0.015,  # Lo 2000
+    "bottom_tol_cap_pct_by_timeframe": {"4h": 0.03, "1d": 0.05, "1w": 0.10},
+    "max_undercut_of_tol": 0.5,  # B2 may be at most this x tol BELOW B1 (a shallow spring); above B1 up to tol
+    # rally to the neckline: P / max(B1, B2) - 1 >= min_rise_pct and P - max(B1, B2) >= min_rise_atr * ATR[B2]
+    "min_rise_pct_by_timeframe": {"4h": 0.03, "1d": 0.06, "1w": 0.10},
+    "min_rise_atr": 2.5,
+    # bars from B1 to B2 (Lo: >= 22 trading days on 1d)
+    "min_bars_between_by_timeframe": {"4h": 24, "1d": 22, "1w": 8},
+    "max_bars_between_by_timeframe": {"4h": 300, "1d": 150, "1w": 60},
+    # prior decline: the highest high in the prior_lookback bars before B1 must be >= P, and fall to B1 by
+    # >= min_prior_decline_pct and >= min_prior_decline_atr * ATR[B1]
+    "prior_lookback_by_timeframe": {"4h": 90, "1d": 60, "1w": 30},
+    "min_prior_decline_pct_by_timeframe": {"4h": 0.06, "1d": 0.10, "1w": 0.15},
+    "min_prior_decline_atr": 4.0,
+    # breakout (D36 conventions): a bar's HIGH above P * (1 + buffer); the first such bar wins
+    "breakout_price": "high",
+    "breakout_buffer_by_timeframe": {"4h": 0.005, "1d": 0.01, "1w": 0.01},
+    # freshness (same values as IHS D9 / D15)
+    "max_bars_after_b2": {"4h": 30, "1d": 20, "1w": 8},
+    "max_breakout_age": {"4h": 6, "1d": 5, "1w": 3},
+    "max_runaway_of_height": 0.5,  # (close - P) / (P - H) above this -> stale "runaway" (IHS V3b)
+    "max_fallback_of_height": 0.25,  # (P - close) / (P - H) after a cross -> stale "failed_breakout" (IHS V3c)
+    "tp1_fib_level": 1.414,  # D28: TP1 = H * (P / H) ** level
+    # score (display / ordering only): rise and decline giving full marks
+    "ideal_rise_pct_by_timeframe": {"4h": 0.08, "1d": 0.15, "1w": 0.30},
+    "ideal_prior_decline_pct_by_timeframe": {"4h": 0.15, "1d": 0.25, "1w": 0.40},
+    "include_stale": False,
+    "min_score": 0.0,
+}
+
+# Taiwan stocks: a "4h" series has 2 bars per day (D29 / D33) -> 4h distance between the bottoms 16..150 bars
+DOUBLE_BOTTOM_MARKET_OVERRIDES: dict[str, dict[str, Any]] = {
+    "crypto": {},
+    "tw": {"max_bars_between_by_timeframe": {"4h": 150}, "min_bars_between_by_timeframe": {"4h": 16}},
+}
+
+
+def double_bottom_config(overrides: Mapping[str, Any] | None = None, market: str | None = None) -> dict[str, Any]:
+    """DOUBLE_BOTTOM_CONFIG + DOUBLE_BOTTOM_MARKET_OVERRIDES[market] + overrides (unknown keys raise KeyError)."""
+    base = merge_config(DOUBLE_BOTTOM_MARKET_OVERRIDES.get(market or "crypto", {}), base=DOUBLE_BOTTOM_CONFIG)
+    return merge_config(overrides, base=base) if overrides else base

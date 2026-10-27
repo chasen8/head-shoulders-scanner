@@ -14,6 +14,8 @@ Online view (what the live site would list at bar t):
              min_pattern_score -> 1d: supersede_by_higher_timeframe against the 1w view as of the same time
              (= detect_inverse_head_shoulders with include_stale=False, then build_payload's D36 step).
   triangles  detect_triangles(triangle_config(market), include_stale=False) (stale filter + dedup inside).
+  db (D49)   detect_double_bottoms(double_bottom_config(market), include_stale=False) (stale filter + dedup inside);
+             entries like IHS: A = first appearance as confirmed, B = as watchlist; stop = invalidation price H.
 
 Exit rules per bar i > t (long; a short mirrors them):
   low <= stop -> stop (fill at min(open, stop): a gap through the stop fills at the open);
@@ -33,8 +35,9 @@ from typing import Any, Callable, Iterable, Mapping, Sequence
 import numpy as np
 import pandas as pd
 
-from ihs_scanner.config import market_config, tf_value, triangle_config
+from ihs_scanner.config import double_bottom_config, market_config, tf_value, triangle_config
 from ihs_scanner.detector import deduplicate_patterns, find_pattern_candidates, wilder_atr
+from ihs_scanner.double_bottom import detect_double_bottoms
 from ihs_scanner.scanner import supersede_by_higher_timeframe
 from ihs_scanner.triangles import detect_triangles
 
@@ -104,6 +107,10 @@ def _weekly_at(wk: tuple[np.ndarray, list] | None, close_time_ns: int) -> list[d
     return wk[1][j] if j >= 0 else []
 
 
+def db_cfg(market: str) -> dict[str, Any]:
+    return double_bottom_config({"include_stale": False}, market=market)
+
+
 # ------------------------------------------------------------------ signals
 
 IHS_KEEP = ("pattern_id", "status", "pattern_score", "LS_time", "H_time", "RS_time", "H_price", "RS_price",
@@ -111,6 +118,11 @@ IHS_KEEP = ("pattern_id", "status", "pattern_score", "LS_time", "H_time", "RS_ti
             "neckline_touches", "head_rise_pct")
 TRI_KEEP = ("pattern_id", "status", "triangle_type", "score", "start_time", "breakout_time", "breakout_price",
             "target", "target_conservative", "invalidation_price", "touches_total", "converge_ratio")
+
+
+DB_KEEP = ("pattern_id", "status", "pattern_score", "B1_time", "P_time", "B2_time", "B1_price", "P_price", "B2_price",
+           "breakout_level", "breakout_time", "signal_time", "tp1", "tp2", "invalidation_price", "bottom_diff_pct",
+           "rise_pct", "prior_decline_pct", "bars_between", "height")
 
 
 def _plain(v: Any) -> Any:
@@ -151,6 +163,30 @@ def ihs_signals(df: pd.DataFrame, timeframe: str, market: str, *, step: int | No
                 continue
             seen[mode].add(r["pattern_id"])
             out.append({"family": "ihs", "mode": mode, "t": t, **{k: _plain(r.get(k)) for k in IHS_KEEP}})
+    return out
+
+
+def db_signals(df: pd.DataFrame, timeframe: str, market: str, *, step: int | None = None, symbol: str = "",
+               errors: list | None = None) -> list[dict[str, Any]]:
+    """D49: first appearance of each W pattern_id as confirmed (mode A) / watchlist (mode B) on the eval grid.
+    A detector exception at one eval bar = an empty view there (see ihs_signals)."""
+    cfg = db_cfg(market)
+    step = step or default_step(timeframe)
+    seen: dict[str, set] = {"A": set(), "B": set()}
+    out = []
+    for t in eval_points(len(df), timeframe, step):
+        try:
+            rows = detect_double_bottoms(window(df, t, timeframe), timeframe, cfg, symbol=symbol, market=market)
+        except Exception as exc:
+            if errors is not None:
+                errors.append((t, f"{type(exc).__name__}: {exc}"))
+            continue
+        for r in rows:
+            mode = IHS_MODES.get(r["status"])
+            if mode is None or r["pattern_id"] in seen[mode]:
+                continue
+            seen[mode].add(r["pattern_id"])
+            out.append({"family": "db", "mode": mode, "t": t, **{k: _plain(r.get(k)) for k in DB_KEEP}})
     return out
 
 
@@ -259,8 +295,11 @@ def net_return(entry: float, exit_px: float, market: str, d: int = 1) -> float:
 
 # ------------------------------------------------------------------ trades
 
+MODE_FAMILIES = ("ihs", "db")  # entry mode A / B, long only
+
+
 def _strategies(family: str) -> list[dict[str, Any]]:
-    if family == "ihs":
+    if family in MODE_FAMILIES:
         return [{"mode": m, "stop_kind": "rs", "direction": 1, "exit": e} for m in ("A", "B") for e in EXITS]
     return [{"mode": "", "stop_kind": s, "direction": d, "exit": e} for d in (1, -1) for s in TRI_STOPS
             for e in EXITS]
@@ -271,6 +310,8 @@ def _levels(sig: Mapping[str, Any], strat: Mapping[str, Any], entry: float, atr_
     d = strat["direction"]
     if sig["family"] == "ihs":
         stop, tp1, tp2 = sig["RS_price"], sig["tp1"], sig["tp2"]
+    elif sig["family"] == "db":
+        stop, tp1, tp2 = sig["invalidation_price"], sig["tp1"], sig["tp2"]
     else:
         tp1, tp2 = sig["target_conservative"], sig["target"]
         if strat["stop_kind"] == "atr":
@@ -304,7 +345,7 @@ def build_trades(df: pd.DataFrame, signals: Sequence[Mapping[str, Any]], timefra
     meta = dict(meta or {})
     trades, skips = [], []
     for strat in _strategies(family):
-        mine = [s for s in signals if (s.get("mode", "") == strat["mode"] if family == "ihs"
+        mine = [s for s in signals if (s.get("mode", "") == strat["mode"] if family in MODE_FAMILIES
                                        else s["direction"] == strat["direction"])]
         last_exit = -1
         for sig in sorted(mine, key=lambda s: (s["t"], s["pattern_id"])):
@@ -387,6 +428,8 @@ def run_symbol(frames: Mapping[str, pd.DataFrame], market: str, *, symbol: str, 
             if fam == "ihs":
                 sig = ihs_signals(df, tf, market, step=step, symbol=symbol, weekly=weekly if tf == "1d" else None,
                                   errors=err)
+            elif fam == "db":
+                sig = db_signals(df, tf, market, step=step, symbol=symbol, errors=err)
             else:
                 sig = triangle_signals(df, tf, market, step=step, symbol=symbol, errors=err)
             errors.extend({"family": fam, "timeframe": tf, "t": t, "error": e} for t, e in err)

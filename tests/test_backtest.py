@@ -219,3 +219,23 @@ def test_first_appearance_only():
 
     sigs = E.ihs_signals(df, "4h", "crypto", view_fn=view)
     assert len(sigs) == 1 and sigs[0]["mode"] == "B" and sigs[0]["t"] == 54  # first eval bar with >50 bars
+
+
+def test_double_bottom_entries_do_not_change_when_the_future_is_rewritten():
+    """D49: W signals (modes A and B) as of an eval bar t depend on df[:t+1] only."""
+    df = load("BTCUSDT_binance_spot_1d", 700)
+    full = E.db_signals(df, "1d", "crypto", symbol="BTC")
+    assert {s["mode"] for s in full} == {"A", "B"}
+    for cut in sorted({s["t"] for s in full})[:4]:
+        alt = E.db_signals(scramble_after(df, cut, seed=cut), "1d", "crypto", symbol="BTC")
+        assert _until(alt, cut) == _until(full, cut), cut
+
+
+def test_double_bottom_trades_use_invalidation_stop_and_ihs_exit_conventions():
+    df = load("BTCUSDT_binance_spot_1d", 700)
+    sigs = E.db_signals(df, "1d", "crypto", symbol="BTC")
+    trades, _skips = E.build_trades(df, sigs, "1d", "crypto", meta={"symbol": "BTC"})
+    assert trades and {t["family"] for t in trades} == {"db"}
+    for t in trades:
+        assert t["stop"] == t["sig_invalidation_price"] and t["stop"] < t["entry_price"]
+        assert t["exit_bar"] > t["t"] and t["entry_price"] == pytest.approx(float(df["close"].iloc[t["t"]]))
