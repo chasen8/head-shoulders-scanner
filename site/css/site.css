@@ -439,6 +439,15 @@ body.nav-open { overflow: hidden; }
 .dnav__btn--mkt { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .dnav__btn--mkt[aria-current="page"] { color: var(--accent); font-weight: 600; box-shadow: inset 3px 0 0 var(--accent); }
 .dnav__sub { font-size: 12px; font-weight: 400; color: var(--muted); }
+/* D46: 台股 / 加密貨幣 groups that open into 頭肩底 / 收斂三角 */
+.dnav__btn--grp { font-weight: 600; }
+.dnav__end { display: inline-flex; align-items: center; gap: 8px; }
+.dnav__chev { width: 12px; height: 12px; fill: none; stroke: var(--muted); stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; transition: transform 0.15s; }
+.dnav__btn--grp[aria-expanded="true"] .dnav__chev { transform: rotate(180deg); }
+.dsub { list-style: none; margin: 0; padding: 0; background: var(--surface); }
+.dnav__btn--sub { padding-left: 32px; min-height: 44px; font-size: 14px; }
+.dnav__btn--sub:hover { background: var(--accent-wash); }
+.dnav--foot { margin-top: 16px; border-top: 1px solid var(--grid); }
 .dback { display: block; min-height: 44px; padding: 0 16px; border: 0; background: none; color: var(--accent); font-weight: 500; cursor: pointer; }
 .dback:hover { background: var(--surface); }
 .dh { margin-top: 20px; margin-bottom: 6px; font-size: 13px; font-weight: 600; }
@@ -591,7 +600,7 @@ body.nav-open { overflow: hidden; }
 
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
-  .drawer, .scrim { transition: none; }
+  .drawer, .scrim, .dnav__chev, .splash { transition: none; }
 }
 
 /* ---------- cloud sync (settings section, watchlist marks, toast) ---------- */
@@ -658,3 +667,56 @@ html[data-theme="dark"] .acct svg { fill: #8C95F7; }
 .points td.tside { font-weight: 600; }
 .points td.tside--resistance { color: var(--down-text); }
 .points td.tside--support { color: var(--ok-text); }
+
+/* D46 entry screen: shown once per browser session; html.show-splash is set before first paint.
+   Palette "蛋餅": toasted-crust brown background, egg-yolk gold accent, rice-cream text. */
+.splash { display: none; }
+html.show-splash body { overflow: hidden; }
+html.show-splash .splash {
+  --sp-bg: #1A1410; --sp-yolk: #F5B83D; --sp-yolk-hi: #FFCB5C; --sp-cream: #FBF3E4; --sp-muted: #C9B89C; --sp-crust: #8A5A2B;
+  display: flex; flex-direction: column; position: fixed; inset: 0; z-index: 100;
+  background: radial-gradient(ellipse at 50% 35%, #2A2018 0%, var(--sp-bg) 65%); color: var(--sp-cream); transition: opacity 0.35s;
+}
+.splash.is-leaving { opacity: 0; }
+.splash__bg { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0.28; }
+.splash__bg .c-up { fill: var(--sp-yolk); stroke: var(--sp-yolk); }
+.splash__bg .c-dn { fill: var(--sp-crust); stroke: var(--sp-crust); }
+.splash::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(ellipse at center, rgba(26, 20, 16, 0.2) 0%, rgba(26, 20, 16, 0.75) 75%);
+}
+.splash__logo {
+  position: relative; z-index: 1; display: flex; align-items: center; gap: 10px; margin: 0; padding: 24px 40px;
+  font-size: 22px; font-weight: 700; letter-spacing: 0.06em; color: var(--sp-cream);
+}
+.splash__logo::before {
+  content: ""; width: 26px; height: 26px; border-radius: 50%;
+  background: radial-gradient(circle at 40% 40%, var(--sp-yolk-hi) 0 38%, var(--sp-cream) 40% 100%);
+  box-shadow: 0 0 0 2px var(--sp-crust);
+}
+.splash__main { position: relative; z-index: 1; flex: 1 1 auto; display: grid; place-items: center; padding: 16px; }
+.splash__card {
+  width: 100%; max-width: 440px; padding: 44px 44px 36px; border-radius: 18px; text-align: center;
+  background: rgba(34, 26, 20, 0.78); border: 1px solid rgba(245, 184, 61, 0.28);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45); backdrop-filter: blur(6px);
+}
+.splash__title { margin: 0 0 14px; font-size: 30px; font-weight: 700; line-height: 1.3; color: var(--sp-cream); }
+.splash__tag { margin: 0 0 30px; font-size: 18px; font-weight: 500; letter-spacing: 0.14em; color: var(--sp-yolk); }
+.splash__btn {
+  display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 48px;
+  border: 0; border-radius: 999px; font: inherit; font-size: 16px; font-weight: 600; cursor: pointer; text-decoration: none;
+}
+.splash__btn--go { background: var(--sp-yolk); color: #2A1C0E; }
+.splash__btn--go:hover { background: var(--sp-yolk-hi); }
+.splash__btn--dc { margin-top: 12px; background: transparent; color: var(--sp-cream); box-shadow: inset 0 0 0 1px rgba(251, 243, 228, 0.4); }
+.splash__btn--dc:hover { background: rgba(251, 243, 228, 0.08); }
+.splash__btn svg { width: 20px; height: 20px; fill: currentColor; }
+.splash__btn:focus-visible { outline: 2px solid var(--sp-cream); outline-offset: 3px; }
+.splash__note { margin: 22px 0 0; font-size: 13px; line-height: 1.65; color: var(--sp-muted); text-align: left; }
+.splash__foot { position: relative; z-index: 1; margin: 0; padding: 16px 40px 24px; font-size: 12px; color: var(--sp-muted); }
+@media (max-width: 600px) {
+  .splash__logo { padding: 16px; font-size: 19px; }
+  .splash__card { padding: 32px 20px 28px; }
+  .splash__title { font-size: 25px; }
+  .splash__foot { padding: 12px 16px 20px; }
+}

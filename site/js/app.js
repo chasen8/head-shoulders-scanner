@@ -1918,6 +1918,7 @@
     var d = drawerEl();
     clearTimeout(drawer.timer);
     drawer.view = view || "menu";
+    drawer.groups = null; // D46: groups open on the current market each time the drawer opens
     renderDrawer();
     $("scrim").hidden = false; d.hidden = false;
     void d.offsetWidth; // let the closed state paint so the slide-in transitions
@@ -1927,12 +1928,11 @@
     setInert(true);
     focusFirst();
     if (drawer.view === "watchlist") loadAllMarkets();
-    var tm = state.market;
-    if (drawer.view === "menu" && !triCache[tm] && !triErr[tm]) { // D38: the count next to 「收斂三角」
-      loadTri(tm).then(null, function () { /* shown as 尚無資料 */ }).then(function () {
-        if (drawerEl().classList.contains("is-open") && drawer.view === "menu" && state.market === tm) renderDrawer();
-      });
-    }
+    if (drawer.view === "menu") MARKET_ORDER.forEach(function (tm) { // counts next to 頭肩底／收斂三角 of both markets
+      var again = function () { if (drawerEl().classList.contains("is-open") && drawer.view === "menu") renderDrawer(); };
+      if (!dataCache[tm] && !loadErr[tm]) loadMarket(tm).then(null, function () { /* shown as 尚無資料 */ }).then(again);
+      if (!triCache[tm] && !triErr[tm]) loadTri(tm).then(null, function () { /* shown as 尚無資料 */ }).then(again);
+    });
   }
   function closeDrawer(focusTarget) {
     var d = drawerEl();
@@ -1949,28 +1949,34 @@
 
   function statusTag(st) { return "<span class=\"status status--" + esc(st) + "\">" + esc(STATUS_LABEL[st] || st) + "</span>"; }
 
+  // D46: 台股 / 加密貨幣 are expandable groups holding 頭肩底 and 收斂三角; then 實際戰績, 觀察名單, 設定 (關於 moved into 設定).
+  var MENU_GROUP_ORDER = ["tw", "crypto"];
+  function groupOpen(m) { return drawer.groups ? !!drawer.groups[m] : m === state.market; }
   function menuHtml() {
-    return "<ul class=\"dnav\">" + MARKET_ORDER.map(function (m) {
-      var cur = m === state.market && !isTri() && !isRec(), d = dataCache[m];
-      var n = d ? d.results.length + " 個型態" : (loadErr[m] ? "尚無資料" : "");
-      return "<li><button type=\"button\" class=\"dnav__btn dnav__btn--mkt\" data-act=\"market\" data-market=\"" + m + "\"" +
-        (cur ? " aria-current=\"page\"" : "") + "><span>" + esc(MARKETS[m].label) + "</span>" +
-        "<span class=\"dnav__sub\">" + (cur ? "目前" + (n ? "・" : "") : "") + esc(n) + "</span></button></li>";
+    return "<ul class=\"dnav\">" + MENU_GROUP_ORDER.map(function (m) {
+      var open = groupOpen(m), here = m === state.market && !isRec();
+      return "<li><button type=\"button\" class=\"dnav__btn dnav__btn--mkt dnav__btn--grp\" data-act=\"grp\" data-market=\"" + m + "\"" +
+        " aria-expanded=\"" + open + "\" aria-controls=\"dsub-" + m + "\"><span>" + esc(MARKETS[m].label) + "</span>" +
+        "<span class=\"dnav__end\">" + (here ? "<span class=\"dnav__sub\">目前</span>" : "") +
+        "<svg class=\"dnav__chev\" viewBox=\"0 0 12 12\" aria-hidden=\"true\" focusable=\"false\"><path d=\"M3 4.5l3 3 3-3\"/></svg></span></button>" +
+        "<ul class=\"dsub\" id=\"dsub-" + m + "\"" + (open ? "" : " hidden") + ">" + ihsMenuItem(m) + triMenuItem(m) + "</ul></li>";
     }).join("") +
-      triMenuItem() + recMenuItem() +
-      (state.market === "tw" ? "<li><a class=\"dnav__btn dnav__btn--mkt\" href=\"" + XLSX_URL + "\" download=\"rs_confirmed.xlsx\">" +
-        "<span>下載 Excel（右肩已確認）</span><span class=\"dnav__sub\">台股</span></a></li>" : "") +
+      recMenuItem() +
       "<li><button type=\"button\" class=\"dnav__btn\" data-act=\"view\" data-view=\"watchlist\">觀察名單（" + watch.length + "）</button></li>" +
-      "<li><button type=\"button\" class=\"dnav__btn\" data-act=\"view\" data-view=\"settings\">設定</button></li>" +
-      "<li><button type=\"button\" class=\"dnav__btn\" data-act=\"view\" data-view=\"about\">關於</button></li></ul>";
+      "<li><button type=\"button\" class=\"dnav__btn\" data-act=\"view\" data-view=\"settings\">設定</button></li></ul>";
   }
-  // D38: one entry for the triangle list of the current market (switch markets with the header tabs)
-  function triMenuItem() {
-    var d = triCache[state.market], cur = isTri();
-    var n = d ? d.results.length + " 個" : (triErr[state.market] ? "尚無資料" : "");
-    return "<li><button type=\"button\" class=\"dnav__btn dnav__btn--mkt dnav__btn--tri\" data-act=\"tri\"" +
-      (cur ? " aria-current=\"page\"" : "") + "><span>收斂三角</span><span class=\"dnav__sub\">" +
-      esc(MARKETS[state.market].label + (n ? "・" + n : "")) + "</span></button></li>";
+  function ihsMenuItem(m) {
+    var cur = m === state.market && !isTri() && !isRec(), d = dataCache[m];
+    var n = d ? d.results.length + " 個" : (loadErr[m] ? "尚無資料" : "");
+    return "<li><button type=\"button\" class=\"dnav__btn dnav__btn--mkt dnav__btn--sub\" data-act=\"market\" data-market=\"" + m + "\"" +
+      (cur ? " aria-current=\"page\"" : "") + "><span>頭肩底</span><span class=\"dnav__sub\">" + esc(n) + "</span></button></li>";
+  }
+  // D38: the triangle list of market m
+  function triMenuItem(m) {
+    var d = triCache[m], cur = isTri() && m === state.market;
+    var n = d ? d.results.length + " 個" : (triErr[m] ? "尚無資料" : "");
+    return "<li><button type=\"button\" class=\"dnav__btn dnav__btn--mkt dnav__btn--sub\" data-act=\"tri\" data-market=\"" + m + "\"" +
+      (cur ? " aria-current=\"page\"" : "") + "><span>收斂三角</span><span class=\"dnav__sub\">" + esc(n) + "</span></button></li>";
   }
   // D41: the track record of the current market
   function recMenuItem() {
@@ -2049,7 +2055,8 @@
       "<div class=\"ask\" id=\"clear-ask\" hidden><p>確定要清空全部 " + watch.length + " 筆觀察名單？這個動作無法復原。</p>" +
       "<div class=\"btnrow\"><button type=\"button\" class=\"dbtn dbtn--danger\" data-act=\"clear-yes\">確定清空</button>" +
       "<button type=\"button\" class=\"dbtn\" data-act=\"clear-no\">取消</button></div></div>" +
-      "<p class=\"dmsg\" id=\"d-msg\" role=\"status\" aria-live=\"polite\"></p>";
+      "<p class=\"dmsg\" id=\"d-msg\" role=\"status\" aria-live=\"polite\"></p>" +
+      "<ul class=\"dnav dnav--foot\"><li><button type=\"button\" class=\"dnav__btn\" data-act=\"view\" data-view=\"about\">關於這個網站</button></li></ul>";
   }
   var DISCORD_SVG = "<svg viewBox=\"0 0 24 24\" aria-hidden=\"true\" focusable=\"false\"><path d=\"M19.3 5.3A16.6 16.6 0 0 0 15.2 4l-.5 1a15.4 15.4 0 0 0-5.4 0l-.5-1a16.6 16.6 0 0 0-4.1 1.3C2.1 9.2 1.4 13 1.7 16.7a16.7 16.7 0 0 0 5 2.5l1.1-1.7c-.6-.2-1.2-.5-1.7-.8l.4-.3a11.9 11.9 0 0 0 10.2 0l.4.3c-.5.3-1.1.6-1.7.8l1.1 1.7a16.6 16.6 0 0 0 5-2.5c.4-4.3-.7-8-2.2-11.4zM8.7 14.5c-1 0-1.8-.9-1.8-2s.8-2 1.8-2 1.8.9 1.8 2-.8 2-1.8 2zm6.6 0c-1 0-1.8-.9-1.8-2s.8-2 1.8-2 1.8.9 1.8 2-.8 2-1.8 2z\"/></svg>";
   function syncSettingsHtml() { return "<div id=\"sync-sec\" class=\"syncsec\">" + syncSectionInner() + "</div>"; }
@@ -2122,7 +2129,7 @@
     });
   }
   function aboutHtml() {
-    return "<button type=\"button\" class=\"dback\" data-act=\"back\">‹ 選單</button>" +
+    return "<button type=\"button\" class=\"dback\" data-act=\"view\" data-view=\"settings\">‹ 設定</button>" +
       "<div class=\"about\"><p>加密貨幣：幣安、OKX、Gate 的公開 K 線行情，每 4 小時自動掃描一次。</p>" +
       "<p>台股：上市＋上櫃普通股（清單與名稱來自證交所、櫃買中心 OpenAPI），K 線來自 Yahoo Finance（未還原權息，和 TradingView 預設相同），" +
       "每個交易日收盤後（台北 14:10 左右）掃描一次；4 小時線一天兩根：09:00–13:00、13:00–13:30。</p>" +
@@ -2174,9 +2181,17 @@
     } else if (act === "rec") {
       closeDrawer();
       showRecord(state.market);
+    } else if (act === "grp") {
+      var gm = t.getAttribute("data-market");
+      if (!drawer.groups) drawer.groups = { tw: groupOpen("tw"), crypto: groupOpen("crypto") };
+      drawer.groups[gm] = !drawer.groups[gm];
+      renderDrawer();
+      var gb = drawerEl().querySelector("[data-act=\"grp\"][data-market=\"" + gm + "\"]"); if (gb) gb.focus();
     } else if (act === "tri") {
+      var tm = t.getAttribute("data-market") || state.market;
+      state.onlyWl = false; $("only-wl").setAttribute("aria-pressed", "false");
       closeDrawer();
-      showTriangles(state.market);
+      showTriangles(tm);
     } else if (act === "open") {
       var r = keyIndex[t.getAttribute("data-key")];
       if (!r) return;
@@ -2439,7 +2454,52 @@
     });
   }
 
+  /* ---------- D46 entry screen ---------- */
+  // Faint candlesticks drawing an inverse head-and-shoulders behind the card (fixed seed: same picture every visit).
+  function splashCandles() {
+    var svg = $("splash-bg"), W = 1600, H = 900, N = 96, seed = 7;
+    var rnd = function () { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
+    var dip = function (x, c, w, d) { var t = (x - c) / w; return Math.abs(t) < 1 ? d * (1 + Math.cos(Math.PI * t)) / 2 : 0; };
+    var path = function (i) { var x = i / (N - 1); return 0.62 - 0.25 * x + dip(x, 0.22, 0.13, 0.22) + dip(x, 0.5, 0.17, 0.42) + dip(x, 0.78, 0.13, 0.22) - (x > 0.88 ? (x - 0.88) * 1.6 : 0); };
+    var bw = W / N, out = "", prev = path(0) * H;
+    for (var i = 0; i < N; i++) {
+      var o = prev, c = path(i) * H + (rnd() - 0.5) * 34, hi = Math.min(o, c) - rnd() * 22, lo = Math.max(o, c) + rnd() * 22;
+      var cls = c <= o ? "c-up" : "c-dn", x = i * bw + bw / 2;
+      out += "<g class=\"" + cls + "\"><line x1=\"" + x.toFixed(1) + "\" y1=\"" + hi.toFixed(1) + "\" x2=\"" + x.toFixed(1) + "\" y2=\"" + lo.toFixed(1) +
+        "\" stroke-width=\"2\"/><rect x=\"" + (x - bw * 0.32).toFixed(1) + "\" y=\"" + Math.min(o, c).toFixed(1) + "\" width=\"" + (bw * 0.64).toFixed(1) +
+        "\" height=\"" + Math.max(2, Math.abs(c - o)).toFixed(1) + "\"/></g>";
+      prev = c;
+    }
+    svg.setAttribute("viewBox", "0 0 " + W + " " + H);
+    svg.innerHTML = out;
+  }
+  function setupSplash() {
+    var root = document.documentElement, el = $("splash");
+    if (!root.classList.contains("show-splash")) { el.hidden = true; return; }
+    splashCandles();
+    var login = $("splash-login");
+    if (loggedIn()) login.hidden = true; else login.href = loginUrl();
+    setInert(true);
+    var leave = function () {
+      try { sessionStorage.setItem("ihs.splash.v1", "1"); } catch (e) { /* shown again next load */ }
+      setInert(false);
+      var done = function () { root.classList.remove("show-splash"); el.hidden = true; $("menu-btn").focus(); };
+      if (reduceMotion) done(); else { el.classList.add("is-leaving"); setTimeout(done, 350); }
+    };
+    $("splash-go").addEventListener("click", leave);
+    login.addEventListener("click", function () { try { sessionStorage.setItem("ihs.splash.v1", "1"); } catch (e) { /* ignore */ } });
+    el.addEventListener("keydown", function (e) {
+      if (e.key === "Escape") leave();
+      else if (e.key === "Tab") { // keep focus on the two buttons
+        var f = [$("splash-go")].concat(login.hidden ? [] : [login]), i = f.indexOf(document.activeElement);
+        e.preventDefault(); f[(i + (e.shiftKey ? f.length - 1 : 1)) % f.length].focus();
+      }
+    });
+    $("splash-go").focus();
+  }
+
   function start() {
+    setupSplash();
     bind();
     bindExtras();
     applySettingsToState();

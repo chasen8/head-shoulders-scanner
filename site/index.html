@@ -17,11 +17,33 @@
       try { var s = JSON.parse(localStorage.getItem("ihs.settings.v1") || "{}"); if (s && (s.theme === "light" || s.theme === "dark")) t = s.theme; } catch (e) {}
       if (t === "auto") t = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
       document.documentElement.setAttribute("data-theme", t);
+      // D46 entry screen: once per browser session; skipped when coming back from Discord login or with ?splash=0.
+      try {
+        var q = location.search + location.hash;
+        if (!sessionStorage.getItem("ihs.splash.v1") && !/ihs_session=|ihs_login_error=|[?&]splash=0/.test(q)) {
+          document.documentElement.classList.add("show-splash");
+        }
+      } catch (e) {}
     })();
   </script>
   <link rel="stylesheet" href="css/site.css">
 </head>
 <body>
+  <div class="splash" id="splash" role="dialog" aria-modal="true" aria-labelledby="splash-title">
+    <svg class="splash__bg" id="splash-bg" aria-hidden="true" focusable="false" preserveAspectRatio="xMidYMid slice"></svg>
+    <p class="splash__logo" aria-hidden="true">預米蛋餅</p>
+    <div class="splash__main">
+      <div class="splash__card">
+        <h1 class="splash__title" id="splash-title">預米蛋餅工具網站</h1>
+        <p class="splash__tag">「預測型態 埋伏收米」</p>
+        <button type="button" class="splash__btn splash__btn--go" id="splash-go">進入網站</button>
+        <a class="splash__btn splash__btn--dc" id="splash-login" href="#">用 Discord 登入</a>
+        <p class="splash__note">不登入也能使用全部功能。用 Discord 登入後，觀察名單會同步到 Discord 機器人，型態狀態改變時會通知你。</p>
+      </div>
+    </div>
+    <p class="splash__foot">型態偵測工具，不是投資建議。</p>
+  </div>
+
   <a class="skip" href="#detail">跳到圖表</a>
 
   <header class="topbar">
