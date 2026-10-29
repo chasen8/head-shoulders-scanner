@@ -723,23 +723,58 @@ html.show-splash .splash {
 }
 
 /* D47 蛋餅精靈: floating helper at the bottom right with rule-based tips */
-.sprite { position: fixed; right: 16px; bottom: 16px; z-index: 30; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+/* D52: draggable (left/top set inline once moved); the bubble opens on whichever side has room */
+.sprite { position: fixed; right: 16px; bottom: 16px; z-index: 30; }
 .sprite__btn {
-  width: 68px; height: 68px; padding: 2px; border: 0; border-radius: 50%; background: none; cursor: pointer;
+  display: block; width: 68px; height: 68px; padding: 2px; border: 0; border-radius: 50%; background: none; cursor: grab;
+  touch-action: none; user-select: none; -webkit-user-select: none;
   animation: sprite-bob 3.2s ease-in-out infinite; filter: drop-shadow(0 4px 8px var(--shadow));
 }
-.sprite__btn img { display: block; width: 64px; height: 64px; }
+.sprite__btn img { display: block; width: 64px; height: 64px; pointer-events: none; -webkit-user-drag: none; }
 .sprite__btn:hover { animation-play-state: paused; transform: scale(1.06); }
 .sprite__btn[aria-expanded="true"] { animation: none; }
 @keyframes sprite-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
-.sprite__bubble {
-  position: relative; width: min(340px, calc(100vw - 32px)); padding: 12px 14px 10px; border: 1px solid var(--line);
-  border-radius: 14px; background: var(--bg); box-shadow: 0 8px 28px var(--shadow);
+/* picked up: grows, leans into the drag direction (--tilt from JS) and wiggles; a little 「咻～」 pops above */
+.sprite.is-dragging .sprite__btn {
+  animation: none; cursor: grabbing; transform: rotate(var(--tilt, 0deg)) scale(1.15);
+  transition: transform 0.12s ease-out; filter: drop-shadow(0 14px 14px var(--shadow));
 }
+.sprite.is-dragging .sprite__btn img { animation: sprite-wiggle 0.32s ease-in-out infinite; }
+@keyframes sprite-wiggle { 0%, 100% { transform: rotate(-7deg); } 50% { transform: rotate(7deg); } }
+.sprite.is-dragging::before {
+  content: "咻～"; position: absolute; left: 50%; top: -22px; transform: translateX(-50%); white-space: nowrap;
+  font-size: 12px; font-weight: 700; color: var(--accent); animation: sprite-pop 0.25s ease-out;
+}
+@keyframes sprite-pop { from { opacity: 0; transform: translate(-50%, 6px) scale(0.6); } to { opacity: 1; transform: translateX(-50%); } }
+/* dropped: squash, hop, settle */
+.sprite__btn.is-landing { animation: sprite-land 0.55s cubic-bezier(0.3, 1.5, 0.5, 1); }
+@keyframes sprite-land {
+  0% { transform: scale(1.18, 0.8); }
+  35% { transform: translateY(-10px) scale(0.9, 1.12); }
+  65% { transform: scale(1.06, 0.95); }
+  100% { transform: none; }
+}
+/* hearts / sparkles left behind while dragging */
+.sprite-p {
+  position: fixed; z-index: 31; pointer-events: none; font-size: 15px; line-height: 1;
+  animation: sprite-p 0.85s ease-out forwards;
+}
+@keyframes sprite-p {
+  from { opacity: 1; transform: translate(-50%, -50%) scale(0.5); }
+  to { opacity: 0; transform: translate(calc(-50% + var(--dx, 0px)), calc(-50% - 38px)) scale(1.25) rotate(var(--rot, 0deg)); }
+}
+.sprite__bubble {
+  position: absolute; right: 0; bottom: calc(100% + 10px); width: min(340px, calc(100vw - 32px)); padding: 12px 14px 10px;
+  border: 1px solid var(--line); border-radius: 14px; background: var(--bg); box-shadow: 0 8px 28px var(--shadow);
+}
+.sprite.is-left .sprite__bubble { right: auto; left: 0; }
+.sprite.is-below .sprite__bubble { bottom: auto; top: calc(100% + 10px); }
 .sprite__bubble::after {
   content: ""; position: absolute; right: 26px; bottom: -7px; width: 12px; height: 12px; transform: rotate(45deg);
   background: var(--bg); border-right: 1px solid var(--line); border-bottom: 1px solid var(--line);
 }
+.sprite.is-left .sprite__bubble::after { right: auto; left: 26px; }
+.sprite.is-below .sprite__bubble::after { bottom: auto; top: -7px; transform: rotate(225deg); }
 .sprite__head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
 .sprite__title { font-size: 14px; font-weight: 700; color: var(--accent); }
 .sprite__x { display: grid; place-items: center; width: 32px; height: 32px; margin: -6px -8px -6px 0; border: 0; border-radius: 6px; background: none; cursor: pointer; }
@@ -780,6 +815,7 @@ body.nav-open .sprite { display: none; }
   .sprite__btn img { width: 52px; height: 52px; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .sprite__btn { animation: none; }
+  .sprite__btn, .sprite__btn.is-landing, .sprite.is-dragging .sprite__btn img { animation: none; }
+  .sprite.is-dragging .sprite__btn { transform: scale(1.1); }
 }
 .w52 { white-space: nowrap; }

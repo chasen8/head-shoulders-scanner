@@ -2667,10 +2667,113 @@
       $("sprite-chips").innerHTML = SPRITE_CHIPS.map(function (c) { return "<button type=\"button\">" + esc(c) + "</button>"; }).join("");
       spriteMsg("嗨！我是蛋餅精靈。可以問我某個幣或股票有沒有型態（例如 BTC、2330、台積電），或點下面的問題。", false);
     }
+    spriteBubbleSide(); // measured after the content is in
     $("sprite-q").focus();
   }
+  /* D52: drag the sprite anywhere. The spot is a per-browser convenience (localStorage, stored as a fraction of the
+     free space so it survives window resizes); a press that moves < 6px is still a click that opens the bubble. */
+  var SPRITE_POS_KEY = "ihs.sprite.pos.v1";
+  var SPRITE_BITS = ["♥", "✦", "♡", "✧", "★"];
+  function spritePlace(x, y) {
+    var el = $("sprite"), b = $("sprite-btn"), w = b.offsetWidth, h = b.offsetHeight;
+    x = Math.max(4, Math.min(window.innerWidth - w - 4, x));
+    y = Math.max(4, Math.min(window.innerHeight - h - 4, y));
+    el.style.left = x + "px"; el.style.top = y + "px"; el.style.right = "auto"; el.style.bottom = "auto";
+    return { x: x, y: y };
+  }
+  function spriteRestore() {
+    var p = null;
+    try { p = JSON.parse(localStorage.getItem(SPRITE_POS_KEY) || "null"); } catch (e) { /* storage off: default corner */ }
+    if (!p || typeof p.xr !== "number" || typeof p.yr !== "number") return;
+    var b = $("sprite-btn");
+    spritePlace(p.xr * (window.innerWidth - b.offsetWidth), p.yr * (window.innerHeight - b.offsetHeight));
+  }
+  function spriteSave(pos) {
+    var b = $("sprite-btn");
+    try {
+      localStorage.setItem(SPRITE_POS_KEY, JSON.stringify({
+        xr: pos.x / Math.max(1, window.innerWidth - b.offsetWidth), yr: pos.y / Math.max(1, window.innerHeight - b.offsetHeight) }));
+    } catch (e) { /* not kept: fine */ }
+  }
+  function spriteBubbleSide() { // open toward the roomier side and shrink the chat log so the bubble stays on screen
+    var el = $("sprite"), bub = $("sprite-bubble"), log = $("sprite-log"), r = $("sprite-btn").getBoundingClientRect();
+    var above = r.top - 14, below = window.innerHeight - r.bottom - 14;
+    el.classList.toggle("is-left", r.left + r.width / 2 < window.innerWidth / 2);
+    el.classList.toggle("is-below", below > above);
+    if (bub.hidden) return;
+    log.style.maxHeight = "";
+    var fixed = bub.offsetHeight - log.offsetHeight; // header + chips + input
+    log.style.maxHeight = Math.max(80, Math.min(320, Math.max(above, below) - fixed)) + "px";
+  }
+  function spriteParticle(x, y) {
+    var p = document.createElement("span");
+    p.className = "sprite-p";
+    p.textContent = SPRITE_BITS[Math.floor(Math.random() * SPRITE_BITS.length)];
+    p.style.left = x + "px"; p.style.top = y + "px";
+    p.style.color = ["#F28B6B", "#F5B83D", "#E8743B", "#F7C548"][Math.floor(Math.random() * 4)];
+    p.style.setProperty("--dx", Math.round(Math.random() * 30 - 15) + "px");
+    p.style.setProperty("--rot", Math.round(Math.random() * 60 - 30) + "deg");
+    p.addEventListener("animationend", function () { p.remove(); });
+    document.body.appendChild(p);
+  }
+  function setupSpriteDrag() {
+    var btn = $("sprite-btn"), el = $("sprite"), drag = null;
+    btn.addEventListener("pointerdown", function (e) {
+      if (e.button !== 0) return;
+      var r = btn.getBoundingClientRect();
+      drag = { id: e.pointerId, sx: e.clientX, sy: e.clientY, ox: r.left, oy: r.top, lx: e.clientX, px: e.clientX, py: e.clientY, moved: false };
+      try { btn.setPointerCapture(e.pointerId); } catch (err) { /* old browsers: still works while over the button */ }
+    });
+    btn.addEventListener("pointermove", function (e) {
+      if (!drag || e.pointerId !== drag.id) return;
+      var dx = e.clientX - drag.sx, dy = e.clientY - drag.sy;
+      if (!drag.moved) {
+        if (Math.abs(dx) + Math.abs(dy) < 6) return;
+        drag.moved = true;
+        el.classList.add("is-dragging");
+        btn.classList.remove("is-landing");
+      }
+      drag.pos = spritePlace(drag.ox + dx, drag.oy + dy);
+      btn.style.setProperty("--tilt", Math.max(-25, Math.min(25, (e.clientX - drag.lx) * 1.6)) + "deg");
+      drag.lx = e.clientX;
+      if (!reduceMotion && Math.abs(e.clientX - drag.px) + Math.abs(e.clientY - drag.py) > 26) {
+        spriteParticle(e.clientX, e.clientY); drag.px = e.clientX; drag.py = e.clientY;
+      }
+    });
+    var end = function (e) {
+      if (!drag || e.pointerId !== drag.id) return;
+      var d = drag;
+      drag = null;
+      if (!d.moved) return;
+      sprite.dragged = true; // swallow the click that follows this pointerup
+      setTimeout(function () { sprite.dragged = false; }, 300);
+      el.classList.remove("is-dragging");
+      btn.style.setProperty("--tilt", "0deg");
+      void btn.offsetWidth; // restart the landing bounce
+      btn.classList.add("is-landing");
+      if (d.pos) spriteSave(d.pos);
+      if (!$("sprite-bubble").hidden) spriteBubbleSide();
+    };
+    btn.addEventListener("pointerup", end);
+    btn.addEventListener("pointercancel", end);
+    btn.addEventListener("animationend", function (e) { if (e.animationName === "sprite-land") btn.classList.remove("is-landing"); });
+    btn.addEventListener("keydown", function (e) { // keyboard users: arrow keys nudge it
+      var step = { ArrowLeft: [-24, 0], ArrowRight: [24, 0], ArrowUp: [0, -24], ArrowDown: [0, 24] }[e.key];
+      if (!step) return;
+      e.preventDefault();
+      var r = btn.getBoundingClientRect(), pos = spritePlace(r.left + step[0], r.top + step[1]);
+      spriteSave(pos);
+      if (!$("sprite-bubble").hidden) spriteBubbleSide();
+    });
+    window.addEventListener("resize", spriteRestore);
+    spriteRestore();
+  }
   function setupSprite() {
-    $("sprite-btn").addEventListener("click", function () { spriteOpen($("sprite-bubble").hidden); });
+    setupSpriteDrag();
+    $("sprite-btn").addEventListener("click", function () {
+      if (sprite.dragged) { sprite.dragged = false; return; }
+      spriteOpen($("sprite-bubble").hidden);
+    });
     $("sprite-close").addEventListener("click", function () { spriteOpen(false); $("sprite-btn").focus(); });
     $("sprite-form").addEventListener("submit", function (e) { e.preventDefault(); var i = $("sprite-q"); spriteAsk(i.value); i.value = ""; });
     $("sprite-chips").addEventListener("click", function (e) { var b = e.target.closest("button"); if (b) spriteAsk(b.textContent); });
