@@ -1,0 +1,4513 @@
+{
+ "patterns": {
+  "binance|spot|1000CATUSDT|1d|2025-12-19T00:00:00Z|2026-06-25T00:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-22T23:21:00Z",
+   "notified_status": "forming",
+   "score": 40.86,
+   "status": "forming"
+  },
+  "binance|spot|1INCHUSDT|1d|2026-03-08T00:00:00Z|2026-07-01T00:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-21T17:41:21Z",
+   "notified_status": "forming",
+   "score": 89.94,
+   "status": "forming"
+  },
+  "binance|spot|1INCHUSDT|1w|2026-03-23T00:00:00Z|2026-06-29T00:00:00Z": {
+   "last_notified_at": "2026-10-26T04:39:39Z",
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": "forming",
+   "score": 80.79,
+   "status": "forming"
+  },
+  "binance|spot|1MBABYDOGEUSDT|1d|2026-04-29T00:00:00Z|2026-06-25T00:00:00Z": {
+   "last_notified_at": "2026-10-24T04:32:50Z",
+   "last_seen": "2026-10-29T21:07:25Z",
+   "notified_status": "watchlist",
+   "score": 67.26,
+   "status": "forming"
+  },
+  "binance|spot|1MBABYDOGEUSDT|4h|2026-05-28T12:00:00Z|2026-06-25T12:00:00Z": {
+   "last_notified_at": "2026-10-23T20:01:45Z",
+   "last_seen": "2026-10-24T12:44:06Z",
+   "notified_status": "watchlist",
+   "score": 64.66,
+   "status": "watchlist"
+  },
+  "binance|spot|AAOIBUSDT|4h|2026-10-15T12:00:00Z|2026-10-26T08:00:00Z": {
+   "last_notified_at": "2026-10-29T21:07:25Z",
+   "last_seen": "2026-10-30T05:41:40Z",
+   "notified_status": "forming",
+   "score": 63.07,
+   "status": "forming"
+  },
+  "binance|spot|AAVEUSDT|1d|2025-11-04T00:00:00Z|2026-06-06T00:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-21T17:41:21Z",
+   "notified_status": "forming",
+   "score": 68.11,
+   "status": "forming"
+  },
+  "binance|spot|AAVEUSDT|1w|2025-12-29T00:00:00Z|2026-06-01T00:00:00Z": {
+   "last_notified_at": "2026-10-21T18:29:39Z",
+   "last_seen": "2026-10-25T22:35:59Z",
+   "notified_status": "confirmed",
+   "score": 78.51,
+   "status": "confirmed"
+  },
+  "binance|spot|ACEUSDT|4h|2026-09-01T08:00:00Z|2026-09-09T20:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-18T15:52:20Z",
+   "notified_status": "forming",
+   "score": 42.21,
+   "status": "forming"
+  },
+  "binance|spot|ADXUSDT|4h|2026-06-14T16:00:00Z|2026-07-03T20:00:00Z": {
+   "last_notified_at": "2026-10-25T19:01:57Z",
+   "last_seen": "2026-10-26T04:39:39Z",
+   "notified_status": "forming",
+   "score": 53.5,
+   "status": "forming"
+  },
+  "binance|spot|ALABBUSDT|4h|2026-10-17T20:00:00Z|2026-10-26T12:00:00Z": {
+   "last_notified_at": "2026-10-29T21:07:25Z",
+   "last_seen": "2026-10-30T15:06:51Z",
+   "notified_status": "forming",
+   "score": 73.62,
+   "status": "forming"
+  },
+  "binance|spot|ALGOUSDT|1d|2026-01-01T00:00:00Z|2026-07-29T00:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-18T22:28:52Z",
+   "notified_status": "forming",
+   "score": 82.6,
+   "status": "forming"
+  },
+  "binance|spot|ALGOUSDT|1d|2026-05-28T00:00:00Z|2026-07-29T00:00:00Z": {
+   "last_notified_at": "2026-10-19T04:34:14Z",
+   "last_seen": "2026-10-29T21:07:25Z",
+   "notified_status": "forming",
+   "score": 57.87,
+   "status": "forming"
+  },
+  "binance|spot|AMCBUSDT|4h|2026-09-28T08:00:00Z|2026-10-05T12:00:00Z": {
+   "last_notified_at": "2026-10-21T18:29:39Z",
+   "last_seen": "2026-10-22T13:48:56Z",
+   "notified_status": "confirmed",
+   "score": 56.9,
+   "status": "confirmed"
+  },
+  "binance|spot|APTUSDT|1d|2026-05-05T00:00:00Z|2026-08-30T00:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-24T22:31:27Z",
+   "notified_status": "forming",
+   "score": 48.94,
+   "status": "forming"
+  },
+  "binance|spot|APTUSDT|4h|2026-05-07T00:00:00Z|2026-08-30T20:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-19T21:04:52Z",
+   "notified_status": "watchlist",
+   "score": 42.02,
+   "status": "watchlist"
+  },
+  "binance|spot|ARKMUSDT|1d|2026-06-06T00:00:00Z|2026-08-18T00:00:00Z": {
+   "last_notified_at": "2026-10-19T04:34:14Z",
+   "last_seen": "2026-10-21T17:41:21Z",
+   "notified_status": "forming",
+   "score": 82.92,
+   "status": "forming"
+  },
+  "binance|spot|ARKMUSDT|4h|2026-05-24T20:00:00Z|2026-08-18T20:00:00Z": {
+   "last_notified_at": "2026-10-23T04:42:39Z",
+   "last_seen": "2026-10-23T04:42:39Z",
+   "notified_status": "confirmed",
+   "score": 63.82,
+   "status": "confirmed"
+  },
+  "binance|spot|ARKMUSDT|4h|2026-06-02T20:00:00Z|2026-08-18T20:00:00Z": {
+   "last_notified_at": "2026-10-23T13:26:25Z",
+   "last_seen": "2026-10-29T21:07:25Z",
+   "notified_status": "watchlist",
+   "score": 60.34,
+   "status": "watchlist"
+  },
+  "binance|spot|ASTERUSDT|1d|2025-11-14T00:00:00Z|2026-02-06T00:00:00Z": {
+   "last_notified_at": null,
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": null,
+   "score": 42.91,
+   "status": "forming"
+  },
+  "binance|spot|ASTERUSDT|1d|2025-12-23T00:00:00Z|2026-02-06T00:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-29T21:07:25Z",
+   "notified_status": "watchlist",
+   "score": 58.46,
+   "status": "watchlist"
+  },
+  "binance|spot|ASTERUSDT|4h|2026-06-14T12:00:00Z|2026-06-24T16:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-19T04:34:14Z",
+   "notified_status": "watchlist",
+   "score": 67.56,
+   "status": "watchlist"
+  },
+  "binance|spot|ASTRUSDT|4h|2026-10-15T00:00:00Z|2026-10-18T16:00:00Z": {
+   "last_notified_at": "2026-10-26T04:39:39Z",
+   "last_seen": "2026-10-26T04:39:39Z",
+   "notified_status": "forming",
+   "score": 85.1,
+   "status": "forming"
+  },
+  "binance|spot|ASTSBUSDT|4h|2026-10-17T20:00:00Z|2026-10-23T12:00:00Z": {
+   "last_notified_at": "2026-10-30T20:48:37Z",
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": "forming",
+   "score": 77.24,
+   "status": "forming"
+  },
+  "binance|spot|ATOMUSDT|1d|2026-02-06T00:00:00Z|2026-08-01T00:00:00Z": {
+   "last_notified_at": "2026-10-31T05:30:26Z",
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": "forming",
+   "score": 52.19,
+   "status": "forming"
+  },
+  "binance|spot|ATOMUSDT|1d|2026-06-06T00:00:00Z|2026-08-01T00:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-21T17:41:21Z",
+   "notified_status": "forming",
+   "score": 79.42,
+   "status": "forming"
+  },
+  "binance|spot|ATOMUSDT|4h|2026-10-13T00:00:00Z|2026-10-18T20:00:00Z": {
+   "last_notified_at": "2026-10-24T04:32:50Z",
+   "last_seen": "2026-10-24T04:32:50Z",
+   "notified_status": "forming",
+   "score": 74.46,
+   "status": "forming"
+  },
+  "binance|spot|ATUSDT|4h|2026-09-29T00:00:00Z|2026-10-03T16:00:00Z": {
+   "last_notified_at": "2026-10-21T18:29:39Z",
+   "last_seen": "2026-10-22T13:48:56Z",
+   "notified_status": "confirmed",
+   "score": 87.46,
+   "status": "confirmed"
+  },
+  "binance|spot|AUCTIONUSDT|4h|2026-10-08T16:00:00Z|2026-10-18T20:00:00Z": {
+   "last_notified_at": "2026-10-28T15:08:42Z",
+   "last_seen": "2026-10-28T15:08:42Z",
+   "notified_status": "confirmed",
+   "score": 79.54,
+   "status": "confirmed"
+  },
+  "binance|spot|AUSDT|1d|2026-05-04T00:00:00Z|2026-06-06T00:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-19T04:34:14Z",
+   "notified_status": "confirmed",
+   "score": 88.36,
+   "status": "confirmed"
+  },
+  "binance|spot|AVAXUSDT|1w|2025-12-15T00:00:00Z|2026-06-15T00:00:00Z": {
+   "last_notified_at": "2026-10-26T04:39:39Z",
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": "forming",
+   "score": 52.42,
+   "status": "forming"
+  },
+  "binance|spot|AVNTUSDT|1d|2026-05-17T00:00:00Z|2026-08-03T00:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-18T22:28:52Z",
+   "notified_status": "forming",
+   "score": 64.07,
+   "status": "forming"
+  },
+  "binance|spot|AVNTUSDT|4h|2026-05-20T00:00:00Z|2026-08-03T12:00:00Z": {
+   "last_notified_at": "2026-10-25T13:15:04Z",
+   "last_seen": "2026-10-27T08:02:41Z",
+   "notified_status": "watchlist",
+   "score": 50.7,
+   "status": "watchlist"
+  },
+  "binance|spot|AWEUSDT|4h|2026-06-25T00:00:00Z|2026-06-30T12:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-21T17:41:21Z",
+   "notified_status": "watchlist",
+   "score": 88.24,
+   "status": "watchlist"
+  },
+  "binance|spot|AXLUSDT|1d|2026-04-27T00:00:00Z|2026-08-19T00:00:00Z": {
+   "last_notified_at": null,
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": null,
+   "score": 32.32,
+   "status": "forming"
+  },
+  "binance|spot|AXLUSDT|4h|2026-05-29T04:00:00Z|2026-08-19T04:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-20T20:03:48Z",
+   "notified_status": "watchlist",
+   "score": 54.1,
+   "status": "watchlist"
+  },
+  "binance|spot|AXSUSDT|1d|2026-04-19T00:00:00Z|2026-07-29T00:00:00Z": {
+   "last_notified_at": "2026-10-30T05:41:40Z",
+   "last_seen": "2026-10-30T20:48:37Z",
+   "notified_status": "forming",
+   "score": 52.74,
+   "status": "forming"
+  },
+  "binance|spot|AXTIBUSDT|4h|2026-10-13T12:00:00Z|2026-10-17T20:00:00Z": {
+   "last_notified_at": "2026-10-29T21:07:25Z",
+   "last_seen": "2026-10-29T21:07:25Z",
+   "notified_status": "forming",
+   "score": 86.02,
+   "status": "forming"
+  },
+  "binance|spot|BABYUSDT|1d|2026-08-05T00:00:00Z|2026-08-16T00:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-19T04:34:14Z",
+   "notified_status": "forming",
+   "score": 61.58,
+   "status": "forming"
+  },
+  "binance|spot|BABYUSDT|4h|2026-07-29T20:00:00Z|2026-08-16T04:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-19T04:34:14Z",
+   "notified_status": "watchlist",
+   "score": 68.41,
+   "status": "watchlist"
+  },
+  "binance|spot|BABYUSDT|4h|2026-09-28T16:00:00Z|2026-10-15T00:00:00Z": {
+   "last_notified_at": "2026-10-28T15:08:42Z",
+   "last_seen": "2026-10-29T21:07:25Z",
+   "notified_status": "confirmed",
+   "score": 79.05,
+   "status": "forming"
+  },
+  "binance|spot|BABYUSDT|4h|2026-10-01T12:00:00Z|2026-10-15T00:00:00Z": {
+   "last_notified_at": "2026-10-22T13:48:56Z",
+   "last_seen": "2026-10-25T15:46:32Z",
+   "notified_status": "forming",
+   "score": 83.98,
+   "status": "forming"
+  },
+  "binance|spot|BABYUSDT|4h|2026-10-08T16:00:00Z|2026-10-15T00:00:00Z": {
+   "last_notified_at": "2026-10-27T04:58:58Z",
+   "last_seen": "2026-10-29T05:42:41Z",
+   "notified_status": "watchlist",
+   "score": 72.27,
+   "status": "watchlist"
+  },
+  "binance|spot|BANANAUSDT|1d|2026-04-29T00:00:00Z|2026-06-25T00:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": "forming",
+   "score": 51.29,
+   "status": "forming"
+  },
+  "binance|spot|BANDUSDT|1d|2025-12-18T00:00:00Z|2026-07-01T00:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-18T22:28:52Z",
+   "notified_status": "watchlist",
+   "score": 68.53,
+   "status": "watchlist"
+  },
+  "binance|spot|BANDUSDT|4h|2026-10-05T04:00:00Z|2026-10-08T16:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-18T15:52:20Z",
+   "notified_status": "watchlist",
+   "score": 62.68,
+   "status": "watchlist"
+  },
+  "binance|spot|BANDUSDT|4h|2026-10-18T20:00:00Z|2026-10-26T08:00:00Z": {
+   "last_notified_at": "2026-10-29T15:17:45Z",
+   "last_seen": "2026-10-29T21:07:25Z",
+   "notified_status": "forming",
+   "score": 67.3,
+   "status": "forming"
+  },
+  "binance|spot|BATUSDT|1d|2025-12-03T00:00:00Z|2026-08-14T00:00:00Z": {
+   "last_notified_at": "2026-10-21T04:38:22Z",
+   "last_seen": "2026-10-23T23:09:25Z",
+   "notified_status": "forming",
+   "score": 48.91,
+   "status": "forming"
+  },
+  "binance|spot|BCHUSDT|4h|2026-10-02T16:00:00Z|2026-10-15T00:00:00Z": {
+   "last_notified_at": "2026-10-29T15:17:45Z",
+   "last_seen": "2026-10-29T21:07:25Z",
+   "notified_status": "forming",
+   "score": 72.26,
+   "status": "forming"
+  },
+  "binance|spot|BEAMXUSDT|1d|2025-11-22T00:00:00Z|2026-06-25T00:00:00Z": {
+   "last_notified_at": "2026-10-31T05:30:26Z",
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": "confirmed",
+   "score": 92.82,
+   "status": "confirmed"
+  },
+  "binance|spot|BEBUSDT|4h|2026-10-20T12:00:00Z|2026-10-24T20:00:00Z": {
+   "last_notified_at": "2026-10-30T20:48:37Z",
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": "forming",
+   "score": 60.32,
+   "status": "forming"
+  },
+  "binance|spot|BICOUSDT|4h|2026-10-15T00:00:00Z|2026-10-26T08:00:00Z": {
+   "last_notified_at": "2026-10-29T21:07:25Z",
+   "last_seen": "2026-10-29T21:07:25Z",
+   "notified_status": "forming",
+   "score": 66.36,
+   "status": "forming"
+  },
+  "binance|spot|BNBUSDT|1d|2026-05-28T00:00:00Z|2026-07-01T00:00:00Z": {
+   "last_notified_at": "2026-10-24T04:32:50Z",
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": "watchlist",
+   "score": 79.13,
+   "status": "forming"
+  },
+  "binance|spot|BNBUSDT|4h|2026-05-28T12:00:00Z|2026-07-01T08:00:00Z": {
+   "last_notified_at": "2026-10-30T20:48:37Z",
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": "watchlist",
+   "score": 79.1,
+   "status": "watchlist"
+  },
+  "binance|spot|BNBUSDT|4h|2026-05-29T12:00:00Z|2026-07-01T08:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-23T23:09:25Z",
+   "notified_status": "watchlist",
+   "score": 68.82,
+   "status": "watchlist"
+  },
+  "binance|spot|BNCBUSDT|4h|2026-09-24T08:00:00Z|2026-10-18T20:00:00Z": {
+   "last_notified_at": "2026-10-29T15:17:45Z",
+   "last_seen": "2026-10-29T21:07:25Z",
+   "notified_status": "forming",
+   "score": 74.78,
+   "status": "forming"
+  },
+  "binance|spot|BNCBUSDT|4h|2026-10-08T16:00:00Z|2026-10-18T20:00:00Z": {
+   "last_notified_at": "2026-10-23T23:09:25Z",
+   "last_seen": "2026-10-29T05:42:41Z",
+   "notified_status": "watchlist",
+   "score": 75.06,
+   "status": "watchlist"
+  },
+  "binance|spot|BNSOLUSDT|1w|2025-12-15T00:00:00Z|2026-06-01T00:00:00Z": {
+   "last_notified_at": "2026-10-21T18:29:39Z",
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": "forming",
+   "score": 74.57,
+   "status": "forming"
+  },
+  "binance|spot|BNTUSDT|1d|2026-04-29T00:00:00Z|2026-07-01T00:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-18T22:28:52Z",
+   "notified_status": "forming",
+   "score": 60.34,
+   "status": "forming"
+  },
+  "binance|spot|BTCUSDT|1d|2026-04-29T00:00:00Z|2026-07-01T00:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-21T17:41:21Z",
+   "notified_status": "forming",
+   "score": 85.19,
+   "status": "watchlist"
+  },
+  "binance|spot|BTCUSDT|4h|2026-09-02T08:00:00Z|2026-09-15T16:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-19T04:34:14Z",
+   "notified_status": "watchlist",
+   "score": 59.03,
+   "status": "watchlist"
+  },
+  "binance|spot|CAKEUSDT|1d|2025-11-04T00:00:00Z|2026-06-05T00:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-21T17:41:21Z",
+   "notified_status": "watchlist",
+   "score": 79.11,
+   "status": "watchlist"
+  },
+  "binance|spot|CATIUSDT|1d|2025-10-17T00:00:00Z|2026-07-29T00:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-19T04:34:14Z",
+   "notified_status": "forming",
+   "score": 41.42,
+   "status": "forming"
+  },
+  "binance|spot|CATIUSDT|1d|2026-04-23T00:00:00Z|2026-07-29T00:00:00Z": {
+   "last_notified_at": "2026-10-25T04:36:29Z",
+   "last_seen": "2026-10-29T21:07:25Z",
+   "notified_status": "forming",
+   "score": 61.42,
+   "status": "forming"
+  },
+  "binance|spot|CATIUSDT|1w|2026-04-20T00:00:00Z|2026-07-27T00:00:00Z": {
+   "last_notified_at": "2026-10-26T04:39:39Z",
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": "forming",
+   "score": 76.27,
+   "status": "forming"
+  },
+  "binance|spot|CELOUSDT|4h|2026-10-15T00:00:00Z|2026-10-25T08:00:00Z": {
+   "last_notified_at": "2026-10-28T21:04:48Z",
+   "last_seen": "2026-10-29T16:11:31Z",
+   "notified_status": "forming",
+   "score": 72.02,
+   "status": "forming"
+  },
+  "binance|spot|CETUSUSDT|1d|2026-05-07T00:00:00Z|2026-06-25T00:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-21T17:41:21Z",
+   "notified_status": "forming",
+   "score": 71.42,
+   "status": "forming"
+  },
+  "binance|spot|CETUSUSDT|4h|2026-05-07T16:00:00Z|2026-06-25T12:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-20T13:36:35Z",
+   "notified_status": "forming",
+   "score": 69.13,
+   "status": "watchlist"
+  },
+  "binance|spot|CGPTUSDT|1d|2026-05-28T00:00:00Z|2026-06-25T00:00:00Z": {
+   "last_notified_at": "2026-10-19T04:34:14Z",
+   "last_seen": "2026-10-19T04:34:14Z",
+   "notified_status": "forming",
+   "score": 76.94,
+   "status": "forming"
+  },
+  "binance|spot|CGPTUSDT|1d|2026-06-06T00:00:00Z|2026-06-25T00:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-18T22:28:52Z",
+   "notified_status": "watchlist",
+   "score": 71.77,
+   "status": "watchlist"
+  },
+  "binance|spot|CGPTUSDT|1d|2026-08-16T00:00:00Z|2026-09-16T00:00:00Z": {
+   "last_notified_at": "2026-10-19T06:40:17Z",
+   "last_seen": "2026-10-25T22:35:59Z",
+   "notified_status": "forming",
+   "score": 54.47,
+   "status": "forming"
+  },
+  "binance|spot|CGPTUSDT|4h|2026-05-28T08:00:00Z|2026-06-25T12:00:00Z": {
+   "last_notified_at": "2026-10-18T22:28:52Z",
+   "last_seen": "2026-10-19T04:34:14Z",
+   "notified_status": "forming",
+   "score": 77.14,
+   "status": "forming"
+  },
+  "binance|spot|CGPTUSDT|4h|2026-08-16T20:00:00Z|2026-09-16T16:00:00Z": {
+   "last_notified_at": "2026-10-23T20:01:45Z",
+   "last_seen": "2026-10-25T22:35:59Z",
+   "notified_status": "watchlist",
+   "score": 44.79,
+   "status": "forming"
+  },
+  "binance|spot|CGPTUSDT|4h|2026-08-18T08:00:00Z|2026-09-16T16:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-21T17:41:21Z",
+   "notified_status": "watchlist",
+   "score": 71.03,
+   "status": "watchlist"
+  },
+  "binance|spot|CHIPUSDT|4h|2026-10-15T12:00:00Z|2026-10-18T20:00:00Z": {
+   "last_notified_at": "2026-10-27T04:58:58Z",
+   "last_seen": "2026-10-27T14:28:50Z",
+   "notified_status": "confirmed",
+   "score": 79.3,
+   "status": "confirmed"
+  },
+  "binance|spot|CRMBUSDT|4h|2026-09-13T20:00:00Z|2026-10-08T12:00:00Z": {
+   "last_notified_at": "2026-10-22T20:04:50Z",
+   "last_seen": "2026-10-28T21:04:48Z",
+   "notified_status": "confirmed",
+   "score": 79.53,
+   "status": "forming"
+  },
+  "binance|spot|CRVUSDT|1d|2025-11-04T00:00:00Z|2026-06-06T00:00:00Z": {
+   "last_notified_at": "2026-10-21T04:38:22Z",
+   "last_seen": "2026-10-30T20:48:37Z",
+   "notified_status": "confirmed",
+   "score": 59.82,
+   "status": "forming"
+  },
+  "binance|spot|CRVUSDT|1w|2025-12-15T00:00:00Z|2026-06-01T00:00:00Z": {
+   "last_notified_at": "2026-10-26T04:39:39Z",
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": "forming",
+   "score": 70.04,
+   "status": "forming"
+  },
+  "binance|spot|CRVUSDT|4h|2026-09-28T12:00:00Z|2026-10-15T00:00:00Z": {
+   "last_notified_at": "2026-10-29T05:42:41Z",
+   "last_seen": "2026-10-29T21:07:25Z",
+   "notified_status": "forming",
+   "score": 66.11,
+   "status": "forming"
+  },
+  "binance|spot|CRVUSDT|4h|2026-10-07T00:00:00Z|2026-10-15T00:00:00Z": {
+   "last_notified_at": null,
+   "last_seen": "2026-10-19T04:34:14Z",
+   "notified_status": null,
+   "score": 48.04,
+   "status": "forming"
+  },
+  "binance|spot|CRWVBUSDT|4h|2026-10-17T20:00:00Z|2026-10-26T08:00:00Z": {
+   "last_notified_at": "2026-10-30T05:41:40Z",
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": "forming",
+   "score": 50.97,
+   "status": "forming"
+  },
+  "binance|spot|CTSIUSDT|1d|2026-04-11T00:00:00Z|2026-08-01T00:00:00Z": {
+   "last_notified_at": "2026-10-28T05:33:16Z",
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": "forming",
+   "score": 60.93,
+   "status": "forming"
+  },
+  "binance|spot|CVCUSDT|4h|2026-10-09T04:00:00Z|2026-10-18T16:00:00Z": {
+   "last_notified_at": "2026-10-25T13:15:04Z",
+   "last_seen": "2026-10-29T21:07:25Z",
+   "notified_status": "confirmed",
+   "score": 85.62,
+   "status": "forming"
+  },
+  "binance|spot|CVXUSDT|1d|2026-02-28T00:00:00Z|2026-07-01T00:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-21T17:41:21Z",
+   "notified_status": "forming",
+   "score": 73.93,
+   "status": "watchlist"
+  },
+  "binance|spot|CYBERUSDT|1d|2026-08-18T00:00:00Z|2026-09-16T00:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-18T22:28:52Z",
+   "notified_status": "watchlist",
+   "score": 57.36,
+   "status": "watchlist"
+  },
+  "binance|spot|CYPHBUSDT|4h|2026-09-29T12:00:00Z|2026-10-15T04:00:00Z": {
+   "last_notified_at": "2026-10-22T20:04:50Z",
+   "last_seen": "2026-10-23T04:42:39Z",
+   "notified_status": "forming",
+   "score": 62.86,
+   "status": "forming"
+  },
+  "binance|spot|DASHUSDT|4h|2026-10-02T16:00:00Z|2026-10-15T00:00:00Z": {
+   "last_notified_at": "2026-10-27T09:29:26Z",
+   "last_seen": "2026-10-28T05:33:16Z",
+   "notified_status": "confirmed",
+   "score": 74.31,
+   "status": "confirmed"
+  },
+  "binance|spot|DASHUSDT|4h|2026-10-08T16:00:00Z|2026-10-15T00:00:00Z": {
+   "last_notified_at": "2026-10-25T13:15:04Z",
+   "last_seen": "2026-10-29T16:11:31Z",
+   "notified_status": "watchlist",
+   "score": 64.38,
+   "status": "watchlist"
+  },
+  "binance|spot|DASHUSDT|4h|2026-10-11T00:00:00Z|2026-10-15T00:00:00Z": {
+   "last_notified_at": "2026-10-23T13:26:25Z",
+   "last_seen": "2026-10-23T23:09:25Z",
+   "notified_status": "confirmed",
+   "score": 83.21,
+   "status": "confirmed"
+  },
+  "binance|spot|DODOUSDT|4h|2026-08-10T00:00:00Z|2026-09-09T20:00:00Z": {
+   "last_notified_at": "2026-10-28T21:04:48Z",
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": "watchlist",
+   "score": 71.79,
+   "status": "watchlist"
+  },
+  "binance|spot|DODOUSDT|4h|2026-08-24T16:00:00Z|2026-09-09T20:00:00Z": {
+   "last_notified_at": "2026-10-18T22:28:52Z",
+   "last_seen": "2026-10-19T04:34:14Z",
+   "notified_status": "watchlist",
+   "score": 82.49,
+   "status": "watchlist"
+  },
+  "binance|spot|DOGEUSDT|1w|2026-03-02T00:00:00Z|2026-07-27T00:00:00Z": {
+   "last_notified_at": "2026-10-19T04:34:14Z",
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": "forming",
+   "score": 58.64,
+   "status": "forming"
+  },
+  "binance|spot|DOTUSDT|1d|2026-04-29T00:00:00Z|2026-08-18T00:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-26T21:05:08Z",
+   "notified_status": "watchlist",
+   "score": 51.55,
+   "status": "watchlist"
+  },
+  "binance|spot|DOTUSDT|1w|2026-04-13T00:00:00Z|2026-08-17T00:00:00Z": {
+   "last_notified_at": "2026-10-19T04:34:14Z",
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": "forming",
+   "score": 64.85,
+   "status": "forming"
+  },
+  "binance|spot|DRAMBUSDT|4h|2026-10-15T12:00:00Z|2026-10-17T20:00:00Z": {
+   "last_notified_at": "2026-10-27T20:43:07Z",
+   "last_seen": "2026-10-28T15:08:42Z",
+   "notified_status": "confirmed",
+   "score": 87.59,
+   "status": "confirmed"
+  },
+  "binance|spot|DUSKUSDT|1d|2026-05-13T00:00:00Z|2026-08-01T00:00:00Z": {
+   "last_notified_at": null,
+   "last_seen": "2026-10-30T20:48:37Z",
+   "notified_status": null,
+   "score": 40.33,
+   "status": "forming"
+  },
+  "binance|spot|DUSKUSDT|4h|2026-05-16T12:00:00Z|2026-08-01T20:00:00Z": {
+   "last_notified_at": "2026-10-22T13:48:56Z",
+   "last_seen": "2026-10-28T21:04:48Z",
+   "notified_status": "watchlist",
+   "score": 75.56,
+   "status": "watchlist"
+  },
+  "binance|spot|DYMUSDT|1d|2026-05-17T00:00:00Z|2026-07-29T00:00:00Z": {
+   "last_notified_at": "2026-10-24T04:32:50Z",
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": "watchlist",
+   "score": 43.1,
+   "status": "forming"
+  },
+  "binance|spot|DYMUSDT|1d|2026-06-18T00:00:00Z|2026-07-29T00:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-18T22:28:52Z",
+   "notified_status": "watchlist",
+   "score": 73.12,
+   "status": "watchlist"
+  },
+  "binance|spot|DYMUSDT|4h|2026-06-18T12:00:00Z|2026-07-29T20:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-29T05:42:41Z",
+   "notified_status": "watchlist",
+   "score": 66.23,
+   "status": "watchlist"
+  },
+  "binance|spot|EDENUSDT|4h|2026-10-15T00:00:00Z|2026-10-18T20:00:00Z": {
+   "last_notified_at": "2026-10-27T04:58:58Z",
+   "last_seen": "2026-10-29T21:07:25Z",
+   "notified_status": "watchlist",
+   "score": 73.88,
+   "status": "watchlist"
+  },
+  "binance|spot|ENAUSDT|4h|2026-10-08T16:00:00Z|2026-10-18T20:00:00Z": {
+   "last_notified_at": "2026-10-27T20:43:07Z",
+   "last_seen": "2026-10-28T15:08:42Z",
+   "notified_status": "confirmed",
+   "score": 60.86,
+   "status": "confirmed"
+  },
+  "binance|spot|ENSUSDT|1d|2026-04-29T00:00:00Z|2026-08-18T00:00:00Z": {
+   "last_notified_at": "2026-10-24T04:32:50Z",
+   "last_seen": "2026-10-29T21:07:25Z",
+   "notified_status": "watchlist",
+   "score": 52.8,
+   "status": "forming"
+  },
+  "binance|spot|ENSUSDT|1w|2026-03-23T00:00:00Z|2026-08-17T00:00:00Z": {
+   "last_notified_at": "2026-10-19T04:34:14Z",
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": "forming",
+   "score": 55.42,
+   "status": "forming"
+  },
+  "binance|spot|ESPUSDT|4h|2026-07-25T12:00:00Z|2026-07-30T00:00:00Z": {
+   "last_notified_at": "2026-10-31T05:30:26Z",
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": "watchlist",
+   "score": 65.65,
+   "status": "watchlist"
+  },
+  "binance|spot|ESPUSDT|4h|2026-10-15T12:00:00Z|2026-10-18T16:00:00Z": {
+   "last_notified_at": "2026-10-27T20:43:07Z",
+   "last_seen": "2026-10-28T15:08:42Z",
+   "notified_status": "confirmed",
+   "score": 66.38,
+   "status": "confirmed"
+  },
+  "binance|spot|ETCUSDT|1w|2026-02-02T00:00:00Z|2026-08-17T00:00:00Z": {
+   "last_notified_at": "2026-10-19T04:34:14Z",
+   "last_seen": "2026-10-25T13:15:04Z",
+   "notified_status": "forming",
+   "score": 77.8,
+   "status": "forming"
+  },
+  "binance|spot|ETHFIUSDT|4h|2026-09-11T12:00:00Z|2026-09-15T16:00:00Z": {
+   "last_notified_at": "2026-10-19T15:36:33Z",
+   "last_seen": "2026-10-22T04:36:31Z",
+   "notified_status": "watchlist",
+   "score": 67.37,
+   "status": "watchlist"
+  },
+  "binance|spot|ETHFIUSDT|4h|2026-10-07T12:00:00Z|2026-10-15T00:00:00Z": {
+   "last_notified_at": "2026-10-21T18:29:39Z",
+   "last_seen": "2026-10-22T23:21:00Z",
+   "notified_status": "confirmed",
+   "score": 66.25,
+   "status": "forming"
+  },
+  "binance|spot|ETHFIUSDT|4h|2026-10-09T20:00:00Z|2026-10-15T00:00:00Z": {
+   "last_notified_at": "2026-10-23T04:42:39Z",
+   "last_seen": "2026-10-24T12:44:06Z",
+   "notified_status": "forming",
+   "score": 78.47,
+   "status": "forming"
+  },
+  "binance|spot|ETHUSDT|1d|2025-11-04T00:00:00Z|2026-06-06T00:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-29T21:07:25Z",
+   "notified_status": "forming",
+   "score": 60.13,
+   "status": "forming"
+  },
+  "binance|spot|FETUSDT|1d|2026-05-17T00:00:00Z|2026-08-17T00:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-21T17:41:21Z",
+   "notified_status": "forming",
+   "score": 68.41,
+   "status": "forming"
+  },
+  "binance|spot|FIDAUSDT|4h|2026-10-13T00:00:00Z|2026-10-18T16:00:00Z": {
+   "last_notified_at": "2026-10-24T04:32:50Z",
+   "last_seen": "2026-10-24T12:44:06Z",
+   "notified_status": "forming",
+   "score": 57.26,
+   "status": "forming"
+  },
+  "binance|spot|FILUSDT|1d|2026-04-29T00:00:00Z|2026-08-18T00:00:00Z": {
+   "last_notified_at": "2026-10-27T04:58:58Z",
+   "last_seen": "2026-10-30T20:48:37Z",
+   "notified_status": "forming",
+   "score": 63.27,
+   "status": "forming"
+  },
+  "binance|spot|FLNCBUSDT|4h|2026-10-15T12:00:00Z|2026-10-26T12:00:00Z": {
+   "last_notified_at": "2026-10-30T20:48:37Z",
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": "forming",
+   "score": 72.66,
+   "status": "forming"
+  },
+  "binance|spot|FLOWUSDT|1d|2026-08-19T00:00:00Z|2026-08-31T00:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-21T17:41:21Z",
+   "notified_status": "watchlist",
+   "score": 54.18,
+   "status": "watchlist"
+  },
+  "binance|spot|FLUXUSDT|1d|2025-12-01T00:00:00Z|2026-07-29T00:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-21T17:41:21Z",
+   "notified_status": "forming",
+   "score": 38.67,
+   "status": "forming"
+  },
+  "binance|spot|FUSDT|4h|2026-10-08T16:00:00Z|2026-10-18T16:00:00Z": {
+   "last_notified_at": "2026-10-24T04:32:50Z",
+   "last_seen": "2026-10-25T04:36:29Z",
+   "notified_status": "confirmed",
+   "score": 70.76,
+   "status": "confirmed"
+  },
+  "binance|spot|GASUSDT|1d|2026-03-29T00:00:00Z|2026-07-29T00:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-30T20:48:37Z",
+   "notified_status": "forming",
+   "score": 44.58,
+   "status": "forming"
+  },
+  "binance|spot|GASUSDT|1w|2026-02-02T00:00:00Z|2026-07-27T00:00:00Z": {
+   "last_notified_at": "2026-10-21T18:29:39Z",
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": "forming",
+   "score": 66.16,
+   "status": "forming"
+  },
+  "binance|spot|GENIUSUSDT|4h|2026-10-08T12:00:00Z|2026-10-15T12:00:00Z": {
+   "last_notified_at": "2026-10-31T05:30:26Z",
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": "watchlist",
+   "score": 81.43,
+   "status": "watchlist"
+  },
+  "binance|spot|GENIUSUSDT|4h|2026-10-13T12:00:00Z|2026-10-15T12:00:00Z": {
+   "last_notified_at": "2026-10-29T16:11:31Z",
+   "last_seen": "2026-10-29T16:11:31Z",
+   "notified_status": "confirmed",
+   "score": 78.44,
+   "status": "confirmed"
+  },
+  "binance|spot|GLMUSDT|1w|2026-03-09T00:00:00Z|2026-08-17T00:00:00Z": {
+   "last_notified_at": "2026-10-19T04:34:14Z",
+   "last_seen": "2026-10-19T04:34:14Z",
+   "notified_status": "forming",
+   "score": 68.04,
+   "status": "forming"
+  },
+  "binance|spot|GMXUSDT|1d|2026-01-01T00:00:00Z|2026-06-05T00:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-19T04:34:14Z",
+   "notified_status": "watchlist",
+   "score": 94.85,
+   "status": "watchlist"
+  },
+  "binance|spot|GMXUSDT|4h|2026-09-02T12:00:00Z|2026-09-16T16:00:00Z": {
+   "last_notified_at": "2026-10-23T20:01:45Z",
+   "last_seen": "2026-10-27T14:28:50Z",
+   "notified_status": "watchlist",
+   "score": 65.99,
+   "status": "watchlist"
+  },
+  "binance|spot|GMXUSDT|4h|2026-09-04T12:00:00Z|2026-09-16T16:00:00Z": {
+   "last_notified_at": "2026-10-22T04:36:31Z",
+   "last_seen": "2026-10-29T21:07:25Z",
+   "notified_status": "watchlist",
+   "score": 64.61,
+   "status": "watchlist"
+  },
+  "binance|spot|GMXUSDT|4h|2026-10-15T08:00:00Z|2026-10-22T16:00:00Z": {
+   "last_notified_at": "2026-10-28T05:33:16Z",
+   "last_seen": "2026-10-28T21:04:48Z",
+   "notified_status": "confirmed",
+   "score": 61.02,
+   "status": "confirmed"
+  },
+  "binance|spot|GPSUSDT|1d|2025-09-04T00:00:00Z|2025-12-18T00:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": "forming",
+   "score": 66.3,
+   "status": "forming"
+  },
+  "binance|spot|HAEDALUSDT|4h|2026-10-04T16:00:00Z|2026-10-15T00:00:00Z": {
+   "last_notified_at": "2026-10-18T18:40:09Z",
+   "last_seen": "2026-10-18T18:40:09Z",
+   "notified_status": "forming",
+   "score": 66.55,
+   "status": "forming"
+  },
+  "binance|spot|HAEDALUSDT|4h|2026-10-08T16:00:00Z|2026-10-15T00:00:00Z": {
+   "last_notified_at": "2026-10-18T22:28:52Z",
+   "last_seen": "2026-10-19T04:34:14Z",
+   "notified_status": "forming",
+   "score": 72.76,
+   "status": "forming"
+  },
+  "binance|spot|HOLOUSDT|4h|2026-08-24T08:00:00Z|2026-09-16T16:00:00Z": {
+   "last_notified_at": "2026-10-23T20:01:45Z",
+   "last_seen": "2026-10-28T15:08:42Z",
+   "notified_status": "watchlist",
+   "score": 68.96,
+   "status": "watchlist"
+  },
+  "binance|spot|HOTUSDT|1d|2025-12-18T00:00:00Z|2026-07-01T00:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-18T22:28:52Z",
+   "notified_status": "forming",
+   "score": 57.06,
+   "status": "forming"
+  },
+  "binance|spot|HOTUSDT|1d|2026-02-24T00:00:00Z|2026-07-01T00:00:00Z": {
+   "last_notified_at": "2026-10-25T04:36:29Z",
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": "forming",
+   "score": 53.17,
+   "status": "forming"
+  },
+  "binance|spot|HUMAUSDT|1d|2025-12-10T00:00:00Z|2026-02-28T00:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-24T22:31:27Z",
+   "notified_status": "forming",
+   "score": 49.1,
+   "status": "forming"
+  },
+  "binance|spot|HUMAUSDT|4h|2026-10-11T00:00:00Z|2026-10-26T08:00:00Z": {
+   "last_notified_at": "2026-10-31T05:30:26Z",
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": "forming",
+   "score": 63.33,
+   "status": "forming"
+  },
+  "binance|spot|HYPERUSDT|4h|2026-10-08T16:00:00Z|2026-10-18T20:00:00Z": {
+   "last_notified_at": "2026-10-29T15:17:45Z",
+   "last_seen": "2026-10-29T21:07:25Z",
+   "notified_status": "forming",
+   "score": 53.48,
+   "status": "forming"
+  },
+  "binance|spot|HYPERUSDT|4h|2026-10-15T04:00:00Z|2026-10-18T20:00:00Z": {
+   "last_notified_at": "2026-10-26T21:05:08Z",
+   "last_seen": "2026-10-29T05:42:41Z",
+   "notified_status": "watchlist",
+   "score": 77.51,
+   "status": "watchlist"
+  },
+  "binance|spot|HYPEUSDT|4h|2026-10-02T20:00:00Z|2026-10-24T12:00:00Z": {
+   "last_notified_at": "2026-10-30T20:48:37Z",
+   "last_seen": "2026-10-30T20:48:37Z",
+   "notified_status": "forming",
+   "score": 87.47,
+   "status": "forming"
+  },
+  "binance|spot|IDUSDT|1d|2026-07-02T00:00:00Z|2026-08-03T00:00:00Z": {
+   "last_notified_at": "2026-10-24T04:32:50Z",
+   "last_seen": "2026-10-30T20:48:37Z",
+   "notified_status": "watchlist",
+   "score": 48.24,
+   "status": "forming"
+  },
+  "binance|spot|IMXUSDT|1d|2026-04-29T00:00:00Z|2026-08-19T00:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-19T04:34:14Z",
+   "notified_status": "forming",
+   "score": 51.15,
+   "status": "forming"
+  },
+  "binance|spot|IOTXUSDT|1d|2026-05-01T00:00:00Z|2026-07-29T00:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-20T23:13:32Z",
+   "notified_status": "watchlist",
+   "score": 57.73,
+   "status": "watchlist"
+  },
+  "binance|spot|IOTXUSDT|4h|2026-05-28T12:00:00Z|2026-07-29T20:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-19T04:34:14Z",
+   "notified_status": "watchlist",
+   "score": 81.1,
+   "status": "watchlist"
+  },
+  "binance|spot|IOUSDT|1d|2026-06-18T00:00:00Z|2026-08-12T00:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-21T17:41:21Z",
+   "notified_status": "forming",
+   "score": 78.57,
+   "status": "watchlist"
+  },
+  "binance|spot|IOUSDT|4h|2026-10-02T16:00:00Z|2026-10-08T16:00:00Z": {
+   "last_notified_at": null,
+   "last_seen": "2026-10-23T23:09:25Z",
+   "notified_status": null,
+   "score": 33.75,
+   "status": "watchlist"
+  },
+  "binance|spot|IRENBUSDT|4h|2026-10-17T20:00:00Z|2026-10-26T08:00:00Z": {
+   "last_notified_at": "2026-10-30T05:41:40Z",
+   "last_seen": "2026-10-30T15:06:51Z",
+   "notified_status": "forming",
+   "score": 54.0,
+   "status": "forming"
+  },
+  "binance|spot|IRENBUSDT|4h|2026-10-18T20:00:00Z|2026-10-26T08:00:00Z": {
+   "last_notified_at": "2026-10-29T21:07:25Z",
+   "last_seen": "2026-10-29T21:07:25Z",
+   "notified_status": "forming",
+   "score": 83.81,
+   "status": "forming"
+  },
+  "binance|spot|JASMYUSDT|1d|2026-05-04T00:00:00Z|2026-08-19T00:00:00Z": {
+   "last_notified_at": "2026-10-24T04:32:50Z",
+   "last_seen": "2026-10-29T21:07:25Z",
+   "notified_status": "watchlist",
+   "score": 36.79,
+   "status": "forming"
+  },
+  "binance|spot|JASMYUSDT|1w|2026-04-06T00:00:00Z|2026-08-17T00:00:00Z": {
+   "last_notified_at": null,
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": null,
+   "score": 44.09,
+   "status": "forming"
+  },
+  "binance|spot|JTOUSDT|1d|2026-08-06T00:00:00Z|2026-09-04T00:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-18T22:28:52Z",
+   "notified_status": "forming",
+   "score": 61.51,
+   "status": "forming"
+  },
+  "binance|spot|JTOUSDT|4h|2026-10-13T00:00:00Z|2026-10-18T16:00:00Z": {
+   "last_notified_at": "2026-10-23T20:01:45Z",
+   "last_seen": "2026-10-23T23:09:25Z",
+   "notified_status": "forming",
+   "score": 60.32,
+   "status": "forming"
+  },
+  "binance|spot|KAIAUSDT|1d|2026-01-20T00:00:00Z|2026-08-19T00:00:00Z": {
+   "last_notified_at": "2026-10-25T04:36:29Z",
+   "last_seen": "2026-10-30T20:48:37Z",
+   "notified_status": "forming",
+   "score": 31.62,
+   "status": "forming"
+  },
+  "binance|spot|KAVAUSDT|1d|2025-12-31T00:00:00Z|2026-06-06T00:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-19T04:34:14Z",
+   "notified_status": "watchlist",
+   "score": 60.69,
+   "status": "watchlist"
+  },
+  "binance|spot|KERNELUSDT|4h|2026-09-29T00:00:00Z|2026-10-18T20:00:00Z": {
+   "last_notified_at": "2026-10-24T12:44:06Z",
+   "last_seen": "2026-10-25T04:36:29Z",
+   "notified_status": "confirmed",
+   "score": 71.46,
+   "status": "confirmed"
+  },
+  "binance|spot|KORUBUSDT|4h|2026-10-13T00:00:00Z|2026-10-23T00:00:00Z": {
+   "last_notified_at": "2026-10-29T21:07:25Z",
+   "last_seen": "2026-10-29T21:07:25Z",
+   "notified_status": "forming",
+   "score": 80.66,
+   "status": "forming"
+  },
+  "binance|spot|LAYERUSDT|4h|2026-06-21T20:00:00Z|2026-07-29T20:00:00Z": {
+   "last_notified_at": "2026-10-18T22:28:52Z",
+   "last_seen": "2026-10-27T09:55:14Z",
+   "notified_status": "forming",
+   "score": 48.12,
+   "status": "watchlist"
+  },
+  "binance|spot|LDOUSDT|1d|2025-12-18T00:00:00Z|2026-06-25T00:00:00Z": {
+   "last_notified_at": "2026-10-24T04:32:50Z",
+   "last_seen": "2026-10-29T21:07:25Z",
+   "notified_status": "watchlist",
+   "score": 60.35,
+   "status": "forming"
+  },
+  "binance|spot|LDOUSDT|1d|2026-04-20T00:00:00Z|2026-06-25T00:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-21T17:41:21Z",
+   "notified_status": "forming",
+   "score": 73.02,
+   "status": "forming"
+  },
+  "binance|spot|LDOUSDT|1w|2025-12-15T00:00:00Z|2026-06-22T00:00:00Z": {
+   "last_notified_at": "2026-10-21T18:29:39Z",
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": "forming",
+   "score": 57.97,
+   "status": "forming"
+  },
+  "binance|spot|LINEAUSDT|4h|2026-05-28T12:00:00Z|2026-08-19T04:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-18T15:52:20Z",
+   "notified_status": "forming",
+   "score": 64.85,
+   "status": "forming"
+  },
+  "binance|spot|LINKUSDT|1d|2025-11-21T00:00:00Z|2026-06-06T00:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-21T17:41:21Z",
+   "notified_status": "forming",
+   "score": 56.68,
+   "status": "forming"
+  },
+  "binance|spot|LISTAUSDT|1d|2026-04-21T00:00:00Z|2026-07-25T00:00:00Z": {
+   "last_notified_at": "2026-10-24T04:32:50Z",
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": "watchlist",
+   "score": 82.18,
+   "status": "watchlist"
+  },
+  "binance|spot|LISTAUSDT|1w|2026-04-13T00:00:00Z|2026-07-20T00:00:00Z": {
+   "last_notified_at": "2026-10-26T04:39:39Z",
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": "forming",
+   "score": 61.99,
+   "status": "forming"
+  },
+  "binance|spot|LISTAUSDT|4h|2026-09-28T12:00:00Z|2026-10-18T16:00:00Z": {
+   "last_notified_at": "2026-10-31T05:30:26Z",
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": "watchlist",
+   "score": 72.05,
+   "status": "watchlist"
+  },
+  "binance|spot|LQTYUSDT|4h|2026-10-08T12:00:00Z|2026-10-18T16:00:00Z": {
+   "last_notified_at": "2026-10-27T08:02:41Z",
+   "last_seen": "2026-10-29T05:42:41Z",
+   "notified_status": "watchlist",
+   "score": 69.6,
+   "status": "forming"
+  },
+  "binance|spot|MANAUSDT|1d|2026-02-06T00:00:00Z|2026-06-30T00:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-18T22:28:52Z",
+   "notified_status": "forming",
+   "score": 60.78,
+   "status": "forming"
+  },
+  "binance|spot|MEGAUSDT|1d|2026-07-01T00:00:00Z|2026-08-14T00:00:00Z": {
+   "last_notified_at": "2026-10-24T04:32:50Z",
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": "watchlist",
+   "score": 65.13,
+   "status": "watchlist"
+  },
+  "binance|spot|MEGAUSDT|4h|2026-06-17T16:00:00Z|2026-08-14T16:00:00Z": {
+   "last_notified_at": "2026-10-19T21:04:52Z",
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": "watchlist",
+   "score": 66.78,
+   "status": "watchlist"
+  },
+  "binance|spot|MEGAUSDT|4h|2026-07-01T00:00:00Z|2026-08-14T16:00:00Z": {
+   "last_notified_at": "2026-10-22T04:36:31Z",
+   "last_seen": "2026-10-29T21:07:25Z",
+   "notified_status": "watchlist",
+   "score": 86.58,
+   "status": "watchlist"
+  },
+  "binance|spot|MEGAUSDT|4h|2026-10-04T12:00:00Z|2026-10-08T16:00:00Z": {
+   "last_notified_at": "2026-10-23T20:01:45Z",
+   "last_seen": "2026-10-24T22:31:27Z",
+   "notified_status": "confirmed",
+   "score": 75.01,
+   "status": "confirmed"
+  },
+  "binance|spot|MEMEUSDT|1d|2026-06-09T00:00:00Z|2026-08-18T00:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-18T22:28:52Z",
+   "notified_status": "forming",
+   "score": 66.66,
+   "status": "forming"
+  },
+  "binance|spot|MEMEUSDT|4h|2026-06-02T20:00:00Z|2026-08-18T00:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-19T04:34:14Z",
+   "notified_status": "watchlist",
+   "score": 65.08,
+   "status": "forming"
+  },
+  "binance|spot|METISUSDT|1d|2026-05-01T00:00:00Z|2026-08-18T00:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-19T04:34:14Z",
+   "notified_status": "confirmed",
+   "score": 89.53,
+   "status": "confirmed"
+  },
+  "binance|spot|MEUSDT|4h|2026-10-15T04:00:00Z|2026-10-18T16:00:00Z": {
+   "last_notified_at": "2026-10-25T13:15:04Z",
+   "last_seen": "2026-10-25T22:35:59Z",
+   "notified_status": "forming",
+   "score": 52.54,
+   "status": "forming"
+  },
+  "binance|spot|MINAUSDT|1d|2025-10-30T00:00:00Z|2026-06-30T00:00:00Z": {
+   "last_notified_at": "2026-10-21T18:29:39Z",
+   "last_seen": "2026-10-24T22:31:27Z",
+   "notified_status": "forming",
+   "score": 50.2,
+   "status": "forming"
+  },
+  "binance|spot|MIRAUSDT|4h|2026-10-08T16:00:00Z|2026-10-18T20:00:00Z": {
+   "last_notified_at": "2026-10-27T08:02:41Z",
+   "last_seen": "2026-10-29T05:42:41Z",
+   "notified_status": "watchlist",
+   "score": 62.13,
+   "status": "forming"
+  },
+  "binance|spot|MUBUSDT|4h|2026-06-24T16:00:00Z|2026-07-29T20:00:00Z": {
+   "last_notified_at": "2026-10-21T09:37:36Z",
+   "last_seen": "2026-10-30T15:06:51Z",
+   "notified_status": "watchlist",
+   "score": 73.66,
+   "status": "watchlist"
+  },
+  "binance|spot|MUBUSDT|4h|2026-10-15T12:00:00Z|2026-10-17T20:00:00Z": {
+   "last_notified_at": "2026-10-27T14:28:50Z",
+   "last_seen": "2026-10-28T15:08:42Z",
+   "notified_status": "confirmed",
+   "score": 77.76,
+   "status": "confirmed"
+  },
+  "binance|spot|MUUBUSDT|4h|2026-10-07T12:00:00Z|2026-10-17T20:00:00Z": {
+   "last_notified_at": "2026-10-29T21:07:25Z",
+   "last_seen": "2026-10-29T21:07:25Z",
+   "notified_status": "forming",
+   "score": 59.92,
+   "status": "forming"
+  },
+  "binance|spot|MUUBUSDT|4h|2026-10-15T12:00:00Z|2026-10-17T20:00:00Z": {
+   "last_notified_at": "2026-10-27T08:02:41Z",
+   "last_seen": "2026-10-28T05:33:16Z",
+   "notified_status": "confirmed",
+   "score": 66.1,
+   "status": "confirmed"
+  },
+  "binance|spot|NEARUSDT|1w|2025-10-06T00:00:00Z|2026-02-02T00:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-18T22:28:52Z",
+   "notified_status": "confirmed",
+   "score": 91.64,
+   "status": "confirmed"
+  },
+  "binance|spot|NEOUSDT|1d|2026-04-29T00:00:00Z|2026-08-12T00:00:00Z": {
+   "last_notified_at": "2026-10-24T04:32:50Z",
+   "last_seen": "2026-10-27T20:43:07Z",
+   "notified_status": "watchlist",
+   "score": 44.71,
+   "status": "forming"
+  },
+  "binance|spot|NEXOUSDT|1w|2025-11-17T00:00:00Z|2026-02-02T00:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": "watchlist",
+   "score": 77.31,
+   "status": "watchlist"
+  },
+  "binance|spot|NIGHTUSDT|1d|2026-03-22T00:00:00Z|2026-07-20T00:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-18T22:28:52Z",
+   "notified_status": "forming",
+   "score": 71.51,
+   "status": "forming"
+  },
+  "binance|spot|NMRUSDT|1d|2025-09-04T00:00:00Z|2025-10-10T00:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-26T21:05:08Z",
+   "notified_status": "forming",
+   "score": 45.71,
+   "status": "forming"
+  },
+  "binance|spot|NMRUSDT|1w|2025-12-15T00:00:00Z|2026-03-23T00:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": "confirmed",
+   "score": 92.33,
+   "status": "confirmed"
+  },
+  "binance|spot|NOTUSDT|1d|2026-06-06T00:00:00Z|2026-07-29T00:00:00Z": {
+   "last_notified_at": "2026-10-30T05:41:40Z",
+   "last_seen": "2026-10-30T20:48:37Z",
+   "notified_status": "forming",
+   "score": 52.26,
+   "status": "forming"
+  },
+  "binance|spot|ONEUSDT|1d|2025-10-10T00:00:00Z|2026-08-12T00:00:00Z": {
+   "last_notified_at": "2026-10-24T04:32:50Z",
+   "last_seen": "2026-10-25T13:15:04Z",
+   "notified_status": "watchlist",
+   "score": 50.18,
+   "status": "forming"
+  },
+  "binance|spot|OPNUSDT|1d|2026-08-14T00:00:00Z|2026-09-15T00:00:00Z": {
+   "last_notified_at": "2026-10-26T04:39:39Z",
+   "last_seen": "2026-10-30T20:48:37Z",
+   "notified_status": "watchlist",
+   "score": 54.77,
+   "status": "forming"
+  },
+  "binance|spot|OPNUSDT|4h|2026-07-02T12:00:00Z|2026-09-15T16:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-19T04:34:14Z",
+   "notified_status": "forming",
+   "score": 40.22,
+   "status": "forming"
+  },
+  "binance|spot|OPNUSDT|4h|2026-08-19T04:00:00Z|2026-09-15T16:00:00Z": {
+   "last_notified_at": "2026-10-23T20:01:45Z",
+   "last_seen": "2026-10-23T23:09:25Z",
+   "notified_status": "watchlist",
+   "score": 59.32,
+   "status": "watchlist"
+  },
+  "binance|spot|OPUSDT|1d|2026-04-29T00:00:00Z|2026-08-18T00:00:00Z": {
+   "last_notified_at": "2026-10-25T04:36:29Z",
+   "last_seen": "2026-10-30T20:48:37Z",
+   "notified_status": "forming",
+   "score": 58.38,
+   "status": "forming"
+  },
+  "binance|spot|ORCLBUSDT|4h|2026-10-13T00:00:00Z|2026-10-22T16:00:00Z": {
+   "last_notified_at": "2026-10-29T16:11:31Z",
+   "last_seen": "2026-10-29T21:07:25Z",
+   "notified_status": "forming",
+   "score": 74.0,
+   "status": "forming"
+  },
+  "binance|spot|OSMOUSDT|4h|2026-05-26T08:00:00Z|2026-07-29T20:00:00Z": {
+   "last_notified_at": "2026-10-19T15:36:33Z",
+   "last_seen": "2026-10-21T17:41:21Z",
+   "notified_status": "confirmed",
+   "score": 74.5,
+   "status": "watchlist"
+  },
+  "binance|spot|PENDLEUSDT|1d|2025-11-21T00:00:00Z|2026-04-05T00:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-29T21:07:25Z",
+   "notified_status": "forming",
+   "score": 67.22,
+   "status": "watchlist"
+  },
+  "binance|spot|PENGBUSDT|4h|2026-10-18T20:00:00Z|2026-10-23T12:00:00Z": {
+   "last_notified_at": "2026-10-30T05:41:40Z",
+   "last_seen": "2026-10-30T05:41:40Z",
+   "notified_status": "forming",
+   "score": 67.81,
+   "status": "forming"
+  },
+  "binance|spot|PENGUUSDT|4h|2026-10-08T16:00:00Z|2026-10-18T16:00:00Z": {
+   "last_notified_at": "2026-10-23T20:01:45Z",
+   "last_seen": "2026-10-29T21:07:25Z",
+   "notified_status": "watchlist",
+   "score": 72.32,
+   "status": "watchlist"
+  },
+  "binance|spot|PEOPLEUSDT|4h|2026-10-01T12:00:00Z|2026-10-18T20:00:00Z": {
+   "last_notified_at": "2026-10-22T20:04:50Z",
+   "last_seen": "2026-10-22T23:21:00Z",
+   "notified_status": "forming",
+   "score": 68.49,
+   "status": "forming"
+  },
+  "binance|spot|PHAUSDT|1w|2025-04-07T00:00:00Z|2026-08-03T00:00:00Z": {
+   "last_notified_at": "2026-10-19T04:34:14Z",
+   "last_seen": "2026-10-19T04:34:14Z",
+   "notified_status": "forming",
+   "score": 50.43,
+   "status": "forming"
+  },
+  "binance|spot|PHAUSDT|4h|2026-10-03T12:00:00Z|2026-10-18T20:00:00Z": {
+   "last_notified_at": "2026-10-23T13:26:25Z",
+   "last_seen": "2026-10-23T23:09:25Z",
+   "notified_status": "watchlist",
+   "score": 52.7,
+   "status": "forming"
+  },
+  "binance|spot|PIXELUSDT|1d|2026-04-06T00:00:00Z|2026-07-30T00:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-18T22:28:52Z",
+   "notified_status": "forming",
+   "score": 46.01,
+   "status": "forming"
+  },
+  "binance|spot|PROMUSDT|4h|2026-10-15T00:00:00Z|2026-10-16T12:00:00Z": {
+   "last_notified_at": "2026-10-28T15:08:42Z",
+   "last_seen": "2026-10-29T21:07:25Z",
+   "notified_status": "watchlist",
+   "score": 60.81,
+   "status": "watchlist"
+  },
+  "binance|spot|PROVEUSDT|1d|2026-05-20T00:00:00Z|2026-08-14T00:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-21T17:41:21Z",
+   "notified_status": "forming",
+   "score": 43.82,
+   "status": "forming"
+  },
+  "binance|spot|PROVEUSDT|4h|2026-05-20T04:00:00Z|2026-08-14T12:00:00Z": {
+   "last_notified_at": "2026-10-31T05:30:26Z",
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": "watchlist",
+   "score": 67.0,
+   "status": "watchlist"
+  },
+  "binance|spot|PUMPUSDT|1d|2025-09-26T00:00:00Z|2025-10-10T00:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-18T22:28:52Z",
+   "notified_status": "forming",
+   "score": 62.1,
+   "status": "forming"
+  },
+  "binance|spot|PUMPUSDT|4h|2026-10-09T16:00:00Z|2026-10-18T16:00:00Z": {
+   "last_notified_at": "2026-10-22T20:04:50Z",
+   "last_seen": "2026-10-23T13:26:25Z",
+   "notified_status": "forming",
+   "score": 74.89,
+   "status": "forming"
+  },
+  "binance|spot|PUNDIXUSDT|4h|2026-09-20T20:00:00Z|2026-10-18T16:00:00Z": {
+   "last_notified_at": null,
+   "last_seen": "2026-10-29T21:07:25Z",
+   "notified_status": null,
+   "score": 49.04,
+   "status": "forming"
+  },
+  "binance|spot|PUNDIXUSDT|4h|2026-09-29T00:00:00Z|2026-10-18T16:00:00Z": {
+   "last_notified_at": "2026-10-28T05:33:16Z",
+   "last_seen": "2026-10-29T05:42:41Z",
+   "notified_status": "watchlist",
+   "score": 48.1,
+   "status": "watchlist"
+  },
+  "binance|spot|PUNDIXUSDT|4h|2026-10-08T16:00:00Z|2026-10-18T16:00:00Z": {
+   "last_notified_at": "2026-10-26T04:39:39Z",
+   "last_seen": "2026-10-26T04:39:39Z",
+   "notified_status": "forming",
+   "score": 77.38,
+   "status": "forming"
+  },
+  "binance|spot|PYPLBUSDT|4h|2026-08-14T16:00:00Z|2026-08-28T08:00:00Z": {
+   "last_notified_at": "2026-10-27T04:58:58Z",
+   "last_seen": "2026-10-27T09:55:14Z",
+   "notified_status": "forming",
+   "score": 68.25,
+   "status": "forming"
+  },
+  "binance|spot|PYTHUSDT|1d|2025-10-17T00:00:00Z|2026-06-06T00:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-20T23:13:32Z",
+   "notified_status": "confirmed",
+   "score": 60.42,
+   "status": "confirmed"
+  },
+  "binance|spot|PYTHUSDT|1d|2025-11-04T00:00:00Z|2026-06-06T00:00:00Z": {
+   "last_notified_at": "2026-10-21T04:38:22Z",
+   "last_seen": "2026-10-21T17:41:21Z",
+   "notified_status": "forming",
+   "score": 68.9,
+   "status": "forming"
+  },
+  "binance|spot|QNTBUSDT|4h|2026-10-18T08:00:00Z|2026-10-20T12:00:00Z": {
+   "last_notified_at": "2026-10-29T16:11:31Z",
+   "last_seen": "2026-10-29T21:07:25Z",
+   "notified_status": "watchlist",
+   "score": 72.86,
+   "status": "forming"
+  },
+  "binance|spot|QNTUSDT|4h|2026-10-08T16:00:00Z|2026-10-24T12:00:00Z": {
+   "last_notified_at": "2026-10-27T14:28:50Z",
+   "last_seen": "2026-10-27T20:43:07Z",
+   "notified_status": "forming",
+   "score": 60.54,
+   "status": "forming"
+  },
+  "binance|spot|QNTUSDT|4h|2026-10-15T00:00:00Z|2026-10-24T12:00:00Z": {
+   "last_notified_at": "2026-10-28T21:04:48Z",
+   "last_seen": "2026-10-29T21:07:25Z",
+   "notified_status": "forming",
+   "score": 56.92,
+   "status": "forming"
+  },
+  "binance|spot|RAYUSDT|1d|2025-08-02T00:00:00Z|2026-02-06T00:00:00Z": {
+   "last_notified_at": "2026-10-30T05:41:40Z",
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": "forming",
+   "score": 62.62,
+   "status": "forming"
+  },
+  "binance|spot|RDDTBUSDT|4h|2026-09-20T12:00:00Z|2026-09-29T16:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-22T13:48:56Z",
+   "notified_status": "forming",
+   "score": 68.0,
+   "status": "forming"
+  },
+  "binance|spot|RDDTBUSDT|4h|2026-10-12T12:00:00Z|2026-10-15T12:00:00Z": {
+   "last_notified_at": "2026-10-22T20:04:50Z",
+   "last_seen": "2026-10-23T04:42:39Z",
+   "notified_status": "forming",
+   "score": 61.89,
+   "status": "forming"
+  },
+  "binance|spot|REDUSDT|4h|2026-10-15T12:00:00Z|2026-10-18T20:00:00Z": {
+   "last_notified_at": "2026-10-26T15:13:32Z",
+   "last_seen": "2026-10-29T21:07:25Z",
+   "notified_status": "watchlist",
+   "score": 84.1,
+   "status": "watchlist"
+  },
+  "binance|spot|RENDERUSDT|1d|2026-05-18T00:00:00Z|2026-08-11T00:00:00Z": {
+   "last_notified_at": "2026-10-25T04:36:29Z",
+   "last_seen": "2026-10-30T20:48:37Z",
+   "notified_status": "forming",
+   "score": 57.42,
+   "status": "forming"
+  },
+  "binance|spot|RENDERUSDT|4h|2026-05-23T04:00:00Z|2026-08-11T08:00:00Z": {
+   "last_notified_at": "2026-10-25T13:15:04Z",
+   "last_seen": "2026-10-29T21:07:25Z",
+   "notified_status": "watchlist",
+   "score": 75.92,
+   "status": "forming"
+  },
+  "binance|spot|RENDERUSDT|4h|2026-05-30T04:00:00Z|2026-08-11T08:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-18T15:52:20Z",
+   "notified_status": "watchlist",
+   "score": 58.93,
+   "status": "watchlist"
+  },
+  "binance|spot|RESOLVUSDT|4h|2026-10-15T00:00:00Z|2026-10-18T16:00:00Z": {
+   "last_notified_at": "2026-10-27T04:58:58Z",
+   "last_seen": "2026-10-29T21:07:25Z",
+   "notified_status": "watchlist",
+   "score": 65.05,
+   "status": "forming"
+  },
+  "binance|spot|REZUSDT|4h|2026-10-03T04:00:00Z|2026-10-18T16:00:00Z": {
+   "last_notified_at": "2026-10-21T20:09:56Z",
+   "last_seen": "2026-10-22T04:36:31Z",
+   "notified_status": "forming",
+   "score": 80.01,
+   "status": "forming"
+  },
+  "binance|spot|REZUSDT|4h|2026-10-08T16:00:00Z|2026-10-18T16:00:00Z": {
+   "last_notified_at": "2026-10-23T13:26:25Z",
+   "last_seen": "2026-10-24T04:32:50Z",
+   "notified_status": "confirmed",
+   "score": 84.93,
+   "status": "confirmed"
+  },
+  "binance|spot|RIFUSDT|1d|2026-07-13T00:00:00Z|2026-07-22T00:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-18T22:28:52Z",
+   "notified_status": "forming",
+   "score": 66.2,
+   "status": "forming"
+  },
+  "binance|spot|RIFUSDT|4h|2026-07-29T00:00:00Z|2026-08-06T04:00:00Z": {
+   "last_notified_at": "2026-10-23T20:01:45Z",
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": "watchlist",
+   "score": 47.42,
+   "status": "forming"
+  },
+  "binance|spot|RONINUSDT|1d|2026-06-14T00:00:00Z|2026-07-29T00:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-18T22:28:52Z",
+   "notified_status": "watchlist",
+   "score": 59.28,
+   "status": "watchlist"
+  },
+  "binance|spot|RUNEUSDT|1d|2025-11-04T00:00:00Z|2026-06-06T00:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-21T17:41:21Z",
+   "notified_status": "forming",
+   "score": 55.26,
+   "status": "forming"
+  },
+  "binance|spot|RUNEUSDT|4h|2026-10-18T20:00:00Z|2026-10-29T20:00:00Z": {
+   "last_notified_at": "2026-10-31T05:30:26Z",
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": "forming",
+   "score": 83.31,
+   "status": "forming"
+  },
+  "binance|spot|SAHARAUSDT|4h|2026-10-08T16:00:00Z|2026-10-18T16:00:00Z": {
+   "last_notified_at": "2026-10-28T15:08:42Z",
+   "last_seen": "2026-10-29T21:07:25Z",
+   "notified_status": "watchlist",
+   "score": 63.83,
+   "status": "watchlist"
+  },
+  "binance|spot|SEIUSDT|1d|2026-04-29T00:00:00Z|2026-08-18T00:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-23T23:09:25Z",
+   "notified_status": "forming",
+   "score": 46.07,
+   "status": "forming"
+  },
+  "binance|spot|SEIUSDT|1w|2026-03-30T00:00:00Z|2026-08-17T00:00:00Z": {
+   "last_notified_at": "2026-10-26T04:39:39Z",
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": "forming",
+   "score": 72.33,
+   "status": "forming"
+  },
+  "binance|spot|SENTUSDT|4h|2026-10-10T08:00:00Z|2026-10-15T00:00:00Z": {
+   "last_notified_at": "2026-10-26T15:13:32Z",
+   "last_seen": "2026-10-30T05:41:40Z",
+   "notified_status": "watchlist",
+   "score": 64.17,
+   "status": "forming"
+  },
+  "binance|spot|SFPUSDT|1d|2026-04-12T00:00:00Z|2026-07-29T00:00:00Z": {
+   "last_notified_at": "2026-10-24T04:32:50Z",
+   "last_seen": "2026-10-29T21:07:25Z",
+   "notified_status": "watchlist",
+   "score": 58.67,
+   "status": "forming"
+  },
+  "binance|spot|SHAZBUSDT|4h|2026-10-15T12:00:00Z|2026-10-26T12:00:00Z": {
+   "last_notified_at": "2026-10-29T21:07:25Z",
+   "last_seen": "2026-10-30T15:06:51Z",
+   "notified_status": "forming",
+   "score": 60.79,
+   "status": "forming"
+  },
+  "binance|spot|SHELLUSDT|4h|2026-10-08T16:00:00Z|2026-10-15T00:00:00Z": {
+   "last_notified_at": "2026-10-18T22:28:52Z",
+   "last_seen": "2026-10-18T22:28:52Z",
+   "notified_status": "forming",
+   "score": 62.46,
+   "status": "forming"
+  },
+  "binance|spot|SHIBUSDT|1w|2026-02-02T00:00:00Z|2026-06-22T00:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-19T04:34:14Z",
+   "notified_status": "watchlist",
+   "score": 79.53,
+   "status": "watchlist"
+  },
+  "binance|spot|SHIBUSDT|1w|2026-03-02T00:00:00Z|2026-06-22T00:00:00Z": {
+   "last_notified_at": "2026-10-19T06:40:17Z",
+   "last_seen": "2026-10-21T17:41:21Z",
+   "notified_status": "forming",
+   "score": 72.24,
+   "status": "forming"
+  },
+  "binance|spot|SKHYBUSDT|4h|2026-10-15T08:00:00Z|2026-10-17T20:00:00Z": {
+   "last_notified_at": "2026-10-28T05:33:16Z",
+   "last_seen": "2026-10-28T15:08:42Z",
+   "notified_status": "confirmed",
+   "score": 86.26,
+   "status": "confirmed"
+  },
+  "binance|spot|SKYUSDT|4h|2026-10-11T00:00:00Z|2026-10-18T16:00:00Z": {
+   "last_notified_at": "2026-10-22T20:04:50Z",
+   "last_seen": "2026-10-24T04:32:50Z",
+   "notified_status": "forming",
+   "score": 64.14,
+   "status": "forming"
+  },
+  "binance|spot|SOLUSDT|1w|2025-12-15T00:00:00Z|2026-06-01T00:00:00Z": {
+   "last_notified_at": "2026-10-19T04:34:14Z",
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": "forming",
+   "score": 76.0,
+   "status": "forming"
+  },
+  "binance|spot|SOLVUSDT|4h|2026-09-18T20:00:00Z|2026-10-08T16:00:00Z": {
+   "last_notified_at": "2026-10-28T21:04:48Z",
+   "last_seen": "2026-10-28T21:04:48Z",
+   "notified_status": "confirmed",
+   "score": 66.08,
+   "status": "confirmed"
+  },
+  "binance|spot|SOLVUSDT|4h|2026-09-23T12:00:00Z|2026-10-08T16:00:00Z": {
+   "last_notified_at": "2026-10-27T20:43:07Z",
+   "last_seen": "2026-10-28T15:08:42Z",
+   "notified_status": "confirmed",
+   "score": 74.78,
+   "status": "confirmed"
+  },
+  "binance|spot|SOMIUSDT|4h|2026-10-18T20:00:00Z|2026-10-25T08:00:00Z": {
+   "last_notified_at": "2026-10-31T05:30:26Z",
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": "watchlist",
+   "score": 73.83,
+   "status": "watchlist"
+  },
+  "binance|spot|SOXLBUSDT|4h|2026-10-15T12:00:00Z|2026-10-23T00:00:00Z": {
+   "last_notified_at": "2026-10-29T21:07:25Z",
+   "last_seen": "2026-10-29T21:07:25Z",
+   "notified_status": "forming",
+   "score": 88.91,
+   "status": "forming"
+  },
+  "binance|spot|SOXSBUSDT|4h|2026-08-02T20:00:00Z|2026-10-02T12:00:00Z": {
+   "last_notified_at": "2026-10-26T21:05:08Z",
+   "last_seen": "2026-10-27T14:28:50Z",
+   "notified_status": "forming",
+   "score": 74.72,
+   "status": "forming"
+  },
+  "binance|spot|SOXSBUSDT|4h|2026-09-11T16:00:00Z|2026-10-02T12:00:00Z": {
+   "last_notified_at": "2026-10-22T20:04:50Z",
+   "last_seen": "2026-10-23T23:09:25Z",
+   "notified_status": "confirmed",
+   "score": 84.49,
+   "status": "confirmed"
+  },
+  "binance|spot|SPCXBUSDT|1d|2026-06-23T00:00:00Z|2026-08-03T00:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-21T17:41:21Z",
+   "notified_status": "forming",
+   "score": 69.88,
+   "status": "forming"
+  },
+  "binance|spot|SPCXBUSDT|4h|2026-10-05T12:00:00Z|2026-10-17T20:00:00Z": {
+   "last_notified_at": "2026-10-25T13:15:04Z",
+   "last_seen": "2026-10-28T15:08:42Z",
+   "notified_status": "watchlist",
+   "score": 69.24,
+   "status": "watchlist"
+  },
+  "binance|spot|SQQQBUSDT|1d|2026-09-08T00:00:00Z|2026-10-06T00:00:00Z": {
+   "last_notified_at": "2026-10-24T04:32:50Z",
+   "last_seen": "2026-10-26T21:05:08Z",
+   "notified_status": "forming",
+   "score": 78.18,
+   "status": "forming"
+  },
+  "binance|spot|SSVUSDT|1d|2026-01-25T00:00:00Z|2026-06-06T00:00:00Z": {
+   "last_notified_at": "2026-10-24T04:32:50Z",
+   "last_seen": "2026-10-26T21:05:08Z",
+   "notified_status": "watchlist",
+   "score": 43.05,
+   "status": "forming"
+  },
+  "binance|spot|STXUSDT|1d|2025-11-04T00:00:00Z|2026-08-18T00:00:00Z": {
+   "last_notified_at": "2026-10-20T04:45:02Z",
+   "last_seen": "2026-10-23T23:09:25Z",
+   "notified_status": "forming",
+   "score": 50.31,
+   "status": "forming"
+  },
+  "binance|spot|SUIUSDT|1d|2026-04-29T00:00:00Z|2026-08-18T00:00:00Z": {
+   "last_notified_at": "2026-10-31T05:30:26Z",
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": "forming",
+   "score": 63.22,
+   "status": "forming"
+  },
+  "binance|spot|SUNUSDT|4h|2026-08-19T12:00:00Z|2026-09-02T00:00:00Z": {
+   "last_notified_at": "2026-10-30T05:41:40Z",
+   "last_seen": "2026-10-30T05:41:40Z",
+   "notified_status": "confirmed",
+   "score": 73.18,
+   "status": "confirmed"
+  },
+  "binance|spot|SUPERUSDT|1d|2025-11-22T00:00:00Z|2026-07-29T00:00:00Z": {
+   "last_notified_at": "2026-10-30T05:41:40Z",
+   "last_seen": "2026-10-30T20:48:37Z",
+   "notified_status": "forming",
+   "score": 55.29,
+   "status": "forming"
+  },
+  "binance|spot|SUSDT|1d|2025-12-24T00:00:00Z|2026-06-25T00:00:00Z": {
+   "last_notified_at": "2026-10-19T04:34:14Z",
+   "last_seen": "2026-10-21T17:41:21Z",
+   "notified_status": "forming",
+   "score": 68.2,
+   "status": "forming"
+  },
+  "binance|spot|SUSHIUSDT|1w|2025-12-15T00:00:00Z|2026-06-22T00:00:00Z": {
+   "last_notified_at": null,
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": null,
+   "score": 46.73,
+   "status": "forming"
+  },
+  "binance|spot|SXTUSDT|4h|2026-06-10T20:00:00Z|2026-07-01T00:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-19T04:34:14Z",
+   "notified_status": "watchlist",
+   "score": 77.22,
+   "status": "forming"
+  },
+  "binance|spot|SXTUSDT|4h|2026-07-10T16:00:00Z|2026-07-29T20:00:00Z": {
+   "last_notified_at": "2026-10-21T18:29:39Z",
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": "watchlist",
+   "score": 66.17,
+   "status": "watchlist"
+  },
+  "binance|spot|SXTUSDT|4h|2026-10-15T00:00:00Z|2026-10-18T20:00:00Z": {
+   "last_notified_at": "2026-10-28T15:08:42Z",
+   "last_seen": "2026-10-28T15:08:42Z",
+   "notified_status": "confirmed",
+   "score": 66.74,
+   "status": "confirmed"
+  },
+  "binance|spot|SYNUSDT|4h|2026-09-23T12:00:00Z|2026-10-01T00:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-22T13:48:56Z",
+   "notified_status": "watchlist",
+   "score": 65.89,
+   "status": "watchlist"
+  },
+  "binance|spot|SYNUSDT|4h|2026-10-12T16:00:00Z|2026-10-15T12:00:00Z": {
+   "last_notified_at": "2026-10-22T20:04:50Z",
+   "last_seen": "2026-10-22T23:21:00Z",
+   "notified_status": "forming",
+   "score": 51.94,
+   "status": "forming"
+  },
+  "binance|spot|SYNUSDT|4h|2026-10-12T16:00:00Z|2026-10-24T00:00:00Z": {
+   "last_notified_at": "2026-10-29T16:11:31Z",
+   "last_seen": "2026-10-29T21:07:25Z",
+   "notified_status": "watchlist",
+   "score": 71.37,
+   "status": "watchlist"
+  },
+  "binance|spot|TAOUSDT|1d|2026-04-16T00:00:00Z|2026-06-06T00:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-19T04:34:14Z",
+   "notified_status": "watchlist",
+   "score": 58.98,
+   "status": "forming"
+  },
+  "binance|spot|TAOUSDT|1w|2026-04-13T00:00:00Z|2026-06-01T00:00:00Z": {
+   "last_notified_at": "2026-10-19T04:34:14Z",
+   "last_seen": "2026-10-19T04:34:14Z",
+   "notified_status": "forming",
+   "score": 58.99,
+   "status": "forming"
+  },
+  "binance|spot|TFUELUSDT|4h|2026-10-08T16:00:00Z|2026-10-18T20:00:00Z": {
+   "last_notified_at": "2026-10-22T13:48:56Z",
+   "last_seen": "2026-10-22T23:21:00Z",
+   "notified_status": "forming",
+   "score": 69.29,
+   "status": "forming"
+  },
+  "binance|spot|THETAUSDT|4h|2026-10-08T16:00:00Z|2026-10-18T20:00:00Z": {
+   "last_notified_at": "2026-10-23T20:01:45Z",
+   "last_seen": "2026-10-25T04:36:29Z",
+   "notified_status": "watchlist",
+   "score": 57.24,
+   "status": "forming"
+  },
+  "binance|spot|TIAUSDT|1d|2025-11-04T00:00:00Z|2026-02-06T00:00:00Z": {
+   "last_notified_at": "2026-10-30T05:41:40Z",
+   "last_seen": "2026-10-30T20:48:37Z",
+   "notified_status": "forming",
+   "score": 54.11,
+   "status": "forming"
+  },
+  "binance|spot|TKOUSDT|4h|2026-10-15T04:00:00Z|2026-10-18T16:00:00Z": {
+   "last_notified_at": "2026-10-27T04:58:58Z",
+   "last_seen": "2026-10-27T04:58:58Z",
+   "notified_status": "watchlist",
+   "score": 71.85,
+   "status": "watchlist"
+  },
+  "binance|spot|TQQQBUSDT|4h|2026-10-15T12:00:00Z|2026-10-24T12:00:00Z": {
+   "last_notified_at": "2026-10-29T21:07:25Z",
+   "last_seen": "2026-10-29T21:07:25Z",
+   "notified_status": "forming",
+   "score": 76.93,
+   "status": "forming"
+  },
+  "binance|spot|TURBOUSDT|4h|2026-10-08T16:00:00Z|2026-10-18T12:00:00Z": {
+   "last_notified_at": "2026-10-28T15:08:42Z",
+   "last_seen": "2026-10-29T15:17:45Z",
+   "notified_status": "confirmed",
+   "score": 82.82,
+   "status": "confirmed"
+  },
+  "binance|spot|TURBOUSDT|4h|2026-10-15T00:00:00Z|2026-10-18T12:00:00Z": {
+   "last_notified_at": "2026-10-29T16:11:31Z",
+   "last_seen": "2026-10-29T21:07:25Z",
+   "notified_status": "watchlist",
+   "score": 77.47,
+   "status": "watchlist"
+  },
+  "binance|spot|TURTLEUSDT|1d|2026-04-21T00:00:00Z|2026-06-24T00:00:00Z": {
+   "last_notified_at": "2026-10-29T05:42:41Z",
+   "last_seen": "2026-10-29T21:07:25Z",
+   "notified_status": "watchlist",
+   "score": 51.06,
+   "status": "watchlist"
+  },
+  "binance|spot|UMAUSDT|1d|2026-04-29T00:00:00Z|2026-08-18T00:00:00Z": {
+   "last_notified_at": "2026-10-24T04:32:50Z",
+   "last_seen": "2026-10-29T21:07:25Z",
+   "notified_status": "watchlist",
+   "score": 48.69,
+   "status": "forming"
+  },
+  "binance|spot|USARBUSDT|4h|2026-10-15T12:00:00Z|2026-10-27T04:00:00Z": {
+   "last_notified_at": "2026-10-30T20:48:37Z",
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": "forming",
+   "score": 66.96,
+   "status": "forming"
+  },
+  "binance|spot|USARBUSDT|4h|2026-10-17T20:00:00Z|2026-10-27T04:00:00Z": {
+   "last_notified_at": "2026-10-29T16:11:31Z",
+   "last_seen": "2026-10-29T21:07:25Z",
+   "notified_status": "confirmed",
+   "score": 82.91,
+   "status": "confirmed"
+  },
+  "binance|spot|VELODROMEUSDT|1d|2025-08-02T00:00:00Z|2026-02-06T00:00:00Z": {
+   "last_notified_at": "2026-10-24T04:32:50Z",
+   "last_seen": "2026-10-25T22:35:59Z",
+   "notified_status": "forming",
+   "score": 45.1,
+   "status": "forming"
+  },
+  "binance|spot|VELODROMEUSDT|1d|2025-11-04T00:00:00Z|2026-02-06T00:00:00Z": {
+   "last_notified_at": "2026-10-27T04:58:58Z",
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": "forming",
+   "score": 67.27,
+   "status": "forming"
+  },
+  "binance|spot|VIRTUALUSDT|1d|2026-04-21T00:00:00Z|2026-06-25T00:00:00Z": {
+   "last_notified_at": null,
+   "last_seen": "2026-10-30T20:48:37Z",
+   "notified_status": null,
+   "score": 45.94,
+   "status": "forming"
+  },
+  "binance|spot|VIRTUALUSDT|1d|2026-04-29T00:00:00Z|2026-06-25T00:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-21T17:41:21Z",
+   "notified_status": "forming",
+   "score": 66.35,
+   "status": "forming"
+  },
+  "binance|spot|WBETHUSDT|1d|2025-12-01T00:00:00Z|2026-06-06T00:00:00Z": {
+   "last_notified_at": "2026-10-21T18:29:39Z",
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": "watchlist",
+   "score": 68.65,
+   "status": "forming"
+  },
+  "binance|spot|WBTCUSDT|1d|2026-04-29T00:00:00Z|2026-07-01T00:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-21T17:41:21Z",
+   "notified_status": "forming",
+   "score": 85.69,
+   "status": "watchlist"
+  },
+  "binance|spot|WBTCUSDT|4h|2026-09-02T08:00:00Z|2026-09-15T16:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-19T04:34:14Z",
+   "notified_status": "watchlist",
+   "score": 55.75,
+   "status": "watchlist"
+  },
+  "binance|spot|WDCBUSDT|4h|2026-10-02T12:00:00Z|2026-10-17T20:00:00Z": {
+   "last_notified_at": "2026-10-22T20:04:50Z",
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": "forming",
+   "score": 75.99,
+   "status": "forming"
+  },
+  "binance|spot|XLMUSDT|1d|2026-06-28T00:00:00Z|2026-08-18T00:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-18T22:28:52Z",
+   "notified_status": "forming",
+   "score": 40.2,
+   "status": "forming"
+  },
+  "binance|spot|XPLUSDT|4h|2026-10-08T16:00:00Z|2026-10-18T16:00:00Z": {
+   "last_notified_at": "2026-10-22T20:04:50Z",
+   "last_seen": "2026-10-24T04:32:50Z",
+   "notified_status": "forming",
+   "score": 51.82,
+   "status": "forming"
+  },
+  "binance|spot|XRPUSDT|1d|2026-02-06T00:00:00Z|2026-08-14T00:00:00Z": {
+   "last_notified_at": "2026-10-31T05:30:26Z",
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": "forming",
+   "score": 57.32,
+   "status": "forming"
+  },
+  "binance|spot|XRPUSDT|1w|2026-02-02T00:00:00Z|2026-08-10T00:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-25T13:15:04Z",
+   "notified_status": "watchlist",
+   "score": 56.28,
+   "status": "watchlist"
+  },
+  "binance|spot|XTZUSDT|4h|2026-10-02T16:00:00Z|2026-10-08T16:00:00Z": {
+   "last_notified_at": "2026-10-21T04:38:22Z",
+   "last_seen": "2026-10-24T12:44:06Z",
+   "notified_status": "watchlist",
+   "score": 52.52,
+   "status": "watchlist"
+  },
+  "binance|spot|XVGUSDT|1d|2026-05-01T00:00:00Z|2026-07-29T00:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-18T22:28:52Z",
+   "notified_status": "forming",
+   "score": 45.57,
+   "status": "forming"
+  },
+  "binance|spot|XVSUSDT|1d|2026-04-12T00:00:00Z|2026-06-06T00:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-21T17:41:21Z",
+   "notified_status": "forming",
+   "score": 73.13,
+   "status": "forming"
+  },
+  "binance|spot|YGGUSDT|1d|2026-06-06T00:00:00Z|2026-07-29T00:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-18T22:28:52Z",
+   "notified_status": "forming",
+   "score": 80.65,
+   "status": "forming"
+  },
+  "binance|spot|YGGUSDT|4h|2026-10-13T00:00:00Z|2026-10-18T16:00:00Z": {
+   "last_notified_at": "2026-10-28T21:04:48Z",
+   "last_seen": "2026-10-29T21:07:25Z",
+   "notified_status": "confirmed",
+   "score": 73.09,
+   "status": "confirmed"
+  },
+  "binance|spot|ZAMAUSDT|4h|2026-10-02T16:00:00Z|2026-10-15T00:00:00Z": {
+   "last_notified_at": "2026-10-23T20:01:45Z",
+   "last_seen": "2026-10-25T04:36:29Z",
+   "notified_status": "watchlist",
+   "score": 70.61,
+   "status": "forming"
+  },
+  "binance|spot|ZECUSDT|4h|2026-10-13T00:00:00Z|2026-10-18T16:00:00Z": {
+   "last_notified_at": "2026-10-24T04:32:50Z",
+   "last_seen": "2026-10-24T12:44:06Z",
+   "notified_status": "forming",
+   "score": 49.05,
+   "status": "forming"
+  },
+  "binance|spot|ZENUSDT|1d|2026-04-29T00:00:00Z|2026-07-29T00:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-21T17:41:21Z",
+   "notified_status": "forming",
+   "score": 61.88,
+   "status": "watchlist"
+  },
+  "binance|spot|ZENUSDT|1w|2026-03-30T00:00:00Z|2026-07-27T00:00:00Z": {
+   "last_notified_at": "2026-10-19T04:34:14Z",
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": "forming",
+   "score": 55.55,
+   "status": "forming"
+  },
+  "binance|spot|ZKPUSDT|4h|2026-07-01T00:00:00Z|2026-08-18T00:00:00Z": {
+   "last_notified_at": "2026-10-18T18:40:09Z",
+   "last_seen": "2026-10-18T22:28:52Z",
+   "notified_status": "forming",
+   "score": 63.08,
+   "status": "forming"
+  },
+  "binance|spot|ZKPUSDT|4h|2026-10-08T16:00:00Z|2026-10-18T20:00:00Z": {
+   "last_notified_at": "2026-10-27T04:58:58Z",
+   "last_seen": "2026-10-29T21:07:25Z",
+   "notified_status": "watchlist",
+   "score": 69.52,
+   "status": "forming"
+  },
+  "binance|spot|ZROUSDT|1d|2026-02-06T00:00:00Z|2026-07-31T00:00:00Z": {
+   "last_notified_at": null,
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": null,
+   "score": 49.75,
+   "status": "forming"
+  },
+  "binance|spot|ZROUSDT|1w|2025-03-10T00:00:00Z|2025-10-06T00:00:00Z": {
+   "last_notified_at": "2026-10-21T18:29:39Z",
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": "confirmed",
+   "score": 56.9,
+   "status": "confirmed"
+  },
+  "binance|spot|ZRXUSDT|1d|2026-05-05T00:00:00Z|2026-08-18T00:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-18T22:28:52Z",
+   "notified_status": "forming",
+   "score": 60.48,
+   "status": "forming"
+  },
+  "binance|spot|币安人生USDT|4h|2026-07-03T00:00:00Z|2026-08-19T16:00:00Z": {
+   "last_notified_at": "2026-10-23T20:01:45Z",
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": "watchlist",
+   "score": 65.09,
+   "status": "watchlist"
+  },
+  "binance|spot|牛来USDT|4h|2026-10-18T20:00:00Z|2026-10-24T12:00:00Z": {
+   "last_notified_at": "2026-10-29T05:42:41Z",
+   "last_seen": "2026-10-29T21:07:25Z",
+   "notified_status": "forming",
+   "score": 71.0,
+   "status": "forming"
+  },
+  "gate|perp|AAPUUSDT|4h|2026-07-26T20:00:00Z|2026-07-31T16:00:00Z": {
+   "last_notified_at": "2026-10-22T13:48:56Z",
+   "last_seen": "2026-10-26T15:13:32Z",
+   "notified_status": "watchlist",
+   "score": 82.88,
+   "status": "watchlist"
+  },
+  "gate|perp|ADIUSDT|4h|2026-06-23T16:00:00Z|2026-09-03T12:00:00Z": {
+   "last_notified_at": "2026-10-27T20:43:07Z",
+   "last_seen": "2026-10-28T21:04:48Z",
+   "notified_status": "confirmed",
+   "score": 81.26,
+   "status": "confirmed"
+  },
+  "gate|perp|ADSKUSDT|1d|2026-08-26T00:00:00Z|2026-09-29T00:00:00Z": {
+   "last_notified_at": "2026-10-31T05:30:26Z",
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": "forming",
+   "score": 86.57,
+   "status": "forming"
+  },
+  "gate|perp|ADSKUSDT|4h|2026-08-26T12:00:00Z|2026-09-29T16:00:00Z": {
+   "last_notified_at": "2026-10-29T21:07:25Z",
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": "watchlist",
+   "score": 86.59,
+   "status": "watchlist"
+  },
+  "gate|perp|AGPUUSDT|4h|2026-10-20T00:00:00Z|2026-10-23T12:00:00Z": {
+   "last_notified_at": "2026-10-30T15:06:51Z",
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": "forming",
+   "score": 57.35,
+   "status": "forming"
+  },
+  "gate|perp|AIOTUSDT|4h|2026-05-11T08:00:00Z|2026-07-13T00:00:00Z": {
+   "last_notified_at": "2026-10-24T04:32:50Z",
+   "last_seen": "2026-10-24T04:32:50Z",
+   "notified_status": "confirmed",
+   "score": 69.11,
+   "status": "confirmed"
+  },
+  "gate|perp|AIOTUSDT|4h|2026-06-15T00:00:00Z|2026-07-13T00:00:00Z": {
+   "last_notified_at": "2026-10-24T12:44:06Z",
+   "last_seen": "2026-10-25T04:36:29Z",
+   "notified_status": "confirmed",
+   "score": 58.19,
+   "status": "confirmed"
+  },
+  "gate|perp|AKESOUSDT|1d|2026-05-26T00:00:00Z|2026-06-28T00:00:00Z": {
+   "last_notified_at": null,
+   "last_seen": "2026-10-23T23:09:25Z",
+   "notified_status": null,
+   "score": 47.28,
+   "status": "forming"
+  },
+  "gate|perp|AKESOUSDT|4h|2026-05-30T08:00:00Z|2026-06-28T12:00:00Z": {
+   "last_notified_at": "2026-10-24T04:32:50Z",
+   "last_seen": "2026-10-27T08:02:41Z",
+   "notified_status": "watchlist",
+   "score": 54.18,
+   "status": "forming"
+  },
+  "gate|perp|AKTUSDT|1d|2025-10-22T00:00:00Z|2026-02-06T00:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-29T21:07:25Z",
+   "notified_status": "watchlist",
+   "score": 73.99,
+   "status": "watchlist"
+  },
+  "gate|perp|AKTUSDT|4h|2026-05-23T08:00:00Z|2026-07-29T12:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-19T04:34:14Z",
+   "notified_status": "watchlist",
+   "score": 74.61,
+   "status": "watchlist"
+  },
+  "gate|perp|ARGUSUSDT|4h|2026-10-14T12:00:00Z|2026-10-19T00:00:00Z": {
+   "last_notified_at": "2026-10-26T21:05:08Z",
+   "last_seen": "2026-10-27T14:28:50Z",
+   "notified_status": "forming",
+   "score": 65.6,
+   "status": "forming"
+  },
+  "gate|perp|ASXUSDT|4h|2026-07-08T08:00:00Z|2026-07-30T00:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-21T17:41:21Z",
+   "notified_status": "forming",
+   "score": 65.12,
+   "status": "watchlist"
+  },
+  "gate|perp|B200USDT|4h|2026-09-22T00:00:00Z|2026-10-28T12:00:00Z": {
+   "last_notified_at": "2026-10-29T16:11:31Z",
+   "last_seen": "2026-10-29T16:11:31Z",
+   "notified_status": "forming",
+   "score": 80.13,
+   "status": "forming"
+  },
+  "gate|perp|B2USDT|4h|2026-10-11T00:00:00Z|2026-10-15T00:00:00Z": {
+   "last_notified_at": "2026-10-23T23:09:25Z",
+   "last_seen": "2026-10-24T22:31:27Z",
+   "notified_status": "confirmed",
+   "score": 76.38,
+   "status": "confirmed"
+  },
+  "gate|perp|BABAUSDT|1w|2026-04-06T00:00:00Z|2026-06-22T00:00:00Z": {
+   "last_notified_at": "2026-10-21T18:29:39Z",
+   "last_seen": "2026-10-25T22:35:59Z",
+   "notified_status": "forming",
+   "score": 77.32,
+   "status": "forming"
+  },
+  "gate|perp|BANUSDT|4h|2026-10-03T08:00:00Z|2026-10-15T00:00:00Z": {
+   "last_notified_at": "2026-10-24T12:44:06Z",
+   "last_seen": "2026-10-25T15:46:32Z",
+   "notified_status": "confirmed",
+   "score": 75.7,
+   "status": "confirmed"
+  },
+  "gate|perp|BASECATUSDT|4h|2026-09-18T00:00:00Z|2026-10-03T04:00:00Z": {
+   "last_notified_at": null,
+   "last_seen": "2026-10-19T21:04:52Z",
+   "notified_status": null,
+   "score": 41.78,
+   "status": "watchlist"
+  },
+  "gate|perp|BASECATUSDT|4h|2026-10-15T00:00:00Z|2026-10-25T20:00:00Z": {
+   "last_notified_at": "2026-10-29T05:42:41Z",
+   "last_seen": "2026-10-29T21:07:25Z",
+   "notified_status": "forming",
+   "score": 63.41,
+   "status": "forming"
+  },
+  "gate|perp|BIRBUSDT|4h|2026-09-20T08:00:00Z|2026-10-18T16:00:00Z": {
+   "last_notified_at": "2026-10-22T04:36:31Z",
+   "last_seen": "2026-10-22T04:36:31Z",
+   "notified_status": "forming",
+   "score": 50.94,
+   "status": "forming"
+  },
+  "gate|perp|BLESSUSDT|4h|2026-10-02T16:00:00Z|2026-10-18T20:00:00Z": {
+   "last_notified_at": "2026-10-25T19:01:57Z",
+   "last_seen": "2026-10-26T15:13:32Z",
+   "notified_status": "confirmed",
+   "score": 62.23,
+   "status": "confirmed"
+  },
+  "gate|perp|BPUSDT|4h|2026-10-11T04:00:00Z|2026-10-15T08:00:00Z": {
+   "last_notified_at": "2026-10-21T13:47:43Z",
+   "last_seen": "2026-10-22T04:36:31Z",
+   "notified_status": "forming",
+   "score": 83.82,
+   "status": "forming"
+  },
+  "gate|perp|BSVUSDT|1d|2025-07-01T00:00:00Z|2026-06-25T00:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-19T04:34:14Z",
+   "notified_status": "forming",
+   "score": 61.75,
+   "status": "forming"
+  },
+  "gate|perp|BTGOUSDT|4h|2026-09-01T08:00:00Z|2026-09-17T08:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-30T05:41:40Z",
+   "notified_status": "watchlist",
+   "score": 52.54,
+   "status": "watchlist"
+  },
+  "gate|perp|BTRUSDT|1d|2026-02-04T00:00:00Z|2026-07-18T00:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": "watchlist",
+   "score": 74.49,
+   "status": "watchlist"
+  },
+  "gate|perp|BTRUSDT|4h|2026-09-09T20:00:00Z|2026-10-07T00:00:00Z": {
+   "last_notified_at": "2026-10-29T15:17:45Z",
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": "forming",
+   "score": 62.37,
+   "status": "forming"
+  },
+  "gate|perp|BUDUSDT|1d|2026-07-27T00:00:00Z|2026-10-02T00:00:00Z": {
+   "last_notified_at": "2026-10-30T05:41:40Z",
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": "forming",
+   "score": 79.85,
+   "status": "forming"
+  },
+  "gate|perp|BUSDT|4h|2026-10-08T16:00:00Z|2026-10-18T20:00:00Z": {
+   "last_notified_at": "2026-10-22T20:04:50Z",
+   "last_seen": "2026-10-24T04:32:50Z",
+   "notified_status": "forming",
+   "score": 71.25,
+   "status": "forming"
+  },
+  "gate|perp|BVOLUSDT|4h|2026-09-21T08:00:00Z|2026-09-30T20:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-19T04:34:14Z",
+   "notified_status": "watchlist",
+   "score": 72.88,
+   "status": "watchlist"
+  },
+  "gate|perp|CAMBRICONUSDT|4h|2026-10-09T00:00:00Z|2026-10-15T00:00:00Z": {
+   "last_notified_at": "2026-10-20T04:45:02Z",
+   "last_seen": "2026-10-22T23:21:00Z",
+   "notified_status": "forming",
+   "score": 71.22,
+   "status": "forming"
+  },
+  "gate|perp|CARVUSDT|4h|2026-10-15T00:00:00Z|2026-10-18T16:00:00Z": {
+   "last_notified_at": "2026-10-25T22:35:59Z",
+   "last_seen": "2026-10-27T08:02:41Z",
+   "notified_status": "forming",
+   "score": 70.28,
+   "status": "forming"
+  },
+  "gate|perp|CATEUSDT|4h|2026-10-01T16:00:00Z|2026-10-13T00:00:00Z": {
+   "last_notified_at": "2026-10-19T21:04:52Z",
+   "last_seen": "2026-10-21T23:20:09Z",
+   "notified_status": "forming",
+   "score": 50.72,
+   "status": "forming"
+  },
+  "gate|perp|CEGUSDT|1d|2026-09-01T00:00:00Z|2026-09-30T00:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-19T21:04:52Z",
+   "notified_status": "forming",
+   "score": 59.85,
+   "status": "forming"
+  },
+  "gate|perp|CEGUSDT|4h|2026-05-27T00:00:00Z|2026-07-03T08:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-20T04:45:02Z",
+   "notified_status": "watchlist",
+   "score": 63.69,
+   "status": "forming"
+  },
+  "gate|perp|CHILLGUYUSDT|4h|2026-10-13T00:00:00Z|2026-10-15T00:00:00Z": {
+   "last_notified_at": "2026-10-25T13:15:04Z",
+   "last_seen": "2026-10-25T13:15:04Z",
+   "notified_status": "forming",
+   "score": 78.61,
+   "status": "forming"
+  },
+  "gate|perp|CITICUSDT|1d|2026-05-28T00:00:00Z|2026-07-02T00:00:00Z": {
+   "last_notified_at": "2026-10-28T05:33:16Z",
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": "watchlist",
+   "score": 65.52,
+   "status": "watchlist"
+  },
+  "gate|perp|CITICUSDT|4h|2026-05-30T04:00:00Z|2026-07-02T00:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": "watchlist",
+   "score": 62.33,
+   "status": "watchlist"
+  },
+  "gate|perp|CLANKERUSDT|4h|2026-10-02T16:00:00Z|2026-10-18T20:00:00Z": {
+   "last_notified_at": "2026-10-26T04:39:39Z",
+   "last_seen": "2026-10-26T04:39:39Z",
+   "notified_status": "forming",
+   "score": 80.74,
+   "status": "forming"
+  },
+  "gate|perp|CLOUSDT|4h|2026-10-10T16:00:00Z|2026-10-18T16:00:00Z": {
+   "last_notified_at": "2026-10-27T09:29:26Z",
+   "last_seen": "2026-10-28T05:33:16Z",
+   "notified_status": "confirmed",
+   "score": 72.77,
+   "status": "confirmed"
+  },
+  "gate|perp|CLSKUSDT|4h|2026-10-15T12:00:00Z|2026-10-26T12:00:00Z": {
+   "last_notified_at": "2026-10-29T21:07:25Z",
+   "last_seen": "2026-10-29T21:07:25Z",
+   "notified_status": "forming",
+   "score": 63.14,
+   "status": "forming"
+  },
+  "gate|perp|CORZUSDT|4h|2026-10-13T12:00:00Z|2026-10-15T12:00:00Z": {
+   "last_notified_at": "2026-10-24T12:44:06Z",
+   "last_seen": "2026-10-30T15:06:51Z",
+   "notified_status": "watchlist",
+   "score": 78.64,
+   "status": "forming"
+  },
+  "gate|perp|CTRUSDT|4h|2026-05-31T12:00:00Z|2026-07-27T20:00:00Z": {
+   "last_notified_at": "2026-10-21T04:38:22Z",
+   "last_seen": "2026-10-21T04:38:22Z",
+   "notified_status": "forming",
+   "score": 68.31,
+   "status": "forming"
+  },
+  "gate|perp|CTRUSDT|4h|2026-06-10T20:00:00Z|2026-07-27T20:00:00Z": {
+   "last_notified_at": "2026-10-19T21:04:52Z",
+   "last_seen": "2026-10-20T13:36:35Z",
+   "notified_status": "confirmed",
+   "score": 81.65,
+   "status": "confirmed"
+  },
+  "gate|perp|EDGEXUSDT|4h|2026-10-11T04:00:00Z|2026-10-18T20:00:00Z": {
+   "last_notified_at": "2026-10-28T21:04:48Z",
+   "last_seen": "2026-10-29T21:07:25Z",
+   "notified_status": "confirmed",
+   "score": 69.25,
+   "status": "confirmed"
+  },
+  "gate|perp|ELSAUSDT|1d|2026-02-23T00:00:00Z|2026-06-24T00:00:00Z": {
+   "last_notified_at": "2026-10-30T05:41:40Z",
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": "forming",
+   "score": 51.99,
+   "status": "forming"
+  },
+  "gate|perp|ELSAUSDT|1d|2026-07-29T00:00:00Z|2026-08-18T00:00:00Z": {
+   "last_notified_at": "2026-10-21T04:38:22Z",
+   "last_seen": "2026-10-24T22:31:27Z",
+   "notified_status": "confirmed",
+   "score": 78.96,
+   "status": "confirmed"
+  },
+  "gate|perp|ELSAUSDT|4h|2026-05-07T16:00:00Z|2026-06-24T16:00:00Z": {
+   "last_notified_at": "2026-10-19T21:04:52Z",
+   "last_seen": "2026-10-20T13:36:35Z",
+   "notified_status": "forming",
+   "score": 64.82,
+   "status": "watchlist"
+  },
+  "gate|perp|FNUSDT|4h|2026-10-15T12:00:00Z|2026-10-23T12:00:00Z": {
+   "last_notified_at": "2026-10-29T21:07:25Z",
+   "last_seen": "2026-10-29T21:07:25Z",
+   "notified_status": "forming",
+   "score": 82.41,
+   "status": "forming"
+  },
+  "gate|perp|FRONGUSDT|4h|2026-10-13T00:00:00Z|2026-10-22T08:00:00Z": {
+   "last_notified_at": "2026-10-28T15:08:42Z",
+   "last_seen": "2026-10-28T21:04:48Z",
+   "notified_status": "confirmed",
+   "score": 78.44,
+   "status": "confirmed"
+  },
+  "gate|perp|GIGADEVUSDT|4h|2026-10-15T12:00:00Z|2026-10-17T20:00:00Z": {
+   "last_notified_at": "2026-10-28T15:08:42Z",
+   "last_seen": "2026-10-28T21:04:48Z",
+   "notified_status": "confirmed",
+   "score": 84.91,
+   "status": "confirmed"
+  },
+  "gate|perp|GNRCUSDT|4h|2026-10-05T20:00:00Z|2026-10-23T12:00:00Z": {
+   "last_notified_at": "2026-10-30T15:06:51Z",
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": "forming",
+   "score": 63.91,
+   "status": "forming"
+  },
+  "gate|perp|GTUSDT|1d|2025-11-04T00:00:00Z|2026-06-05T00:00:00Z": {
+   "last_notified_at": "2026-10-24T04:32:50Z",
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": "watchlist",
+   "score": 58.22,
+   "status": "forming"
+  },
+  "gate|perp|GTUSDT|1w|2025-11-17T00:00:00Z|2026-06-01T00:00:00Z": {
+   "last_notified_at": "2026-10-21T18:29:39Z",
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": "forming",
+   "score": 77.27,
+   "status": "forming"
+  },
+  "gate|perp|HK50USDT|1d|2026-06-04T00:00:00Z|2026-06-26T00:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-22T23:21:00Z",
+   "notified_status": "watchlist",
+   "score": 64.21,
+   "status": "forming"
+  },
+  "gate|perp|HK50USDT|4h|2026-06-04T20:00:00Z|2026-06-26T08:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-21T23:20:09Z",
+   "notified_status": "watchlist",
+   "score": 64.59,
+   "status": "forming"
+  },
+  "gate|perp|HYGONUSDT|4h|2026-10-15T04:00:00Z|2026-10-19T16:00:00Z": {
+   "last_notified_at": "2026-10-27T08:02:41Z",
+   "last_seen": "2026-10-28T21:04:48Z",
+   "notified_status": "forming",
+   "score": 62.73,
+   "status": "forming"
+  },
+  "gate|perp|IBITUSDT|4h|2026-09-02T08:00:00Z|2026-09-16T16:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-19T04:34:14Z",
+   "notified_status": "watchlist",
+   "score": 63.01,
+   "status": "watchlist"
+  },
+  "gate|perp|ICNTUSDT|1d|2026-04-13T00:00:00Z|2026-09-16T00:00:00Z": {
+   "last_notified_at": null,
+   "last_seen": "2026-10-23T23:09:25Z",
+   "notified_status": null,
+   "score": 28.5,
+   "status": "forming"
+  },
+  "gate|perp|INTUUSDT|1d|2026-08-26T00:00:00Z|2026-09-28T00:00:00Z": {
+   "last_notified_at": "2026-10-29T05:42:41Z",
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": "forming",
+   "score": 83.93,
+   "status": "forming"
+  },
+  "gate|perp|INTUUSDT|1d|2026-09-10T00:00:00Z|2026-09-28T00:00:00Z": {
+   "last_notified_at": "2026-10-28T05:33:16Z",
+   "last_seen": "2026-10-28T21:04:48Z",
+   "notified_status": "forming",
+   "score": 79.01,
+   "status": "forming"
+  },
+  "gate|perp|INTUUSDT|4h|2026-08-27T12:00:00Z|2026-09-28T12:00:00Z": {
+   "last_notified_at": "2026-10-22T20:04:50Z",
+   "last_seen": "2026-10-23T20:01:45Z",
+   "notified_status": "confirmed",
+   "score": 75.5,
+   "status": "confirmed"
+  },
+  "gate|perp|INXUSDT|4h|2026-10-08T16:00:00Z|2026-10-18T16:00:00Z": {
+   "last_notified_at": "2026-10-25T04:36:29Z",
+   "last_seen": "2026-10-25T04:36:29Z",
+   "notified_status": "forming",
+   "score": 50.6,
+   "status": "forming"
+  },
+  "gate|perp|JCIUSDT|4h|2026-08-03T16:00:00Z|2026-09-14T12:00:00Z": {
+   "last_notified_at": "2026-10-21T18:29:39Z",
+   "last_seen": "2026-10-28T15:08:42Z",
+   "notified_status": "watchlist",
+   "score": 68.4,
+   "status": "watchlist"
+  },
+  "gate|perp|JCTUSDT|4h|2026-06-27T04:00:00Z|2026-09-09T20:00:00Z": {
+   "last_notified_at": "2026-10-22T20:04:50Z",
+   "last_seen": "2026-10-23T20:01:45Z",
+   "notified_status": "confirmed",
+   "score": 78.55,
+   "status": "confirmed"
+  },
+  "gate|perp|JPN225USDT|1d|2026-06-11T00:00:00Z|2026-07-29T00:00:00Z": {
+   "last_notified_at": "2026-10-29T05:42:41Z",
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": "watchlist",
+   "score": 80.73,
+   "status": "watchlist"
+  },
+  "gate|perp|KWEBUSDT|4h|2026-09-17T08:00:00Z|2026-10-04T04:00:00Z": {
+   "last_notified_at": "2026-10-21T17:41:21Z",
+   "last_seen": "2026-10-21T23:20:09Z",
+   "notified_status": "forming",
+   "score": 76.08,
+   "status": "forming"
+  },
+  "gate|perp|MARUSDT|4h|2026-07-31T20:00:00Z|2026-09-09T12:00:00Z": {
+   "last_notified_at": "2026-10-28T15:08:42Z",
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": "watchlist",
+   "score": 83.56,
+   "status": "watchlist"
+  },
+  "gate|perp|MAVIAUSDT|1d|2026-04-23T00:00:00Z|2026-06-24T00:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-18T22:28:52Z",
+   "notified_status": "forming",
+   "score": 47.85,
+   "status": "forming"
+  },
+  "gate|perp|MBABYDOGEUSDT|1d|2026-04-29T00:00:00Z|2026-06-26T00:00:00Z": {
+   "last_notified_at": "2026-10-24T04:32:50Z",
+   "last_seen": "2026-10-29T21:07:25Z",
+   "notified_status": "watchlist",
+   "score": 58.1,
+   "status": "forming"
+  },
+  "gate|perp|MBABYDOGEUSDT|1w|2026-03-30T00:00:00Z|2026-06-22T00:00:00Z": {
+   "last_notified_at": "2026-10-26T04:39:39Z",
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": "forming",
+   "score": 57.83,
+   "status": "forming"
+  },
+  "gate|perp|MBABYDOGEUSDT|4h|2026-05-28T12:00:00Z|2026-06-26T00:00:00Z": {
+   "last_notified_at": "2026-10-23T20:01:45Z",
+   "last_seen": "2026-10-24T12:44:06Z",
+   "notified_status": "watchlist",
+   "score": 61.5,
+   "status": "watchlist"
+  },
+  "gate|perp|MDBUSDT|4h|2026-09-21T04:00:00Z|2026-09-28T12:00:00Z": {
+   "last_notified_at": "2026-10-27T04:58:58Z",
+   "last_seen": "2026-10-27T20:43:07Z",
+   "notified_status": "confirmed",
+   "score": 90.24,
+   "status": "confirmed"
+  },
+  "gate|perp|MICRODUCKUSDT|4h|2026-09-11T20:00:00Z|2026-10-04T12:00:00Z": {
+   "last_notified_at": "2026-10-28T15:08:42Z",
+   "last_seen": "2026-10-29T15:17:45Z",
+   "notified_status": "confirmed",
+   "score": 54.33,
+   "status": "confirmed"
+  },
+  "gate|perp|MICRODUCKUSDT|4h|2026-09-14T00:00:00Z|2026-10-04T12:00:00Z": {
+   "last_notified_at": null,
+   "last_seen": "2026-10-24T22:31:27Z",
+   "notified_status": null,
+   "score": 44.21,
+   "status": "forming"
+  },
+  "gate|perp|MICRODUCKUSDT|4h|2026-09-16T20:00:00Z|2026-10-04T12:00:00Z": {
+   "last_notified_at": "2026-10-22T13:48:56Z",
+   "last_seen": "2026-10-26T04:39:39Z",
+   "notified_status": "forming",
+   "score": 54.63,
+   "status": "forming"
+  },
+  "gate|perp|MOCAUSDT|4h|2026-10-11T04:00:00Z|2026-10-18T20:00:00Z": {
+   "last_notified_at": "2026-10-25T22:35:59Z",
+   "last_seen": "2026-10-26T04:39:39Z",
+   "notified_status": "forming",
+   "score": 65.81,
+   "status": "forming"
+  },
+  "gate|perp|MPWRUSDT|4h|2026-07-29T20:00:00Z|2026-09-16T16:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-23T23:09:25Z",
+   "notified_status": "watchlist",
+   "score": 55.49,
+   "status": "forming"
+  },
+  "gate|perp|MUSDT|4h|2026-09-30T20:00:00Z|2026-10-19T12:00:00Z": {
+   "last_notified_at": "2026-10-29T16:11:31Z",
+   "last_seen": "2026-10-29T21:07:25Z",
+   "notified_status": "watchlist",
+   "score": 66.59,
+   "status": "watchlist"
+  },
+  "gate|perp|MYXUSDT|4h|2026-10-08T12:00:00Z|2026-10-15T00:00:00Z": {
+   "last_notified_at": "2026-10-27T20:43:07Z",
+   "last_seen": "2026-10-28T21:04:48Z",
+   "notified_status": "confirmed",
+   "score": 60.79,
+   "status": "confirmed"
+  },
+  "gate|perp|NAS100USDT|4h|2026-06-10T20:00:00Z|2026-07-29T20:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": "forming",
+   "score": 64.05,
+   "status": "forming"
+  },
+  "gate|perp|ORBIOUSDT|4h|2026-10-09T12:00:00Z|2026-10-18T16:00:00Z": {
+   "last_notified_at": "2026-10-25T22:35:59Z",
+   "last_seen": "2026-10-27T04:58:58Z",
+   "notified_status": "watchlist",
+   "score": 48.56,
+   "status": "forming"
+  },
+  "gate|perp|PAIDUSDT|4h|2026-10-10T04:00:00Z|2026-10-18T20:00:00Z": {
+   "last_notified_at": null,
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": null,
+   "score": 44.62,
+   "status": "watchlist"
+  },
+  "gate|perp|PODUSDT|4h|2026-10-11T12:00:00Z|2026-10-20T00:00:00Z": {
+   "last_notified_at": "2026-10-23T13:26:25Z",
+   "last_seen": "2026-10-23T23:09:25Z",
+   "notified_status": "watchlist",
+   "score": 60.14,
+   "status": "watchlist"
+  },
+  "gate|perp|POWERUSDT|4h|2026-10-01T00:00:00Z|2026-10-20T08:00:00Z": {
+   "last_notified_at": "2026-10-30T05:41:40Z",
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": "forming",
+   "score": 52.23,
+   "status": "forming"
+  },
+  "gate|perp|POWERUSDT|4h|2026-10-06T00:00:00Z|2026-10-15T00:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-18T15:52:20Z",
+   "notified_status": "forming",
+   "score": 60.02,
+   "status": "forming"
+  },
+  "gate|perp|POWERUSDT|4h|2026-10-06T00:00:00Z|2026-10-20T08:00:00Z": {
+   "last_notified_at": "2026-10-29T16:11:31Z",
+   "last_seen": "2026-10-29T21:07:25Z",
+   "notified_status": "forming",
+   "score": 87.43,
+   "status": "forming"
+  },
+  "gate|perp|PTBUSDT|1d|2026-04-04T00:00:00Z|2026-06-25T00:00:00Z": {
+   "last_notified_at": "2026-10-19T04:34:14Z",
+   "last_seen": "2026-10-21T17:41:21Z",
+   "notified_status": "forming",
+   "score": 58.72,
+   "status": "forming"
+  },
+  "gate|perp|PUYAUSDT|4h|2026-10-15T04:00:00Z|2026-10-23T00:00:00Z": {
+   "last_notified_at": "2026-10-26T04:39:39Z",
+   "last_seen": "2026-10-26T04:39:39Z",
+   "notified_status": "forming",
+   "score": 72.63,
+   "status": "forming"
+  },
+  "gate|perp|QNTXUSDT|4h|2026-10-17T20:00:00Z|2026-10-20T12:00:00Z": {
+   "last_notified_at": "2026-10-29T15:17:45Z",
+   "last_seen": "2026-10-30T15:06:51Z",
+   "notified_status": "forming",
+   "score": 51.06,
+   "status": "forming"
+  },
+  "gate|perp|SBPUSDT|1d|2026-05-06T00:00:00Z|2026-06-25T00:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-19T04:34:14Z",
+   "notified_status": "forming",
+   "score": 83.58,
+   "status": "forming"
+  },
+  "gate|perp|SBPUSDT|4h|2026-05-10T08:00:00Z|2026-06-25T20:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-19T04:34:14Z",
+   "notified_status": "watchlist",
+   "score": 86.65,
+   "status": "watchlist"
+  },
+  "gate|perp|SBPUSDT|4h|2026-07-21T00:00:00Z|2026-08-15T00:00:00Z": {
+   "last_notified_at": "2026-10-19T06:40:17Z",
+   "last_seen": "2026-10-22T04:36:31Z",
+   "notified_status": "watchlist",
+   "score": 60.46,
+   "status": "forming"
+  },
+  "gate|perp|SIRENUSDT|4h|2026-06-25T12:00:00Z|2026-09-09T20:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-18T22:28:52Z",
+   "notified_status": "watchlist",
+   "score": 73.71,
+   "status": "watchlist"
+  },
+  "gate|perp|SKSQUAREUSDT|4h|2026-10-13T04:00:00Z|2026-10-20T04:00:00Z": {
+   "last_notified_at": "2026-10-28T05:33:16Z",
+   "last_seen": "2026-10-28T05:33:16Z",
+   "notified_status": "forming",
+   "score": 87.71,
+   "status": "forming"
+  },
+  "gate|perp|SKYAIUSDT|4h|2026-10-04T12:00:00Z|2026-10-18T20:00:00Z": {
+   "last_notified_at": "2026-10-25T13:15:04Z",
+   "last_seen": "2026-10-25T13:15:04Z",
+   "notified_status": "confirmed",
+   "score": 85.02,
+   "status": "confirmed"
+  },
+  "gate|perp|SKYAIUSDT|4h|2026-10-08T16:00:00Z|2026-10-18T20:00:00Z": {
+   "last_notified_at": "2026-10-25T15:46:32Z",
+   "last_seen": "2026-10-26T04:39:39Z",
+   "notified_status": "confirmed",
+   "score": 93.58,
+   "status": "confirmed"
+  },
+  "gate|perp|SPOTUSDT|4h|2026-09-02T00:00:00Z|2026-10-05T12:00:00Z": {
+   "last_notified_at": "2026-10-30T20:48:37Z",
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": "confirmed",
+   "score": 80.84,
+   "status": "confirmed"
+  },
+  "gate|perp|SPOTUSDT|4h|2026-09-14T04:00:00Z|2026-10-05T12:00:00Z": {
+   "last_notified_at": "2026-10-29T16:11:31Z",
+   "last_seen": "2026-10-30T15:06:51Z",
+   "notified_status": "watchlist",
+   "score": 81.55,
+   "status": "watchlist"
+  },
+  "gate|perp|SQDUSDT|4h|2026-10-15T12:00:00Z|2026-10-18T20:00:00Z": {
+   "last_notified_at": "2026-10-28T05:33:16Z",
+   "last_seen": "2026-10-28T21:04:48Z",
+   "notified_status": "confirmed",
+   "score": 85.45,
+   "status": "confirmed"
+  },
+  "gate|perp|SSPCUSDT|4h|2026-09-14T16:00:00Z|2026-10-06T12:00:00Z": {
+   "last_notified_at": "2026-10-20T13:36:35Z",
+   "last_seen": "2026-10-20T23:13:32Z",
+   "notified_status": "watchlist",
+   "score": 78.25,
+   "status": "watchlist"
+  },
+  "gate|perp|STARUSDT|4h|2026-10-03T12:00:00Z|2026-10-15T00:00:00Z": {
+   "last_notified_at": "2026-10-31T05:30:26Z",
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": "watchlist",
+   "score": 60.21,
+   "status": "watchlist"
+  },
+  "gate|perp|STARUSDT|4h|2026-10-05T16:00:00Z|2026-10-15T00:00:00Z": {
+   "last_notified_at": "2026-10-21T13:47:43Z",
+   "last_seen": "2026-10-22T04:36:31Z",
+   "notified_status": "forming",
+   "score": 74.14,
+   "status": "forming"
+  },
+  "gate|perp|STARUSDT|4h|2026-10-08T16:00:00Z|2026-10-15T00:00:00Z": {
+   "last_notified_at": "2026-10-23T13:26:25Z",
+   "last_seen": "2026-10-24T18:50:40Z",
+   "notified_status": "watchlist",
+   "score": 60.96,
+   "status": "forming"
+  },
+  "gate|perp|STONKUSDT|4h|2026-10-06T00:00:00Z|2026-10-18T16:00:00Z": {
+   "last_notified_at": "2026-10-29T15:17:45Z",
+   "last_seen": "2026-10-29T21:07:25Z",
+   "notified_status": "forming",
+   "score": 56.18,
+   "status": "forming"
+  },
+  "gate|perp|TAIJIUSDT|4h|2026-10-09T00:00:00Z|2026-10-19T00:00:00Z": {
+   "last_notified_at": "2026-10-26T15:13:32Z",
+   "last_seen": "2026-10-26T21:05:08Z",
+   "notified_status": "forming",
+   "score": 55.12,
+   "status": "forming"
+  },
+  "gate|perp|TAIJIUSDT|4h|2026-10-13T00:00:00Z|2026-10-19T00:00:00Z": {
+   "last_notified_at": "2026-10-26T04:39:39Z",
+   "last_seen": "2026-10-26T04:39:39Z",
+   "notified_status": "forming",
+   "score": 75.4,
+   "status": "forming"
+  },
+  "gate|perp|TAIKOUSDT|4h|2026-10-08T16:00:00Z|2026-10-18T16:00:00Z": {
+   "last_notified_at": "2026-10-25T13:15:04Z",
+   "last_seen": "2026-10-29T05:42:41Z",
+   "notified_status": "watchlist",
+   "score": 78.68,
+   "status": "watchlist"
+  },
+  "gate|perp|TAKEUSDT|4h|2026-10-04T12:00:00Z|2026-10-15T12:00:00Z": {
+   "last_notified_at": "2026-10-31T05:30:26Z",
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": "watchlist",
+   "score": 63.95,
+   "status": "watchlist"
+  },
+  "gate|perp|TAKEUSDT|4h|2026-10-05T12:00:00Z|2026-10-15T12:00:00Z": {
+   "last_notified_at": "2026-10-27T20:43:07Z",
+   "last_seen": "2026-10-28T15:08:42Z",
+   "notified_status": "confirmed",
+   "score": 87.29,
+   "status": "confirmed"
+  },
+  "gate|perp|TOLLYUSDT|4h|2026-10-08T16:00:00Z|2026-10-15T08:00:00Z": {
+   "last_notified_at": "2026-10-24T04:32:50Z",
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": "confirmed",
+   "score": 50.77,
+   "status": "watchlist"
+  },
+  "gate|perp|TSTBSCUSDT|4h|2026-05-07T04:00:00Z|2026-07-06T08:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-19T21:04:52Z",
+   "notified_status": "watchlist",
+   "score": 56.2,
+   "status": "watchlist"
+  },
+  "gate|perp|TW88USDT|1d|2026-06-07T00:00:00Z|2026-07-29T00:00:00Z": {
+   "last_notified_at": "2026-10-31T05:30:26Z",
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": "forming",
+   "score": 78.81,
+   "status": "forming"
+  },
+  "gate|perp|VELVETUSDT|4h|2026-09-04T04:00:00Z|2026-09-09T20:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-19T21:04:52Z",
+   "notified_status": "watchlist",
+   "score": 49.05,
+   "status": "watchlist"
+  },
+  "gate|perp|VOLXUSDT|1d|2026-08-13T00:00:00Z|2026-09-04T00:00:00Z": {
+   "last_notified_at": "2026-10-30T05:41:40Z",
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": "forming",
+   "score": 85.98,
+   "status": "forming"
+  },
+  "gate|perp|VSTUSDT|1d|2026-09-01T00:00:00Z|2026-09-30T00:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-22T04:36:31Z",
+   "notified_status": "forming",
+   "score": 72.15,
+   "status": "watchlist"
+  },
+  "gate|perp|WANGSUUSDT|4h|2026-08-27T00:00:00Z|2026-10-19T00:00:00Z": {
+   "last_notified_at": "2026-10-30T20:48:37Z",
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": "forming",
+   "score": 76.07,
+   "status": "forming"
+  },
+  "gate|perp|XCNUSDT|4h|2026-10-08T16:00:00Z|2026-10-24T12:00:00Z": {
+   "last_notified_at": "2026-10-28T15:08:42Z",
+   "last_seen": "2026-10-29T21:07:25Z",
+   "notified_status": "watchlist",
+   "score": 70.43,
+   "status": "watchlist"
+  },
+  "gate|perp|XDCUSDT|1d|2026-02-06T00:00:00Z|2026-08-01T00:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-19T04:34:14Z",
+   "notified_status": "watchlist",
+   "score": 70.52,
+   "status": "watchlist"
+  },
+  "gate|perp|XDCUSDT|1d|2026-05-05T00:00:00Z|2026-08-01T00:00:00Z": {
+   "last_notified_at": "2026-10-19T06:40:17Z",
+   "last_seen": "2026-10-21T17:41:21Z",
+   "notified_status": "watchlist",
+   "score": 62.26,
+   "status": "watchlist"
+  },
+  "gate|perp|XDCUSDT|1w|2026-05-04T00:00:00Z|2026-07-27T00:00:00Z": {
+   "last_notified_at": "2026-10-26T04:39:39Z",
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": "forming",
+   "score": 59.93,
+   "status": "forming"
+  },
+  "gate|perp|XDCUSDT|4h|2026-10-04T04:00:00Z|2026-10-08T16:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-20T13:36:35Z",
+   "notified_status": "watchlist",
+   "score": 53.1,
+   "status": "forming"
+  },
+  "gate|perp|XDCUSDT|4h|2026-10-13T00:00:00Z|2026-10-20T12:00:00Z": {
+   "last_notified_at": "2026-10-24T04:32:50Z",
+   "last_seen": "2026-10-24T12:44:06Z",
+   "notified_status": "forming",
+   "score": 68.97,
+   "status": "forming"
+  },
+  "gate|perp|XNYUSDT|1d|2026-09-10T00:00:00Z|2026-10-18T00:00:00Z": {
+   "last_notified_at": "2026-10-29T05:42:41Z",
+   "last_seen": "2026-10-29T21:07:25Z",
+   "notified_status": "forming",
+   "score": 91.36,
+   "status": "forming"
+  },
+  "gate|perp|ZHIPUHKDUSDT|4h|2026-10-02T00:00:00Z|2026-10-22T16:00:00Z": {
+   "last_notified_at": null,
+   "last_seen": "2026-10-29T21:07:25Z",
+   "notified_status": null,
+   "score": 48.47,
+   "status": "forming"
+  },
+  "gate|perp|ZHIPUHKDUSDT|4h|2026-10-03T08:00:00Z|2026-10-22T16:00:00Z": {
+   "last_notified_at": "2026-10-29T05:42:41Z",
+   "last_seen": "2026-10-29T05:42:41Z",
+   "notified_status": "forming",
+   "score": 54.08,
+   "status": "forming"
+  },
+  "gate|perp|哈基米USDT|4h|2026-10-15T00:00:00Z|2026-10-18T16:00:00Z": {
+   "last_notified_at": "2026-10-26T04:39:39Z",
+   "last_seen": "2026-10-26T15:13:32Z",
+   "notified_status": "forming",
+   "score": 75.11,
+   "status": "forming"
+  },
+  "gate|perp|龙虾USDT|4h|2026-10-18T20:00:00Z|2026-10-29T20:00:00Z": {
+   "last_notified_at": null,
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": null,
+   "score": 44.5,
+   "status": "forming"
+  },
+  "okx|perp|AAOIUSDT|4h|2026-10-15T12:00:00Z|2026-10-26T08:00:00Z": {
+   "last_notified_at": "2026-10-29T21:07:25Z",
+   "last_seen": "2026-10-30T05:41:40Z",
+   "notified_status": "forming",
+   "score": 62.62,
+   "status": "forming"
+  },
+  "okx|perp|ACUUSDT|4h|2026-10-03T12:00:00Z|2026-10-15T00:00:00Z": {
+   "last_notified_at": "2026-10-27T14:28:50Z",
+   "last_seen": "2026-10-27T14:28:50Z",
+   "notified_status": "confirmed",
+   "score": 74.57,
+   "status": "confirmed"
+  },
+  "okx|perp|ADBEUSDT|1d|2026-08-26T00:00:00Z|2026-09-28T00:00:00Z": {
+   "last_notified_at": "2026-10-28T05:33:16Z",
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": "forming",
+   "score": 68.42,
+   "status": "forming"
+  },
+  "okx|perp|ADBEUSDT|4h|2026-09-13T12:00:00Z|2026-09-28T12:00:00Z": {
+   "last_notified_at": "2026-10-20T23:13:32Z",
+   "last_seen": "2026-10-21T23:20:09Z",
+   "notified_status": "confirmed",
+   "score": 82.67,
+   "status": "confirmed"
+  },
+  "okx|perp|ALABUSDT|4h|2026-10-17T20:00:00Z|2026-10-26T12:00:00Z": {
+   "last_notified_at": "2026-10-29T21:07:25Z",
+   "last_seen": "2026-10-30T15:06:51Z",
+   "notified_status": "forming",
+   "score": 73.96,
+   "status": "forming"
+  },
+  "okx|perp|AMCUSDT|4h|2026-09-28T00:00:00Z|2026-10-05T12:00:00Z": {
+   "last_notified_at": "2026-10-21T18:29:39Z",
+   "last_seen": "2026-10-22T20:04:50Z",
+   "notified_status": "confirmed",
+   "score": 66.94,
+   "status": "confirmed"
+  },
+  "okx|perp|AMCUSDT|4h|2026-09-29T16:00:00Z|2026-10-05T12:00:00Z": {
+   "last_notified_at": "2026-10-21T13:47:43Z",
+   "last_seen": "2026-10-23T04:42:39Z",
+   "notified_status": "watchlist",
+   "score": 72.62,
+   "status": "watchlist"
+  },
+  "okx|perp|APRUSDT|4h|2026-10-14T08:00:00Z|2026-10-23T16:00:00Z": {
+   "last_notified_at": "2026-10-29T05:42:41Z",
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": "forming",
+   "score": 68.32,
+   "status": "forming"
+  },
+  "okx|perp|ARMUSDT|1d|2026-06-10T00:00:00Z|2026-07-29T00:00:00Z": {
+   "last_notified_at": "2026-10-21T18:29:39Z",
+   "last_seen": "2026-10-22T23:21:00Z",
+   "notified_status": "forming",
+   "score": 52.35,
+   "status": "forming"
+  },
+  "okx|perp|ARXUSDT|4h|2026-10-15T04:00:00Z|2026-10-26T12:00:00Z": {
+   "last_notified_at": "2026-10-31T05:30:26Z",
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": "forming",
+   "score": 80.75,
+   "status": "forming"
+  },
+  "okx|perp|ARXUSDT|4h|2026-10-18T16:00:00Z|2026-10-26T12:00:00Z": {
+   "last_notified_at": "2026-10-30T05:41:40Z",
+   "last_seen": "2026-10-30T20:48:37Z",
+   "notified_status": "forming",
+   "score": 61.07,
+   "status": "forming"
+  },
+  "okx|perp|ASTSUSDT|4h|2026-10-17T20:00:00Z|2026-10-23T12:00:00Z": {
+   "last_notified_at": "2026-10-30T20:48:37Z",
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": "forming",
+   "score": 75.84,
+   "status": "forming"
+  },
+  "okx|perp|AXTIUSDT|4h|2026-10-13T12:00:00Z|2026-10-17T20:00:00Z": {
+   "last_notified_at": "2026-10-29T21:07:25Z",
+   "last_seen": "2026-10-29T21:07:25Z",
+   "notified_status": "forming",
+   "score": 85.16,
+   "status": "forming"
+  },
+  "okx|perp|AZTECUSDT|1d|2026-05-20T00:00:00Z|2026-08-18T00:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-21T17:41:21Z",
+   "notified_status": "watchlist",
+   "score": 70.08,
+   "status": "watchlist"
+  },
+  "okx|perp|AZTECUSDT|4h|2026-05-24T12:00:00Z|2026-08-18T00:00:00Z": {
+   "last_notified_at": "2026-10-27T09:29:26Z",
+   "last_seen": "2026-10-29T21:07:25Z",
+   "notified_status": "watchlist",
+   "score": 58.82,
+   "status": "watchlist"
+  },
+  "okx|perp|AZTECUSDT|4h|2026-05-28T04:00:00Z|2026-08-18T00:00:00Z": {
+   "last_notified_at": "2026-10-18T18:40:09Z",
+   "last_seen": "2026-10-22T04:36:31Z",
+   "notified_status": "forming",
+   "score": 71.16,
+   "status": "watchlist"
+  },
+  "okx|perp|AZTECUSDT|4h|2026-06-02T20:00:00Z|2026-08-18T00:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-18T15:52:20Z",
+   "notified_status": "forming",
+   "score": 83.39,
+   "status": "forming"
+  },
+  "okx|perp|BEUSDT|1d|2026-06-10T00:00:00Z|2026-07-29T00:00:00Z": {
+   "last_notified_at": "2026-10-30T05:41:40Z",
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": "watchlist",
+   "score": 60.35,
+   "status": "watchlist"
+  },
+  "okx|perp|BEUSDT|1d|2026-06-26T00:00:00Z|2026-07-29T00:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-22T23:21:00Z",
+   "notified_status": "forming",
+   "score": 65.37,
+   "status": "forming"
+  },
+  "okx|perp|BEUSDT|4h|2026-06-26T16:00:00Z|2026-07-29T16:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-23T13:26:25Z",
+   "notified_status": "forming",
+   "score": 47.49,
+   "status": "forming"
+  },
+  "okx|perp|BEUSDT|4h|2026-10-20T12:00:00Z|2026-10-24T20:00:00Z": {
+   "last_notified_at": "2026-10-30T20:48:37Z",
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": "forming",
+   "score": 58.57,
+   "status": "forming"
+  },
+  "okx|perp|BSBUSDT|4h|2026-09-23T16:00:00Z|2026-10-15T00:00:00Z": {
+   "last_notified_at": "2026-10-24T04:32:50Z",
+   "last_seen": "2026-10-25T04:36:29Z",
+   "notified_status": "confirmed",
+   "score": 72.59,
+   "status": "confirmed"
+  },
+  "okx|perp|BWETUSDT|4h|2026-10-11T12:00:00Z|2026-10-21T12:00:00Z": {
+   "last_notified_at": "2026-10-27T14:28:50Z",
+   "last_seen": "2026-10-27T20:43:07Z",
+   "notified_status": "confirmed",
+   "score": 80.42,
+   "status": "confirmed"
+  },
+  "okx|perp|CLUSDT|1d|2026-05-06T00:00:00Z|2026-07-02T00:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-21T17:41:21Z",
+   "notified_status": "watchlist",
+   "score": 75.24,
+   "status": "watchlist"
+  },
+  "okx|perp|COAIUSDT|4h|2026-10-08T16:00:00Z|2026-10-15T00:00:00Z": {
+   "last_notified_at": "2026-10-24T22:31:27Z",
+   "last_seen": "2026-10-25T04:36:29Z",
+   "notified_status": "watchlist",
+   "score": 68.78,
+   "status": "watchlist"
+  },
+  "okx|perp|COINUSDT|1d|2026-05-07T00:00:00Z|2026-06-26T00:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-21T17:41:21Z",
+   "notified_status": "forming",
+   "score": 74.49,
+   "status": "forming"
+  },
+  "okx|perp|CRCLUSDT|4h|2026-05-11T12:00:00Z|2026-08-03T12:00:00Z": {
+   "last_notified_at": "2026-10-22T20:04:50Z",
+   "last_seen": "2026-10-24T04:32:50Z",
+   "notified_status": "watchlist",
+   "score": 74.53,
+   "status": "watchlist"
+  },
+  "okx|perp|CRCLUSDT|4h|2026-10-01T12:00:00Z|2026-10-15T12:00:00Z": {
+   "last_notified_at": "2026-10-21T18:29:39Z",
+   "last_seen": "2026-10-22T13:48:56Z",
+   "notified_status": "confirmed",
+   "score": 84.77,
+   "status": "confirmed"
+  },
+  "okx|perp|CRCLUSDT|4h|2026-10-08T16:00:00Z|2026-10-15T12:00:00Z": {
+   "last_notified_at": "2026-10-21T17:41:21Z",
+   "last_seen": "2026-10-21T17:41:21Z",
+   "notified_status": "confirmed",
+   "score": 86.38,
+   "status": "confirmed"
+  },
+  "okx|perp|CRMUSDT|4h|2026-09-13T20:00:00Z|2026-10-08T12:00:00Z": {
+   "last_notified_at": "2026-10-22T20:04:50Z",
+   "last_seen": "2026-10-23T23:09:25Z",
+   "notified_status": "confirmed",
+   "score": 77.97,
+   "status": "confirmed"
+  },
+  "okx|perp|CRWVUSDT|4h|2026-10-15T12:00:00Z|2026-10-26T08:00:00Z": {
+   "last_notified_at": "2026-10-30T05:41:40Z",
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": "forming",
+   "score": 57.7,
+   "status": "forming"
+  },
+  "okx|perp|CSOPSAMSUNG2LUSDT|4h|2026-10-15T04:00:00Z|2026-10-17T20:00:00Z": {
+   "last_notified_at": "2026-10-28T05:33:16Z",
+   "last_seen": "2026-10-28T21:04:48Z",
+   "notified_status": "confirmed",
+   "score": 86.33,
+   "status": "confirmed"
+  },
+  "okx|perp|CXMTUSDT|4h|2026-10-15T04:00:00Z|2026-10-23T00:00:00Z": {
+   "last_notified_at": "2026-10-29T16:11:31Z",
+   "last_seen": "2026-10-29T21:07:25Z",
+   "notified_status": "forming",
+   "score": 83.7,
+   "status": "forming"
+  },
+  "okx|perp|CYPHUSDT|4h|2026-09-29T12:00:00Z|2026-10-15T12:00:00Z": {
+   "last_notified_at": "2026-10-23T13:26:25Z",
+   "last_seen": "2026-10-23T13:26:25Z",
+   "notified_status": "watchlist",
+   "score": 63.74,
+   "status": "watchlist"
+  },
+  "okx|perp|CYPHUSDT|4h|2026-10-01T20:00:00Z|2026-10-15T12:00:00Z": {
+   "last_notified_at": "2026-10-30T20:48:37Z",
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": "forming",
+   "score": 56.82,
+   "status": "forming"
+  },
+  "okx|perp|DGAIUSDT|4h|2026-10-02T04:00:00Z|2026-10-17T04:00:00Z": {
+   "last_notified_at": "2026-10-26T15:13:32Z",
+   "last_seen": "2026-10-27T09:55:14Z",
+   "notified_status": "watchlist",
+   "score": 52.33,
+   "status": "watchlist"
+  },
+  "okx|perp|FLNCUSDT|4h|2026-10-15T12:00:00Z|2026-10-26T12:00:00Z": {
+   "last_notified_at": "2026-10-30T20:48:37Z",
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": "forming",
+   "score": 71.59,
+   "status": "forming"
+  },
+  "okx|perp|H100USDT|4h|2026-10-11T12:00:00Z|2026-10-16T00:00:00Z": {
+   "last_notified_at": "2026-10-28T15:08:42Z",
+   "last_seen": "2026-10-28T21:04:48Z",
+   "notified_status": "forming",
+   "score": 63.71,
+   "status": "forming"
+  },
+  "okx|perp|HUSDT|4h|2026-10-09T12:00:00Z|2026-10-15T00:00:00Z": {
+   "last_notified_at": "2026-10-23T23:09:25Z",
+   "last_seen": "2026-10-24T12:44:06Z",
+   "notified_status": "watchlist",
+   "score": 76.8,
+   "status": "forming"
+  },
+  "okx|perp|HUSDT|4h|2026-10-09T12:00:00Z|2026-10-24T12:00:00Z": {
+   "last_notified_at": "2026-10-30T20:48:37Z",
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": "watchlist",
+   "score": 68.75,
+   "status": "watchlist"
+  },
+  "okx|perp|HUTUSDT|4h|2026-10-15T12:00:00Z|2026-10-26T08:00:00Z": {
+   "last_notified_at": "2026-10-30T05:41:40Z",
+   "last_seen": "2026-10-30T15:06:51Z",
+   "notified_status": "forming",
+   "score": 60.98,
+   "status": "forming"
+  },
+  "okx|perp|HYUNDAIUSDT|4h|2026-10-08T16:00:00Z|2026-10-15T08:00:00Z": {
+   "last_notified_at": "2026-10-20T13:36:35Z",
+   "last_seen": "2026-10-22T13:48:56Z",
+   "notified_status": "forming",
+   "score": 76.12,
+   "status": "forming"
+  },
+  "okx|perp|INTCUSDT|1d|2026-06-06T00:00:00Z|2026-07-29T00:00:00Z": {
+   "last_notified_at": "2026-10-29T05:42:41Z",
+   "last_seen": "2026-10-29T21:07:25Z",
+   "notified_status": "watchlist",
+   "score": 68.69,
+   "status": "watchlist"
+  },
+  "okx|perp|IRENUSDT|4h|2026-10-17T20:00:00Z|2026-10-26T08:00:00Z": {
+   "last_notified_at": "2026-10-30T05:41:40Z",
+   "last_seen": "2026-10-30T15:06:51Z",
+   "notified_status": "forming",
+   "score": 51.51,
+   "status": "forming"
+  },
+  "okx|perp|IRENUSDT|4h|2026-10-18T20:00:00Z|2026-10-26T08:00:00Z": {
+   "last_notified_at": "2026-10-29T21:07:25Z",
+   "last_seen": "2026-10-29T21:07:25Z",
+   "notified_status": "forming",
+   "score": 82.11,
+   "status": "forming"
+  },
+  "okx|perp|KLACUSDT|4h|2026-10-17T20:00:00Z|2026-10-24T12:00:00Z": {
+   "last_notified_at": "2026-10-30T15:06:51Z",
+   "last_seen": "2026-10-30T15:06:51Z",
+   "notified_status": "forming",
+   "score": 81.81,
+   "status": "forming"
+  },
+  "okx|perp|KORUUSDT|4h|2026-10-13T00:00:00Z|2026-10-23T00:00:00Z": {
+   "last_notified_at": "2026-10-29T21:07:25Z",
+   "last_seen": "2026-10-29T21:07:25Z",
+   "notified_status": "forming",
+   "score": 79.98,
+   "status": "forming"
+  },
+  "okx|perp|KR200USDT|4h|2026-10-15T04:00:00Z|2026-10-23T00:00:00Z": {
+   "last_notified_at": "2026-10-30T05:41:40Z",
+   "last_seen": "2026-10-30T15:06:51Z",
+   "notified_status": "forming",
+   "score": 52.86,
+   "status": "forming"
+  },
+  "okx|perp|LGELECTRONICSUSDT|4h|2026-10-19T00:00:00Z|2026-10-22T20:00:00Z": {
+   "last_notified_at": "2026-10-29T16:11:31Z",
+   "last_seen": "2026-10-29T21:07:25Z",
+   "notified_status": "forming",
+   "score": 69.59,
+   "status": "forming"
+  },
+  "okx|perp|LRCXUSDT|4h|2026-10-17T20:00:00Z|2026-10-23T12:00:00Z": {
+   "last_notified_at": "2026-10-30T15:06:51Z",
+   "last_seen": "2026-10-30T15:06:51Z",
+   "notified_status": "forming",
+   "score": 66.69,
+   "status": "forming"
+  },
+  "okx|perp|MINIMAXUSDT|4h|2026-10-15T12:00:00Z|2026-10-22T20:00:00Z": {
+   "last_notified_at": "2026-10-28T05:33:16Z",
+   "last_seen": "2026-10-28T21:04:48Z",
+   "notified_status": "watchlist",
+   "score": 83.82,
+   "status": "watchlist"
+  },
+  "okx|perp|MRVLUSDT|1d|2026-06-10T00:00:00Z|2026-07-29T00:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-21T17:41:21Z",
+   "notified_status": "forming",
+   "score": 78.86,
+   "status": "forming"
+  },
+  "okx|perp|MSTRUSDT|1d|2026-04-30T00:00:00Z|2026-06-29T00:00:00Z": {
+   "last_notified_at": "2026-10-23T04:42:39Z",
+   "last_seen": "2026-10-30T20:48:37Z",
+   "notified_status": "watchlist",
+   "score": 65.53,
+   "status": "watchlist"
+  },
+  "okx|perp|MSTRUSDT|4h|2026-10-15T12:00:00Z|2026-10-17T20:00:00Z": {
+   "last_notified_at": "2026-10-26T04:39:39Z",
+   "last_seen": "2026-10-26T15:13:32Z",
+   "notified_status": "forming",
+   "score": 66.66,
+   "status": "forming"
+  },
+  "okx|perp|MSTUUSDT|4h|2026-10-15T12:00:00Z|2026-10-20T08:00:00Z": {
+   "last_notified_at": "2026-10-27T14:28:50Z",
+   "last_seen": "2026-10-29T21:07:25Z",
+   "notified_status": "watchlist",
+   "score": 71.5,
+   "status": "watchlist"
+  },
+  "okx|perp|MUUSDT|4h|2026-06-24T16:00:00Z|2026-07-29T20:00:00Z": {
+   "last_notified_at": "2026-10-21T09:37:36Z",
+   "last_seen": "2026-10-30T15:06:51Z",
+   "notified_status": "watchlist",
+   "score": 73.34,
+   "status": "watchlist"
+  },
+  "okx|perp|MUUSDT|4h|2026-10-15T12:00:00Z|2026-10-17T20:00:00Z": {
+   "last_notified_at": "2026-10-27T14:28:50Z",
+   "last_seen": "2026-10-28T15:08:42Z",
+   "notified_status": "confirmed",
+   "score": 77.14,
+   "status": "confirmed"
+  },
+  "okx|perp|NGUSDT|1d|2026-03-20T00:00:00Z|2026-04-30T00:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-19T04:34:14Z",
+   "notified_status": "watchlist",
+   "score": 50.82,
+   "status": "watchlist"
+  },
+  "okx|perp|NGUSDT|1d|2026-06-15T00:00:00Z|2026-08-06T00:00:00Z": {
+   "last_notified_at": "2026-10-20T04:45:02Z",
+   "last_seen": "2026-10-21T17:41:21Z",
+   "notified_status": "forming",
+   "score": 76.0,
+   "status": "forming"
+  },
+  "okx|perp|NGUSDT|4h|2026-05-30T16:00:00Z|2026-08-06T12:00:00Z": {
+   "last_notified_at": "2026-10-19T04:34:14Z",
+   "last_seen": "2026-10-22T04:36:31Z",
+   "notified_status": "forming",
+   "score": 61.11,
+   "status": "forming"
+  },
+  "okx|perp|NGUSDT|4h|2026-06-02T12:00:00Z|2026-08-06T12:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-18T22:28:52Z",
+   "notified_status": "watchlist",
+   "score": 79.9,
+   "status": "watchlist"
+  },
+  "okx|perp|NOWUSDT|4h|2026-09-13T08:00:00Z|2026-09-28T12:00:00Z": {
+   "last_notified_at": "2026-10-22T20:04:50Z",
+   "last_seen": "2026-10-23T20:01:45Z",
+   "notified_status": "confirmed",
+   "score": 73.24,
+   "status": "confirmed"
+  },
+  "okx|perp|NVDAUSDT|1d|2026-05-27T00:00:00Z|2026-07-29T00:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-21T17:41:21Z",
+   "notified_status": "forming",
+   "score": 64.13,
+   "status": "forming"
+  },
+  "okx|perp|NVDAUSDT|4h|2026-05-11T08:00:00Z|2026-07-29T20:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-21T17:41:21Z",
+   "notified_status": "forming",
+   "score": 82.73,
+   "status": "watchlist"
+  },
+  "okx|perp|OKTAUSDT|4h|2026-10-15T08:00:00Z|2026-10-20T04:00:00Z": {
+   "last_notified_at": "2026-10-29T15:17:45Z",
+   "last_seen": "2026-10-29T15:17:45Z",
+   "notified_status": "forming",
+   "score": 60.31,
+   "status": "forming"
+  },
+  "okx|perp|ORCLUSDT|4h|2026-10-13T00:00:00Z|2026-10-22T16:00:00Z": {
+   "last_notified_at": "2026-10-29T16:11:31Z",
+   "last_seen": "2026-10-29T21:07:25Z",
+   "notified_status": "forming",
+   "score": 73.93,
+   "status": "forming"
+  },
+  "okx|perp|OSCRUSDT|1d|2026-09-09T00:00:00Z|2026-09-24T00:00:00Z": {
+   "last_notified_at": "2026-10-24T04:32:50Z",
+   "last_seen": "2026-10-30T20:48:37Z",
+   "notified_status": "forming",
+   "score": 56.11,
+   "status": "forming"
+  },
+  "okx|perp|OSCRUSDT|4h|2026-09-10T12:00:00Z|2026-09-24T12:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-23T20:01:45Z",
+   "notified_status": "watchlist",
+   "score": 75.33,
+   "status": "watchlist"
+  },
+  "okx|perp|OUSDT|4h|2026-10-15T04:00:00Z|2026-10-24T12:00:00Z": {
+   "last_notified_at": "2026-10-29T05:42:41Z",
+   "last_seen": "2026-10-29T21:07:25Z",
+   "notified_status": "forming",
+   "score": 73.52,
+   "status": "forming"
+  },
+  "okx|perp|PENGUSDT|4h|2026-10-17T20:00:00Z|2026-10-23T12:00:00Z": {
+   "last_notified_at": "2026-10-30T05:41:40Z",
+   "last_seen": "2026-10-30T15:06:51Z",
+   "notified_status": "forming",
+   "score": 83.42,
+   "status": "forming"
+  },
+  "okx|perp|PIPPINUSDT|4h|2026-10-08T16:00:00Z|2026-10-18T16:00:00Z": {
+   "last_notified_at": "2026-10-28T15:08:42Z",
+   "last_seen": "2026-10-29T05:42:41Z",
+   "notified_status": "confirmed",
+   "score": 66.96,
+   "status": "confirmed"
+  },
+  "okx|perp|POETUSDT|4h|2026-10-15T12:00:00Z|2026-10-22T16:00:00Z": {
+   "last_notified_at": "2026-10-29T21:07:25Z",
+   "last_seen": "2026-10-29T21:07:25Z",
+   "notified_status": "forming",
+   "score": 69.74,
+   "status": "forming"
+  },
+  "okx|perp|QCOMUSDT|1d|2026-06-10T00:00:00Z|2026-07-29T00:00:00Z": {
+   "last_notified_at": "2026-10-23T04:42:39Z",
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": "watchlist",
+   "score": 75.79,
+   "status": "forming"
+  },
+  "okx|perp|QCOMUSDT|4h|2026-06-24T16:00:00Z|2026-07-29T20:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": "forming",
+   "score": 51.34,
+   "status": "forming"
+  },
+  "okx|perp|QQQUSDT|4h|2026-06-10T20:00:00Z|2026-07-29T20:00:00Z": {
+   "last_notified_at": "2026-10-24T12:44:06Z",
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": "watchlist",
+   "score": 61.27,
+   "status": "forming"
+  },
+  "okx|perp|QUANTUSDT|4h|2026-10-08T16:00:00Z|2026-10-24T12:00:00Z": {
+   "last_notified_at": "2026-10-27T14:28:50Z",
+   "last_seen": "2026-10-27T20:43:07Z",
+   "notified_status": "forming",
+   "score": 60.12,
+   "status": "forming"
+  },
+  "okx|perp|QUANTUSDT|4h|2026-10-15T00:00:00Z|2026-10-24T12:00:00Z": {
+   "last_notified_at": "2026-10-28T21:04:48Z",
+   "last_seen": "2026-10-29T21:07:25Z",
+   "notified_status": "forming",
+   "score": 57.63,
+   "status": "forming"
+  },
+  "okx|perp|RAMUSDT|4h|2026-10-15T12:00:00Z|2026-10-17T20:00:00Z": {
+   "last_notified_at": "2026-10-27T20:43:07Z",
+   "last_seen": "2026-10-28T15:08:42Z",
+   "notified_status": "confirmed",
+   "score": 91.58,
+   "status": "confirmed"
+  },
+  "okx|perp|RDDTUSDT|4h|2026-09-13T12:00:00Z|2026-09-29T16:00:00Z": {
+   "last_notified_at": "2026-10-23T13:26:25Z",
+   "last_seen": "2026-10-23T13:26:25Z",
+   "notified_status": "watchlist",
+   "score": 68.49,
+   "status": "watchlist"
+  },
+  "okx|perp|RDDTUSDT|4h|2026-09-17T12:00:00Z|2026-09-29T16:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-22T13:48:56Z",
+   "notified_status": "watchlist",
+   "score": 73.7,
+   "status": "forming"
+  },
+  "okx|perp|RDDTUSDT|4h|2026-09-18T12:00:00Z|2026-09-29T16:00:00Z": {
+   "last_notified_at": "2026-10-18T22:28:52Z",
+   "last_seen": "2026-10-19T04:34:14Z",
+   "notified_status": "watchlist",
+   "score": 83.07,
+   "status": "watchlist"
+  },
+  "okx|perp|RDWUSDT|4h|2026-10-15T12:00:00Z|2026-10-23T12:00:00Z": {
+   "last_notified_at": "2026-10-30T20:48:37Z",
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": "forming",
+   "score": 54.77,
+   "status": "forming"
+  },
+  "okx|perp|RECALLUSDT|1d|2026-05-02T00:00:00Z|2026-06-26T00:00:00Z": {
+   "last_notified_at": "2026-10-28T05:33:16Z",
+   "last_seen": "2026-10-30T20:48:37Z",
+   "notified_status": "watchlist",
+   "score": 55.17,
+   "status": "watchlist"
+  },
+  "okx|perp|RECALLUSDT|4h|2026-10-08T16:00:00Z|2026-10-22T20:00:00Z": {
+   "last_notified_at": "2026-10-29T15:17:45Z",
+   "last_seen": "2026-10-29T21:07:25Z",
+   "notified_status": "forming",
+   "score": 67.45,
+   "status": "forming"
+  },
+  "okx|perp|RIVERUSDT|4h|2026-09-23T12:00:00Z|2026-10-15T12:00:00Z": {
+   "last_notified_at": "2026-10-18T18:40:09Z",
+   "last_seen": "2026-10-19T04:34:14Z",
+   "notified_status": "forming",
+   "score": 62.53,
+   "status": "forming"
+  },
+  "okx|perp|RIVERUSDT|4h|2026-09-29T00:00:00Z|2026-10-15T12:00:00Z": {
+   "last_notified_at": "2026-10-27T04:58:58Z",
+   "last_seen": "2026-10-29T21:07:25Z",
+   "notified_status": "watchlist",
+   "score": 67.45,
+   "status": "watchlist"
+  },
+  "okx|perp|RLSUSDT|4h|2026-06-02T20:00:00Z|2026-08-18T00:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-25T13:15:04Z",
+   "notified_status": "forming",
+   "score": 62.06,
+   "status": "watchlist"
+  },
+  "okx|perp|ROKUSDT|4h|2026-07-02T16:00:00Z|2026-09-17T20:00:00Z": {
+   "last_notified_at": "2026-10-30T15:06:51Z",
+   "last_seen": "2026-10-30T15:06:51Z",
+   "notified_status": "watchlist",
+   "score": 73.06,
+   "status": "watchlist"
+  },
+  "okx|perp|SAMSUNGUSDT|4h|2026-10-15T04:00:00Z|2026-10-17T20:00:00Z": {
+   "last_notified_at": "2026-10-28T05:33:16Z",
+   "last_seen": "2026-10-28T21:04:48Z",
+   "notified_status": "confirmed",
+   "score": 75.14,
+   "status": "confirmed"
+  },
+  "okx|perp|SHAZUSDT|4h|2026-10-15T12:00:00Z|2026-10-26T12:00:00Z": {
+   "last_notified_at": "2026-10-29T21:07:25Z",
+   "last_seen": "2026-10-30T15:06:51Z",
+   "notified_status": "forming",
+   "score": 58.44,
+   "status": "forming"
+  },
+  "okx|perp|SHEINUSDT|4h|2026-09-09T00:00:00Z|2026-09-30T04:00:00Z": {
+   "last_notified_at": "2026-10-20T04:45:02Z",
+   "last_seen": "2026-10-21T17:41:21Z",
+   "notified_status": "forming",
+   "score": 78.2,
+   "status": "watchlist"
+  },
+  "okx|perp|SHEINUSDT|4h|2026-09-16T00:00:00Z|2026-09-30T04:00:00Z": {
+   "last_notified_at": "2026-10-28T15:08:42Z",
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": "watchlist",
+   "score": 84.92,
+   "status": "watchlist"
+  },
+  "okx|perp|SKHYUSDT|4h|2026-10-15T08:00:00Z|2026-10-17T20:00:00Z": {
+   "last_notified_at": "2026-10-28T05:33:16Z",
+   "last_seen": "2026-10-28T15:08:42Z",
+   "notified_status": "confirmed",
+   "score": 85.51,
+   "status": "confirmed"
+  },
+  "okx|perp|SKUUUSDT|4h|2026-10-15T08:00:00Z|2026-10-17T20:00:00Z": {
+   "last_notified_at": "2026-10-28T05:33:16Z",
+   "last_seen": "2026-10-28T15:08:42Z",
+   "notified_status": "confirmed",
+   "score": 88.77,
+   "status": "confirmed"
+  },
+  "okx|perp|SNDKUSDT|1d|2026-06-06T00:00:00Z|2026-07-29T00:00:00Z": {
+   "last_notified_at": "2026-10-23T04:42:39Z",
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": "watchlist",
+   "score": 39.69,
+   "status": "forming"
+  },
+  "okx|perp|SNOWUSDT|4h|2026-10-15T12:00:00Z|2026-10-17T20:00:00Z": {
+   "last_notified_at": "2026-10-29T21:07:25Z",
+   "last_seen": "2026-10-29T21:07:25Z",
+   "notified_status": "forming",
+   "score": 83.45,
+   "status": "forming"
+  },
+  "okx|perp|SOONUSDT|4h|2026-10-08T16:00:00Z|2026-10-15T00:00:00Z": {
+   "last_notified_at": "2026-10-21T13:47:43Z",
+   "last_seen": "2026-10-22T13:48:56Z",
+   "notified_status": "confirmed",
+   "score": 77.63,
+   "status": "confirmed"
+  },
+  "okx|perp|SOXLUSDT|4h|2026-10-15T12:00:00Z|2026-10-23T00:00:00Z": {
+   "last_notified_at": "2026-10-29T21:07:25Z",
+   "last_seen": "2026-10-29T21:07:25Z",
+   "notified_status": "forming",
+   "score": 89.67,
+   "status": "forming"
+  },
+  "okx|perp|SOXSUSDT|4h|2026-08-02T20:00:00Z|2026-10-02T12:00:00Z": {
+   "last_notified_at": "2026-10-26T21:05:08Z",
+   "last_seen": "2026-10-27T14:28:50Z",
+   "notified_status": "forming",
+   "score": 83.11,
+   "status": "forming"
+  },
+  "okx|perp|SOXSUSDT|4h|2026-09-11T16:00:00Z|2026-10-02T12:00:00Z": {
+   "last_notified_at": "2026-10-22T20:04:50Z",
+   "last_seen": "2026-10-23T23:09:25Z",
+   "notified_status": "confirmed",
+   "score": 78.23,
+   "status": "confirmed"
+  },
+  "okx|perp|SPCXUSDT|1d|2026-06-23T00:00:00Z|2026-08-03T00:00:00Z": {
+   "last_notified_at": "2026-10-23T04:42:39Z",
+   "last_seen": "2026-10-30T20:48:37Z",
+   "notified_status": "watchlist",
+   "score": 63.07,
+   "status": "forming"
+  },
+  "okx|perp|SPCXUSDT|4h|2026-10-05T12:00:00Z|2026-10-17T20:00:00Z": {
+   "last_notified_at": "2026-10-25T13:15:04Z",
+   "last_seen": "2026-10-28T15:08:42Z",
+   "notified_status": "watchlist",
+   "score": 68.74,
+   "status": "watchlist"
+  },
+  "okx|perp|SPXUSDT|4h|2026-10-11T00:00:00Z|2026-10-15T12:00:00Z": {
+   "last_notified_at": "2026-10-21T17:41:21Z",
+   "last_seen": "2026-10-22T04:36:31Z",
+   "notified_status": "forming",
+   "score": 70.97,
+   "status": "forming"
+  },
+  "okx|perp|SQQQUSDT|1d|2026-09-08T00:00:00Z|2026-10-06T00:00:00Z": {
+   "last_notified_at": "2026-10-23T04:42:39Z",
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": "forming",
+   "score": 80.51,
+   "status": "forming"
+  },
+  "okx|perp|STABLEUSDT|1d|2026-08-20T00:00:00Z|2026-09-17T00:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-18T22:28:52Z",
+   "notified_status": "watchlist",
+   "score": 57.27,
+   "status": "watchlist"
+  },
+  "okx|perp|STABLEUSDT|4h|2026-08-20T20:00:00Z|2026-09-17T16:00:00Z": {
+   "last_notified_at": "2026-10-21T18:29:39Z",
+   "last_seen": "2026-10-22T04:36:31Z",
+   "notified_status": "confirmed",
+   "score": 74.29,
+   "status": "confirmed"
+  },
+  "okx|perp|TEMUSDT|4h|2026-10-08T12:00:00Z|2026-10-22T16:00:00Z": {
+   "last_notified_at": "2026-10-30T20:48:37Z",
+   "last_seen": "2026-10-30T20:48:37Z",
+   "notified_status": "forming",
+   "score": 72.72,
+   "status": "forming"
+  },
+  "okx|perp|TEMUSDT|4h|2026-10-15T12:00:00Z|2026-10-22T16:00:00Z": {
+   "last_notified_at": "2026-10-31T05:30:26Z",
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": "forming",
+   "score": 65.39,
+   "status": "forming"
+  },
+  "okx|perp|TQQQUSDT|4h|2026-10-15T12:00:00Z|2026-10-24T12:00:00Z": {
+   "last_notified_at": "2026-10-29T21:07:25Z",
+   "last_seen": "2026-10-29T21:07:25Z",
+   "notified_status": "forming",
+   "score": 76.14,
+   "status": "forming"
+  },
+  "okx|perp|TSEMUSDT|4h|2026-10-15T12:00:00Z|2026-10-24T16:00:00Z": {
+   "last_notified_at": "2026-10-29T16:11:31Z",
+   "last_seen": "2026-10-29T21:07:25Z",
+   "notified_status": "forming",
+   "score": 76.08,
+   "status": "forming"
+  },
+  "okx|perp|TSEMUSDT|4h|2026-10-17T20:00:00Z|2026-10-24T16:00:00Z": {
+   "last_notified_at": "2026-10-30T05:41:40Z",
+   "last_seen": "2026-10-30T05:41:40Z",
+   "notified_status": "forming",
+   "score": 63.97,
+   "status": "forming"
+  },
+  "okx|perp|TSLLUSDT|4h|2026-10-08T16:00:00Z|2026-10-18T16:00:00Z": {
+   "last_notified_at": "2026-10-27T20:43:07Z",
+   "last_seen": "2026-10-28T15:08:42Z",
+   "notified_status": "confirmed",
+   "score": 79.53,
+   "status": "confirmed"
+  },
+  "okx|perp|TSLLUSDT|4h|2026-10-15T12:00:00Z|2026-10-18T16:00:00Z": {
+   "last_notified_at": "2026-10-28T21:04:48Z",
+   "last_seen": "2026-10-28T21:04:48Z",
+   "notified_status": "confirmed",
+   "score": 77.88,
+   "status": "confirmed"
+  },
+  "okx|perp|TSMUSDT|1d|2026-06-26T00:00:00Z|2026-07-29T00:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-30T20:48:37Z",
+   "notified_status": "forming",
+   "score": 62.61,
+   "status": "watchlist"
+  },
+  "okx|perp|TSMUSDT|4h|2026-06-26T12:00:00Z|2026-07-29T20:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-21T17:41:21Z",
+   "notified_status": "watchlist",
+   "score": 70.6,
+   "status": "watchlist"
+  },
+  "okx|perp|TTMIUSDT|4h|2026-10-20T12:00:00Z|2026-10-22T16:00:00Z": {
+   "last_notified_at": "2026-10-30T20:48:37Z",
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": "forming",
+   "score": 68.99,
+   "status": "forming"
+  },
+  "okx|perp|UBUSDT|4h|2026-10-10T20:00:00Z|2026-10-15T00:00:00Z": {
+   "last_notified_at": "2026-10-22T20:04:50Z",
+   "last_seen": "2026-10-23T20:01:45Z",
+   "notified_status": "forming",
+   "score": 74.39,
+   "status": "forming"
+  },
+  "okx|perp|UNITREEUSDT|4h|2026-08-24T16:00:00Z|2026-10-15T12:00:00Z": {
+   "last_notified_at": "2026-10-22T04:36:31Z",
+   "last_seen": "2026-10-23T04:42:39Z",
+   "notified_status": "watchlist",
+   "score": 70.14,
+   "status": "forming"
+  },
+  "okx|perp|UPUSDT|4h|2026-10-11T08:00:00Z|2026-10-20T20:00:00Z": {
+   "last_notified_at": "2026-10-28T05:33:16Z",
+   "last_seen": "2026-10-28T15:08:42Z",
+   "notified_status": "confirmed",
+   "score": 82.51,
+   "status": "confirmed"
+  },
+  "okx|perp|URNMUSDT|4h|2026-10-15T04:00:00Z|2026-10-23T12:00:00Z": {
+   "last_notified_at": "2026-10-30T15:06:51Z",
+   "last_seen": "2026-10-30T15:06:51Z",
+   "notified_status": "forming",
+   "score": 72.31,
+   "status": "forming"
+  },
+  "okx|perp|USARUSDT|4h|2026-10-15T12:00:00Z|2026-10-27T04:00:00Z": {
+   "last_notified_at": "2026-10-30T20:48:37Z",
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": "forming",
+   "score": 66.37,
+   "status": "forming"
+  },
+  "okx|perp|USARUSDT|4h|2026-10-17T20:00:00Z|2026-10-27T04:00:00Z": {
+   "last_notified_at": "2026-10-29T16:11:31Z",
+   "last_seen": "2026-10-29T21:07:25Z",
+   "notified_status": "confirmed",
+   "score": 83.15,
+   "status": "confirmed"
+  },
+  "okx|perp|USELESSUSDT|1d|2025-10-10T00:00:00Z|2026-02-06T00:00:00Z": {
+   "last_notified_at": null,
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": null,
+   "score": 42.99,
+   "status": "forming"
+  },
+  "okx|perp|USELESSUSDT|4h|2026-10-10T08:00:00Z|2026-10-18T20:00:00Z": {
+   "last_notified_at": "2026-10-23T20:01:45Z",
+   "last_seen": "2026-10-29T21:07:25Z",
+   "notified_status": "confirmed",
+   "score": 57.49,
+   "status": "forming"
+  },
+  "okx|perp|UVXYUSDT|4h|2026-09-06T04:00:00Z|2026-10-14T08:00:00Z": {
+   "last_notified_at": "2026-10-23T23:09:25Z",
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": "confirmed",
+   "score": 69.39,
+   "status": "confirmed"
+  },
+  "okx|perp|UVXYUSDT|4h|2026-09-11T16:00:00Z|2026-10-14T08:00:00Z": {
+   "last_notified_at": "2026-10-25T22:35:59Z",
+   "last_seen": "2026-10-26T15:13:32Z",
+   "notified_status": "forming",
+   "score": 84.97,
+   "status": "forming"
+  },
+  "okx|perp|VICRUSDT|4h|2026-10-20T08:00:00Z|2026-10-23T12:00:00Z": {
+   "last_notified_at": "2026-10-30T20:48:37Z",
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": "forming",
+   "score": 59.59,
+   "status": "forming"
+  },
+  "okx|perp|WDCUSDT|4h|2026-10-02T12:00:00Z|2026-10-17T20:00:00Z": {
+   "last_notified_at": "2026-10-22T20:04:50Z",
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": "forming",
+   "score": 77.08,
+   "status": "forming"
+  },
+  "okx|perp|XIAOMIUSDT|1d|2026-09-17T00:00:00Z|2026-10-08T00:00:00Z": {
+   "last_notified_at": "2026-10-28T05:33:16Z",
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": "forming",
+   "score": 82.41,
+   "status": "forming"
+  },
+  "okx|perp|XIAOMIUSDT|4h|2026-09-20T00:00:00Z|2026-10-08T12:00:00Z": {
+   "last_notified_at": "2026-10-23T20:01:45Z",
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": "watchlist",
+   "score": 79.45,
+   "status": "watchlist"
+  },
+  "okx|perp|ZHIPUUSDT|4h|2026-10-15T12:00:00Z|2026-10-22T16:00:00Z": {
+   "last_notified_at": "2026-10-29T05:42:41Z",
+   "last_seen": "2026-10-29T05:42:41Z",
+   "notified_status": "forming",
+   "score": 64.98,
+   "status": "forming"
+  },
+  "okx|spot|ASPUSDT|4h|2026-07-17T12:00:00Z|2026-08-15T04:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-19T04:34:14Z",
+   "notified_status": "watchlist",
+   "score": 54.05,
+   "status": "watchlist"
+  },
+  "okx|spot|ATHUSDT|1d|2026-03-08T00:00:00Z|2026-08-14T00:00:00Z": {
+   "last_notified_at": "2026-10-24T04:32:50Z",
+   "last_seen": "2026-10-30T20:48:37Z",
+   "notified_status": "watchlist",
+   "score": 51.7,
+   "status": "forming"
+  },
+  "okx|spot|ATHUSDT|4h|2026-10-13T00:00:00Z|2026-10-18T16:00:00Z": {
+   "last_notified_at": "2026-10-24T04:32:50Z",
+   "last_seen": "2026-10-24T12:44:06Z",
+   "notified_status": "forming",
+   "score": 61.93,
+   "status": "forming"
+  },
+  "okx|spot|BETHUSDT|1d|2025-11-04T00:00:00Z|2026-06-06T00:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-29T21:07:25Z",
+   "notified_status": "forming",
+   "score": 60.5,
+   "status": "forming"
+  },
+  "okx|spot|CARDSUSDT|4h|2026-10-04T20:00:00Z|2026-10-08T16:00:00Z": {
+   "last_notified_at": "2026-10-18T18:40:09Z",
+   "last_seen": "2026-10-19T04:34:14Z",
+   "notified_status": "forming",
+   "score": 52.15,
+   "status": "forming"
+  },
+  "okx|spot|CPUSDT|4h|2026-10-13T00:00:00Z|2026-10-18T20:00:00Z": {
+   "last_notified_at": "2026-10-23T13:26:25Z",
+   "last_seen": "2026-10-23T13:26:25Z",
+   "notified_status": "forming",
+   "score": 77.36,
+   "status": "forming"
+  },
+  "okx|spot|CROUSDT|1d|2026-07-14T00:00:00Z|2026-08-18T00:00:00Z": {
+   "last_notified_at": "2026-10-24T04:32:50Z",
+   "last_seen": "2026-10-24T22:31:27Z",
+   "notified_status": "watchlist",
+   "score": 53.63,
+   "status": "watchlist"
+  },
+  "okx|spot|CROUSDT|1w|2026-06-29T00:00:00Z|2026-08-17T00:00:00Z": {
+   "last_notified_at": "2026-10-26T04:39:39Z",
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": "forming",
+   "score": 50.97,
+   "status": "forming"
+  },
+  "okx|spot|CROUSDT|4h|2026-07-14T08:00:00Z|2026-08-18T00:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-21T17:41:21Z",
+   "notified_status": "watchlist",
+   "score": 68.55,
+   "status": "watchlist"
+  },
+  "okx|spot|CTCUSDT|4h|2026-10-13T00:00:00Z|2026-10-20T08:00:00Z": {
+   "last_notified_at": "2026-10-26T04:39:39Z",
+   "last_seen": "2026-10-26T04:39:39Z",
+   "notified_status": "confirmed",
+   "score": 65.17,
+   "status": "confirmed"
+  },
+  "okx|spot|DEGENUSDT|1d|2025-10-10T00:00:00Z|2026-02-06T00:00:00Z": {
+   "last_notified_at": "2026-10-21T04:38:22Z",
+   "last_seen": "2026-10-24T22:31:27Z",
+   "notified_status": "watchlist",
+   "score": 77.48,
+   "status": "watchlist"
+  },
+  "okx|spot|DEGENUSDT|4h|2026-07-17T12:00:00Z|2026-08-18T08:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-26T15:13:32Z",
+   "notified_status": "watchlist",
+   "score": 40.76,
+   "status": "watchlist"
+  },
+  "okx|spot|FLUIDUSDT|1d|2026-03-08T00:00:00Z|2026-06-30T00:00:00Z": {
+   "last_notified_at": "2026-10-25T04:36:29Z",
+   "last_seen": "2026-10-29T21:07:25Z",
+   "notified_status": "forming",
+   "score": 69.57,
+   "status": "forming"
+  },
+  "okx|spot|GRASSUSDT|4h|2026-10-13T12:00:00Z|2026-10-18T20:00:00Z": {
+   "last_notified_at": "2026-10-26T21:05:08Z",
+   "last_seen": "2026-10-26T21:05:08Z",
+   "notified_status": "forming",
+   "score": 84.73,
+   "status": "forming"
+  },
+  "okx|spot|JITOSOLUSDT|1d|2025-11-04T00:00:00Z|2026-06-06T00:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-21T17:41:21Z",
+   "notified_status": "forming",
+   "score": 50.93,
+   "status": "forming"
+  },
+  "okx|spot|JITOSOLUSDT|1w|2025-12-15T00:00:00Z|2026-06-01T00:00:00Z": {
+   "last_notified_at": "2026-10-19T04:34:14Z",
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": "forming",
+   "score": 74.53,
+   "status": "forming"
+  },
+  "okx|spot|LEOUSDT|1d|2025-11-07T00:00:00Z|2025-12-18T00:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-19T04:34:14Z",
+   "notified_status": "watchlist",
+   "score": 58.04,
+   "status": "watchlist"
+  },
+  "okx|spot|LEOUSDT|1w|2025-07-14T00:00:00Z|2025-12-15T00:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-19T04:34:14Z",
+   "notified_status": "forming",
+   "score": 64.04,
+   "status": "forming"
+  },
+  "okx|spot|LITUSDT|4h|2026-10-04T12:00:00Z|2026-10-18T20:00:00Z": {
+   "last_notified_at": "2026-10-23T04:42:39Z",
+   "last_seen": "2026-10-23T23:09:25Z",
+   "notified_status": "forming",
+   "score": 67.68,
+   "status": "forming"
+  },
+  "okx|spot|LITUSDT|4h|2026-10-11T08:00:00Z|2026-10-18T20:00:00Z": {
+   "last_notified_at": "2026-10-22T20:04:50Z",
+   "last_seen": "2026-10-22T23:21:00Z",
+   "notified_status": "forming",
+   "score": 90.9,
+   "status": "forming"
+  },
+  "okx|spot|MENGOUSDT|4h|2026-10-09T16:00:00Z|2026-10-18T20:00:00Z": {
+   "last_notified_at": "2026-10-25T13:15:04Z",
+   "last_seen": "2026-10-26T04:39:39Z",
+   "notified_status": "watchlist",
+   "score": 85.21,
+   "status": "forming"
+  },
+  "okx|spot|MENGOUSDT|4h|2026-10-11T12:00:00Z|2026-10-18T20:00:00Z": {
+   "last_notified_at": "2026-10-24T12:44:06Z",
+   "last_seen": "2026-10-24T12:44:06Z",
+   "notified_status": "watchlist",
+   "score": 77.94,
+   "status": "watchlist"
+  },
+  "okx|spot|MERLUSDT|1d|2026-05-29T00:00:00Z|2026-06-26T00:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-19T04:34:14Z",
+   "notified_status": "forming",
+   "score": 76.49,
+   "status": "forming"
+  },
+  "okx|spot|MERLUSDT|4h|2026-05-29T12:00:00Z|2026-06-26T00:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-19T04:34:14Z",
+   "notified_status": "forming",
+   "score": 76.49,
+   "status": "forming"
+  },
+  "okx|spot|MERLUSDT|4h|2026-10-12T16:00:00Z|2026-10-18T20:00:00Z": {
+   "last_notified_at": "2026-10-30T20:48:37Z",
+   "last_seen": "2026-10-30T20:48:37Z",
+   "notified_status": "forming",
+   "score": 76.56,
+   "status": "forming"
+  },
+  "okx|spot|MEWUSDT|4h|2026-09-29T00:00:00Z|2026-10-18T16:00:00Z": {
+   "last_notified_at": "2026-10-23T13:26:25Z",
+   "last_seen": "2026-10-29T21:07:25Z",
+   "notified_status": "watchlist",
+   "score": 61.07,
+   "status": "forming"
+  },
+  "okx|spot|MOODENGUSDT|4h|2026-09-23T16:00:00Z|2026-10-18T16:00:00Z": {
+   "last_notified_at": "2026-10-24T04:32:50Z",
+   "last_seen": "2026-10-25T04:36:29Z",
+   "notified_status": "forming",
+   "score": 60.45,
+   "status": "forming"
+  },
+  "okx|spot|MOODENGUSDT|4h|2026-10-08T16:00:00Z|2026-10-18T16:00:00Z": {
+   "last_notified_at": "2026-10-23T13:26:25Z",
+   "last_seen": "2026-10-25T22:35:59Z",
+   "notified_status": "watchlist",
+   "score": 52.85,
+   "status": "forming"
+  },
+  "okx|spot|NAVXUSDT|4h|2026-05-12T00:00:00Z|2026-06-06T04:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-21T17:41:21Z",
+   "notified_status": "forming",
+   "score": 48.58,
+   "status": "watchlist"
+  },
+  "okx|spot|OKBUSDT|1d|2025-11-04T00:00:00Z|2026-02-06T00:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-18T22:28:52Z",
+   "notified_status": "forming",
+   "score": 52.63,
+   "status": "forming"
+  },
+  "okx|spot|OKSOLUSDT|1w|2025-12-15T00:00:00Z|2026-06-01T00:00:00Z": {
+   "last_notified_at": "2026-10-19T04:34:14Z",
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": "forming",
+   "score": 75.91,
+   "status": "forming"
+  },
+  "okx|spot|OLUSDT|4h|2026-05-18T16:00:00Z|2026-08-20T16:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-25T22:35:59Z",
+   "notified_status": "watchlist",
+   "score": 56.98,
+   "status": "watchlist"
+  },
+  "okx|spot|OLUSDT|4h|2026-05-29T12:00:00Z|2026-08-20T16:00:00Z": {
+   "last_notified_at": "2026-10-28T21:04:48Z",
+   "last_seen": "2026-10-29T21:07:25Z",
+   "notified_status": "confirmed",
+   "score": 84.33,
+   "status": "confirmed"
+  },
+  "okx|spot|OLUSDT|4h|2026-09-26T20:00:00Z|2026-10-08T16:00:00Z": {
+   "last_notified_at": "2026-10-20T20:03:48Z",
+   "last_seen": "2026-10-20T20:03:48Z",
+   "notified_status": "watchlist",
+   "score": 91.39,
+   "status": "watchlist"
+  },
+  "okx|spot|OLUSDT|4h|2026-10-12T12:00:00Z|2026-10-26T08:00:00Z": {
+   "last_notified_at": "2026-10-30T20:48:37Z",
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": "forming",
+   "score": 67.11,
+   "status": "forming"
+  },
+  "okx|spot|OLUSDT|4h|2026-10-19T16:00:00Z|2026-10-26T08:00:00Z": {
+   "last_notified_at": "2026-10-30T05:41:40Z",
+   "last_seen": "2026-10-30T15:06:51Z",
+   "notified_status": "forming",
+   "score": 78.28,
+   "status": "forming"
+  },
+  "okx|spot|ORBSUSDT|1d|2026-04-01T00:00:00Z|2026-08-18T00:00:00Z": {
+   "last_notified_at": "2026-10-25T04:36:29Z",
+   "last_seen": "2026-10-25T22:35:59Z",
+   "notified_status": "forming",
+   "score": 62.62,
+   "status": "forming"
+  },
+  "okx|spot|PONSUSDT|4h|2026-10-15T00:00:00Z|2026-10-24T12:00:00Z": {
+   "last_notified_at": "2026-10-29T05:42:41Z",
+   "last_seen": "2026-10-29T21:07:25Z",
+   "notified_status": "forming",
+   "score": 67.25,
+   "status": "forming"
+  },
+  "okx|spot|PROSUSDT|4h|2026-10-09T00:00:00Z|2026-10-15T04:00:00Z": {
+   "last_notified_at": "2026-10-22T20:04:50Z",
+   "last_seen": "2026-10-23T13:26:25Z",
+   "notified_status": "confirmed",
+   "score": 74.51,
+   "status": "confirmed"
+  },
+  "okx|spot|SAFEUSDT|1d|2026-05-17T00:00:00Z|2026-06-24T00:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-18T22:28:52Z",
+   "notified_status": "confirmed",
+   "score": 61.84,
+   "status": "confirmed"
+  },
+  "okx|spot|SLXUSDT|4h|2026-10-15T00:00:00Z|2026-10-18T16:00:00Z": {
+   "last_notified_at": "2026-10-26T15:13:32Z",
+   "last_seen": "2026-10-29T21:07:25Z",
+   "notified_status": "watchlist",
+   "score": 78.51,
+   "status": "watchlist"
+  },
+  "okx|spot|SPACEUSDT|4h|2026-10-13T00:00:00Z|2026-10-18T16:00:00Z": {
+   "last_notified_at": "2026-10-29T16:11:31Z",
+   "last_seen": "2026-10-29T21:07:25Z",
+   "notified_status": "confirmed",
+   "score": 76.27,
+   "status": "confirmed"
+  },
+  "okx|spot|STETHUSDT|1d|2025-11-04T00:00:00Z|2026-06-06T00:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-29T21:07:25Z",
+   "notified_status": "forming",
+   "score": 61.13,
+   "status": "forming"
+  },
+  "okx|spot|SWFTCUSDT|1d|2026-03-09T00:00:00Z|2026-08-18T00:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-21T17:41:21Z",
+   "notified_status": "watchlist",
+   "score": 64.9,
+   "status": "watchlist"
+  },
+  "okx|spot|SWFTCUSDT|1d|2026-03-26T00:00:00Z|2026-08-18T00:00:00Z": {
+   "last_notified_at": "2026-10-22T04:36:31Z",
+   "last_seen": "2026-10-22T23:21:00Z",
+   "notified_status": "watchlist",
+   "score": 50.41,
+   "status": "watchlist"
+  },
+  "okx|spot|SWFTCUSDT|1w|2026-03-30T00:00:00Z|2026-08-17T00:00:00Z": {
+   "last_notified_at": "2026-10-19T04:34:14Z",
+   "last_seen": "2026-10-25T22:35:59Z",
+   "notified_status": "forming",
+   "score": 62.18,
+   "status": "forming"
+  },
+  "okx|spot|TOSHIUSDT|4h|2026-10-08T16:00:00Z|2026-10-15T12:00:00Z": {
+   "last_notified_at": "2026-10-20T20:03:48Z",
+   "last_seen": "2026-10-20T20:03:48Z",
+   "notified_status": "confirmed",
+   "score": 55.49,
+   "status": "confirmed"
+  },
+  "okx|spot|TRAUSDT|4h|2026-09-17T20:00:00Z|2026-10-14T12:00:00Z": {
+   "last_notified_at": "2026-10-27T20:43:07Z",
+   "last_seen": "2026-10-30T15:06:51Z",
+   "notified_status": "watchlist",
+   "score": 76.9,
+   "status": "watchlist"
+  },
+  "okx|spot|VVVUSDT|4h|2026-09-24T08:00:00Z|2026-10-18T20:00:00Z": {
+   "last_notified_at": "2026-10-23T23:09:25Z",
+   "last_seen": "2026-10-23T23:09:25Z",
+   "notified_status": "forming",
+   "score": 67.47,
+   "status": "forming"
+  },
+  "okx|spot|VVVUSDT|4h|2026-09-26T16:00:00Z|2026-10-18T20:00:00Z": {
+   "last_notified_at": "2026-10-23T20:01:45Z",
+   "last_seen": "2026-10-23T20:01:45Z",
+   "notified_status": "watchlist",
+   "score": 68.19,
+   "status": "watchlist"
+  },
+  "okx|spot|VVVUSDT|4h|2026-10-03T04:00:00Z|2026-10-18T20:00:00Z": {
+   "last_notified_at": "2026-10-27T09:29:26Z",
+   "last_seen": "2026-10-28T05:33:16Z",
+   "notified_status": "watchlist",
+   "score": 67.33,
+   "status": "watchlist"
+  },
+  "okx|spot|XAAOIUSDT|4h|2026-10-15T12:00:00Z|2026-10-26T08:00:00Z": {
+   "last_notified_at": "2026-10-29T21:07:25Z",
+   "last_seen": "2026-10-30T05:41:40Z",
+   "notified_status": "forming",
+   "score": 61.01,
+   "status": "forming"
+  },
+  "okx|spot|XADBEUSDT|1d|2026-08-26T00:00:00Z|2026-09-28T00:00:00Z": {
+   "last_notified_at": "2026-10-28T05:33:16Z",
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": "forming",
+   "score": 67.22,
+   "status": "forming"
+  },
+  "okx|spot|XADBEUSDT|4h|2026-09-13T12:00:00Z|2026-09-28T12:00:00Z": {
+   "last_notified_at": "2026-10-26T21:05:08Z",
+   "last_seen": "2026-10-27T14:28:50Z",
+   "notified_status": "forming",
+   "score": 82.45,
+   "status": "forming"
+  },
+  "okx|spot|XALABUSDT|4h|2026-10-15T12:00:00Z|2026-10-26T12:00:00Z": {
+   "last_notified_at": "2026-10-29T16:11:31Z",
+   "last_seen": "2026-10-29T21:07:25Z",
+   "notified_status": "forming",
+   "score": 84.62,
+   "status": "forming"
+  },
+  "okx|spot|XALABUSDT|4h|2026-10-18T16:00:00Z|2026-10-26T12:00:00Z": {
+   "last_notified_at": "2026-10-30T05:41:40Z",
+   "last_seen": "2026-10-30T15:06:51Z",
+   "notified_status": "forming",
+   "score": 70.27,
+   "status": "forming"
+  },
+  "okx|spot|XASTSUSDT|4h|2026-10-15T08:00:00Z|2026-10-23T12:00:00Z": {
+   "last_notified_at": "2026-10-30T15:06:51Z",
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": "forming",
+   "score": 81.32,
+   "status": "forming"
+  },
+  "okx|spot|XBEUSDT|4h|2026-10-20T12:00:00Z|2026-10-24T20:00:00Z": {
+   "last_notified_at": "2026-10-30T20:48:37Z",
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": "forming",
+   "score": 58.16,
+   "status": "forming"
+  },
+  "okx|spot|XCHUSDT|4h|2026-09-28T08:00:00Z|2026-10-08T16:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-22T13:48:56Z",
+   "notified_status": "watchlist",
+   "score": 64.16,
+   "status": "forming"
+  },
+  "okx|spot|XCRCLUSDT|4h|2026-10-01T12:00:00Z|2026-10-15T12:00:00Z": {
+   "last_notified_at": "2026-10-21T18:29:39Z",
+   "last_seen": "2026-10-22T13:48:56Z",
+   "notified_status": "confirmed",
+   "score": 83.93,
+   "status": "confirmed"
+  },
+  "okx|spot|XCRCLUSDT|4h|2026-10-08T16:00:00Z|2026-10-15T12:00:00Z": {
+   "last_notified_at": "2026-10-21T17:41:21Z",
+   "last_seen": "2026-10-21T17:41:21Z",
+   "notified_status": "confirmed",
+   "score": 85.34,
+   "status": "confirmed"
+  },
+  "okx|spot|XCRMUSDT|4h|2026-09-13T20:00:00Z|2026-10-08T12:00:00Z": {
+   "last_notified_at": "2026-10-22T20:04:50Z",
+   "last_seen": "2026-10-23T23:09:25Z",
+   "notified_status": "confirmed",
+   "score": 80.61,
+   "status": "confirmed"
+  },
+  "okx|spot|XCRWVUSDT|4h|2026-10-15T12:00:00Z|2026-10-26T08:00:00Z": {
+   "last_notified_at": "2026-10-30T05:41:40Z",
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": "forming",
+   "score": 57.12,
+   "status": "forming"
+  },
+  "okx|spot|XFLNCUSDT|4h|2026-10-15T12:00:00Z|2026-10-26T12:00:00Z": {
+   "last_notified_at": "2026-10-30T20:48:37Z",
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": "forming",
+   "score": 61.83,
+   "status": "forming"
+  },
+  "okx|spot|XIRENUSDT|4h|2026-10-18T20:00:00Z|2026-10-26T08:00:00Z": {
+   "last_notified_at": "2026-10-29T21:07:25Z",
+   "last_seen": "2026-10-29T21:07:25Z",
+   "notified_status": "forming",
+   "score": 81.97,
+   "status": "forming"
+  },
+  "okx|spot|XKORUUSDT|4h|2026-10-13T00:00:00Z|2026-10-23T00:00:00Z": {
+   "last_notified_at": "2026-10-29T21:07:25Z",
+   "last_seen": "2026-10-29T21:07:25Z",
+   "notified_status": "forming",
+   "score": 81.44,
+   "status": "forming"
+  },
+  "okx|spot|XMUUSDT|4h|2026-10-07T12:00:00Z|2026-10-17T20:00:00Z": {
+   "last_notified_at": "2026-10-29T21:07:25Z",
+   "last_seen": "2026-10-29T21:07:25Z",
+   "notified_status": "forming",
+   "score": 67.47,
+   "status": "forming"
+  },
+  "okx|spot|XMUUUSDT|4h|2026-10-15T12:00:00Z|2026-10-22T20:00:00Z": {
+   "last_notified_at": null,
+   "last_seen": "2026-10-30T05:41:40Z",
+   "notified_status": null,
+   "score": 48.67,
+   "status": "forming"
+  },
+  "okx|spot|XNOWUSDT|4h|2026-09-11T12:00:00Z|2026-09-28T12:00:00Z": {
+   "last_notified_at": "2026-10-22T20:04:50Z",
+   "last_seen": "2026-10-23T20:01:45Z",
+   "notified_status": "confirmed",
+   "score": 61.2,
+   "status": "confirmed"
+  },
+  "okx|spot|XORCLUSDT|4h|2026-10-13T00:00:00Z|2026-10-22T16:00:00Z": {
+   "last_notified_at": "2026-10-29T16:11:31Z",
+   "last_seen": "2026-10-29T21:07:25Z",
+   "notified_status": "forming",
+   "score": 74.77,
+   "status": "forming"
+  },
+  "okx|spot|XRDDTUSDT|4h|2026-09-13T12:00:00Z|2026-09-29T16:00:00Z": {
+   "last_notified_at": "2026-10-18T15:29:51Z",
+   "last_seen": "2026-10-18T18:40:09Z",
+   "notified_status": "forming",
+   "score": 84.64,
+   "status": "forming"
+  },
+  "okx|spot|XRDDTUSDT|4h|2026-09-20T08:00:00Z|2026-09-29T16:00:00Z": {
+   "last_notified_at": "2026-10-21T18:29:39Z",
+   "last_seen": "2026-10-22T13:48:56Z",
+   "notified_status": "watchlist",
+   "score": 69.21,
+   "status": "forming"
+  },
+  "okx|spot|XRDWUSDT|4h|2026-10-15T08:00:00Z|2026-10-23T12:00:00Z": {
+   "last_notified_at": "2026-10-30T20:48:37Z",
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": "forming",
+   "score": 73.74,
+   "status": "forming"
+  },
+  "okx|spot|XSHAZUSDT|4h|2026-10-18T16:00:00Z|2026-10-26T12:00:00Z": {
+   "last_notified_at": "2026-10-29T21:07:25Z",
+   "last_seen": "2026-10-30T15:06:51Z",
+   "notified_status": "forming",
+   "score": 65.0,
+   "status": "forming"
+  },
+  "okx|spot|XSHEINUSDT|4h|2026-09-16T00:00:00Z|2026-10-02T04:00:00Z": {
+   "last_notified_at": "2026-10-23T13:26:25Z",
+   "last_seen": "2026-10-24T04:32:50Z",
+   "notified_status": "confirmed",
+   "score": 75.96,
+   "status": "confirmed"
+  },
+  "okx|spot|XSOXLUSDT|4h|2026-10-15T12:00:00Z|2026-10-23T00:00:00Z": {
+   "last_notified_at": "2026-10-29T21:07:25Z",
+   "last_seen": "2026-10-29T21:07:25Z",
+   "notified_status": "forming",
+   "score": 89.71,
+   "status": "forming"
+  },
+  "okx|spot|XSOXSUSDT|4h|2026-09-12T00:00:00Z|2026-10-05T00:00:00Z": {
+   "last_notified_at": "2026-10-22T20:04:50Z",
+   "last_seen": "2026-10-23T20:01:45Z",
+   "notified_status": "confirmed",
+   "score": 91.88,
+   "status": "confirmed"
+  },
+  "okx|spot|XSPCXUSDT|4h|2026-10-05T12:00:00Z|2026-10-17T20:00:00Z": {
+   "last_notified_at": "2026-10-25T13:15:04Z",
+   "last_seen": "2026-10-28T15:08:42Z",
+   "notified_status": "watchlist",
+   "score": 69.09,
+   "status": "watchlist"
+  },
+  "okx|spot|XTQQQUSDT|4h|2026-10-18T20:00:00Z|2026-10-24T12:00:00Z": {
+   "last_notified_at": "2026-10-29T21:07:25Z",
+   "last_seen": "2026-10-29T21:07:25Z",
+   "notified_status": "forming",
+   "score": 72.44,
+   "status": "forming"
+  },
+  "okx|spot|XUSARUSDT|4h|2026-10-17T20:00:00Z|2026-10-26T16:00:00Z": {
+   "last_notified_at": "2026-10-29T16:11:31Z",
+   "last_seen": "2026-10-29T21:07:25Z",
+   "notified_status": "confirmed",
+   "score": 82.52,
+   "status": "confirmed"
+  },
+  "okx|spot|XWDCUSDT|4h|2026-10-02T12:00:00Z|2026-10-17T20:00:00Z": {
+   "last_notified_at": "2026-10-30T20:48:37Z",
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": "forming",
+   "score": 76.05,
+   "status": "forming"
+  },
+  "okx|spot|XZMUSDT|4h|2026-08-26T16:00:00Z|2026-09-29T12:00:00Z": {
+   "last_notified_at": "2026-10-30T20:48:37Z",
+   "last_seen": "2026-10-31T05:30:26Z",
+   "notified_status": "forming",
+   "score": 73.82,
+   "status": "forming"
+  }
+ },
+ "version": 2
+}
