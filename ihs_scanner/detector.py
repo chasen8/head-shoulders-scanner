@@ -219,6 +219,7 @@ def find_pattern_candidates(df: pd.DataFrame, timeframe: str,
     max_tilt = _opt_float(cfg["max_neckline_tilt_of_head"])
     forming_on = bool(cfg["enable_forming_rs"])
     n1_first = bool(cfg["require_n1_first_high_after_ls"])
+    rs_lowest = bool(cfg["require_rs_lowest_after_n2"])  # D53
     lead_in = _opt_float(cfg["head_lead_in"])
     max_neck_rise = _opt_float(cfg["max_neckline_rise"])
     max_wick = _opt_float(cfg["max_neckline_wick_of_head"])
@@ -340,6 +341,9 @@ def find_pattern_candidates(df: pd.DataFrame, timeframe: str,
         rs_keep, n2_pos, form_keep = [], [], []
         for p, f in zip(rs_pts, rs_forming):
             pos = _highest_between(high_idx, high_px, hi, p.index)
+            # D53: RS must be the lowest low of [N2, RS] (mirror of T7 on the left side)
+            if pos is not None and rs_lowest and float(np.min(low[highs[pos].index:p.index + 1])) < p.price:
+                continue
             if pos is not None:
                 rs_keep.append(p)
                 n2_pos.append(pos)

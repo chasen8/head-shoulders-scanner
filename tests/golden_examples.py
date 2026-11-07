@@ -146,3 +146,17 @@ D45_CASES = {
         "H": ("2026-10-18T20:00:00Z", 0.02509),
     },
 }
+
+# D53: the user's FIGHTUSDT Gate perpetual 4h case (site: "RS confirmed", score 89.1, as of the bar opening 2026-11-01
+# 16:00 UTC). RS was 10-31 20:00 (0.004116) although the pullback from N2 (10-28 20:00, 0.004607) had already bottomed
+# at 10-29 20:00 (0.003652); the user: "右肩似乎搞錯了". Not added to GOLDEN_EXAMPLES (those feed the V4 templates).
+D53_CASES = {
+    "FIGHTUSDT_gate_perp_4h": {
+        "source": "gate_perp", "symbol": "FIGHT_USDT", "timeframe": "4h",
+        "screenshot_utc": "2026-11-01T20:00:00Z",
+        "wrong_rs": ("2026-10-31T20:00:00Z", 0.004116),
+        "real_low": ("2026-10-29T20:00:00Z", 0.003652),
+        "N2": ("2026-10-28T20:00:00Z", 0.004607),
+        "H": ("2026-10-18T20:00:00Z", 0.00258),
+    },
+}

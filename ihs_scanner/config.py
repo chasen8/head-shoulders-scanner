@@ -134,6 +134,10 @@ CLASSIC_CONFIG: dict[str, Any] = {
     #   left of N1 (AZTEC 04-29) or a higher low before the real bottom (PENDLE 11-14) becomes the
     #   "shoulder" just because its drop matches the right side better
     "require_n1_first_high_after_ls": False,
+    # D53 the right-side mirror of T7's "LS is the lowest low of [LS, N1]": RS.low = min(low[N2.index : RS.index]).
+    #   Without it a higher, later low wins over the real bottom of the N2 pullback just because it matches
+    #   the left shoulder better (FIGHT 4h: RS 0.004116 while 10-29 20:00 had already printed 0.003652)
+    "require_rs_lowest_after_n2": False,
     # T8 head lowest including a lead-in: no low below H.low in the
     #   ceil(head_lead_in * (H.index - LS.index)) bars before LS (D6 already covers LS..RS).
     #   Rejects "patterns" sitting on top of a prior up-leg (price was below the head shortly before LS).
@@ -286,6 +290,7 @@ TEMPLATE_OVERRIDES: dict[str, Any] = {
     "max_neckline_tilt_of_head": 0.75,
     "enable_forming_rs": True,
     "require_n1_first_high_after_ls": True,
+    "require_rs_lowest_after_n2": True,  # D53
     # HMSTR's closest earlier low below H is 84 bars before LS with H - LS = 118 (ratio 0.71)
     "head_lead_in": 0.5,
     # every example's neckline falls (-3% .. -25%); a strongly rising neckline puts RS far above LS

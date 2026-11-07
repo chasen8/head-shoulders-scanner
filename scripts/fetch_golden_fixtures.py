@@ -25,7 +25,7 @@ import requests
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from tests.golden_examples import BARS_AFTER, BARS_BEFORE, D36_CASES, D45_CASES, GOLDEN_EXAMPLES  # noqa: E402
+from tests.golden_examples import BARS_AFTER, BARS_BEFORE, D36_CASES, D45_CASES, D53_CASES, GOLDEN_EXAMPLES  # noqa: E402
 
 FIXTURE_DIR = ROOT / "tests" / "fixtures"
 BAR_MS = {"4h": 4 * 3600 * 1000, "1d": 86400 * 1000, "1w": 7 * 86400 * 1000}
@@ -130,7 +130,7 @@ def main(argv=None) -> int:
     ap.add_argument("--force", action="store_true", help="re-download existing fixtures")
     args = ap.parse_args(argv)
     FIXTURE_DIR.mkdir(parents=True, exist_ok=True)
-    for name, spec in {**GOLDEN_EXAMPLES, **D36_CASES, **D45_CASES}.items():
+    for name, spec in {**GOLDEN_EXAMPLES, **D36_CASES, **D45_CASES, **D53_CASES}.items():
         path = FIXTURE_DIR / f"{name}.csv"
         if path.exists() and not args.force:
             print(f"[skip] {path.name} exists")
