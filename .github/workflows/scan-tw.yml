@@ -4,13 +4,15 @@
 #   結果：site/data/tw/scan.json + bars/；通知狀態 state_tw.json（與加密貨幣分開）。
 #   發布：共用 publish.yml，只換掉台股自己的檔案，保留加密貨幣的 data/scan.json、data/bars、state.json。
 #
-# 排程：平日 UTC 06:10 = 台北 14:10（13:30 收盤後 40 分鐘；build_site_tw.py 的 SCAN_HOUR_UTC /
-# SCAN_MINUTE_UTC 要一起改）。國定假日照跑，只是不會有新 K 線。
+# 排程（D54）：平日兩次——UTC 00:32 = 台北 08:32（開盤前，補前一天收盤後那次的漏）、UTC 06:02 = 台北 14:02
+# （13:30 收盤後約半小時）。避開整點以減少 GitHub 排程延遲；build_site_tw.py 的 SCAN_SLOTS_UTC 要一起改。
+# 國定假日照跑，只是不會有新 K 線。
 name: Scan TW stocks and notify
 
 on:
   schedule:
-    - cron: "10 6 * * 1-5"
+    - cron: "32 0 * * 1-5"  # 台北 08:32 開盤前
+    - cron: "2 6 * * 1-5"   # 台北 14:02 收盤後半小時
   workflow_dispatch:
     inputs:
       dry_run:

@@ -385,11 +385,16 @@ def test_tw_one_exchange_list_failure_is_recorded(tmp_path, monkeypatch):
     assert data["source_errors"][0]["source"] == "tpex-stock"
 
 
-def test_next_tw_scan_time_weekdays_0610_utc():
+def test_next_tw_scan_time_weekdays_two_slots():
+    """D54: weekdays 00:32 UTC (Taipei 08:32, before the open) and 06:02 UTC (Taipei 14:02, after the close)."""
     f = build_site_tw.next_tw_scan_time
-    assert f(datetime(2026, 10, 19, 5, 0, tzinfo=timezone.utc)) == datetime(2026, 10, 19, 6, 10, tzinfo=timezone.utc)
-    assert f(datetime(2026, 10, 19, 6, 10, tzinfo=timezone.utc)) == datetime(2026, 10, 20, 6, 10, tzinfo=timezone.utc)
-    assert f(datetime(2026, 10, 23, 7, 0, tzinfo=timezone.utc)) == datetime(2026, 10, 26, 6, 10, tzinfo=timezone.utc)
+    u = lambda *a: datetime(*a, tzinfo=timezone.utc)  # noqa: E731
+    assert f(u(2026, 10, 19, 0, 0)) == u(2026, 10, 19, 0, 32)   # Monday before the pre-open slot
+    assert f(u(2026, 10, 19, 0, 32)) == u(2026, 10, 19, 6, 2)   # exactly on a slot -> the next one
+    assert f(u(2026, 10, 19, 5, 0)) == u(2026, 10, 19, 6, 2)
+    assert f(u(2026, 10, 19, 6, 2)) == u(2026, 10, 20, 0, 32)   # after the close slot -> next morning
+    assert f(u(2026, 10, 23, 7, 0)) == u(2026, 10, 26, 0, 32)   # Friday afternoon -> Monday morning
+    assert f(u(2026, 10, 24, 12, 0)) == u(2026, 10, 26, 0, 32)  # Saturday -> Monday morning
 
 
 def test_crypto_payload_is_marked_crypto():

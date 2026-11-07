@@ -30,9 +30,9 @@ from ihs_scanner import data_tw
 from ihs_scanner.config import TIMEFRAMES, market_config
 from ihs_scanner.sources import Instrument, SourceFetchError
 
-# Must match .github/workflows/scan-tw.yml: cron "10 6 * * 1-5"
-SCAN_HOUR_UTC = 6
-SCAN_MINUTE_UTC = 10
+# Must match .github/workflows/scan-tw.yml (D54): cron "32 0 * * 1-5" (Taipei 08:32, before the open) and
+# "2 6 * * 1-5" (Taipei 14:02, half an hour after the 13:30 close); (hour, minute) in UTC
+SCAN_SLOTS_UTC = ((0, 32), (6, 2))
 TW_EXCHANGES = ("twse", "tpex")
 EXCEL_NAME = "rs_confirmed.xlsx"  # D39: site/data/tw/rs_confirmed.xlsx, linked from the site (TW list only)
 
@@ -50,12 +50,16 @@ def write_excel(payload, path: Path) -> bool:
 
 
 def next_tw_scan_time(now: datetime) -> datetime:
-    """Next weekday 06:10 UTC after `now` (Taiwan holidays still run; they just add no new bar)."""
+    """Next weekday SCAN_SLOTS_UTC slot after `now` (Taiwan holidays still run; they just add no new bar)."""
     now = now.astimezone(timezone.utc)
-    slot = now.replace(hour=SCAN_HOUR_UTC, minute=SCAN_MINUTE_UTC, second=0, microsecond=0)
-    while slot <= now or slot.weekday() >= 5:
-        slot += timedelta(days=1)
-    return slot
+    day = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    while True:
+        if day.weekday() < 5:
+            for h, m in SCAN_SLOTS_UTC:
+                slot = day.replace(hour=h, minute=m)
+                if slot > now:
+                    return slot
+        day += timedelta(days=1)
 
 
 def list_tw_instruments(session, *, include_etf: bool, lister: Callable = data_tw.list_instruments

@@ -181,7 +181,7 @@
     var d = isTri() ? state.tdata : state.data, s = d.settings;
     var scanned = d.scanned_symbols !== undefined ? d.scanned_symbols : s.symbols.length;
     var next = d.next_scan_at, nextText;
-    var every = isTw() ? "每個交易日收盤後（台北 14:10 左右）掃描一次" : "每 4 小時掃描一次";
+    var every = isTw() ? "每個交易日開盤前（台北 08:30 左右）和收盤後（14:00 左右）各掃描一次" : "每 4 小時掃描一次";
     if (!next) nextText = "目前沒有定時掃描，資料只在手動執行時更新。";
     else if (new Date(next).getTime() < Date.now()) nextText = "預定的下次掃描（" + fmtStamp(next) + "）已經過了，這份資料可能不是最新的。";
     else nextText = every + "，下次約在 " + (sameDay(next, new Date().toISOString()) ? fmtClock(next) : fmtStamp(next)) + "。";
@@ -2142,7 +2142,7 @@
     return "<button type=\"button\" class=\"dback\" data-act=\"view\" data-view=\"settings\">‹ 設定</button>" +
       "<div class=\"about\"><p>加密貨幣：幣安、OKX、Gate 的公開 K 線行情，每 4 小時自動掃描一次。</p>" +
       "<p>台股：上市＋上櫃普通股（清單與名稱來自證交所、櫃買中心 OpenAPI），K 線來自 Yahoo Finance（未還原權息，和 TradingView 預設相同），" +
-      "每個交易日收盤後（台北 14:10 左右）掃描一次；4 小時線一天兩根：09:00–13:00、13:00–13:30。</p>" +
+      "每個交易日開盤前（台北 08:30 左右）和收盤後（14:00 左右）各掃描一次；4 小時線一天兩根：09:00–13:00、13:00–13:30。</p>" +
       "<p>兩邊都只用已收盤的 K 線，頁首會寫出該市場的資料更新時間。</p>" +
       "<p><strong>這是型態偵測工具，不是投資建議。</strong>型態成立不代表價格會上漲，請自行判斷風險。</p>" +
       "<p>觀察名單與設定預設只存在這個瀏覽器（localStorage）；在「設定 → 雲端同步」用 Discord 登入後，觀察名單會和你在 Discord 機器人上的關注清單（每人各一份）同步，狀態改變時機器人會在 #關注 頻道 @你或私訊你。換裝置也可以用「設定」裡的匯出／匯入。</p>" +
@@ -2374,7 +2374,7 @@
     $("more").hidden = true;
     if (missing && m === "tw") {
       showNotice("empty", "台股資料還沒產生",
-        "台股每個交易日收盤後（台北 14:10 左右）掃描一次；第一次掃描完成後，這裡就會出現上市、上櫃股票的頭肩底型態。" +
+        "台股每個交易日開盤前（台北 08:30 左右）和收盤後（14:00 左右）各掃描一次；第一次掃描完成後，這裡就會出現上市、上櫃股票的頭肩底型態。" +
         "現在可以先看加密貨幣。", { label: "看加密貨幣", run: function () { switchMarket("crypto"); } });
       return;
     }
@@ -2577,7 +2577,7 @@
     [/頭肩|五點|左肩|右肩|頭部/, "頭肩底由五個點組成：左肩 LS、頸線點 N1、頭 H、頸線點 N2、右肩 RS。頭是最低點，左右肩高度接近，N1 和 N2 連成頸線。"],
     [/觀察|星號|收藏|關注/, "在清單或詳細頁按 ☆ 就能加入觀察名單；用 Discord 登入後會同步到機器人，狀態改變時通知你。"],
     [/discord|通知|登入/i, "在「設定 → 雲端同步」用 Discord 登入，觀察名單會同步到 Discord 機器人，型態狀態改變時會 @你或私訊你。"],
-    [/多久|更新|什麼時候|幾點/, "加密貨幣每 4 小時掃描一次；台股每個交易日收盤後（台北 14:10 左右）掃描一次。都只用已收盤的 K 線。"]
+    [/多久|更新|什麼時候|幾點/, "加密貨幣每 4 小時掃描一次；台股每個交易日開盤前（台北 08:30 左右）和收盤後（14:00 左右）各掃描一次。都只用已收盤的 K 線。"]
   ];
   var SPRITE_STOP = { TP1: 1, TP2: 1, RR: 1, AI: 1, OK: 1, USDT: 1, RS: 1, LS: 1, N1: 1, N2: 1, ATR: 1, DISCORD: 1, FIB: 1 };
   var sprite = { greeted: false, tip: -1 };
