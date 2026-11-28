@@ -1,0 +1,2231 @@
+{
+ "patterns": {
+  "tpex|stock|1259|1d|2026-03-05T01:00:00Z|2026-06-30T01:00:00Z": {
+   "last_notified_at": "2026-11-19T08:03:00Z",
+   "last_seen": "2026-11-27T16:43:25Z",
+   "notified_status": "confirmed",
+   "score": 80.43,
+   "status": "confirmed"
+  },
+  "tpex|stock|1259|1w|2026-02-02T01:00:00Z|2026-06-29T01:00:00Z": {
+   "last_notified_at": "2026-11-13T07:21:44Z",
+   "last_seen": "2026-11-27T16:43:25Z",
+   "notified_status": "forming",
+   "score": 81.19,
+   "status": "forming"
+  },
+  "tpex|stock|1268|1w|2024-04-15T01:00:00Z|2025-04-07T01:00:00Z": {
+   "last_notified_at": "2026-11-20T07:54:54Z",
+   "last_seen": "2026-11-27T16:43:25Z",
+   "notified_status": "forming",
+   "score": 80.07,
+   "status": "forming"
+  },
+  "tpex|stock|1780|4h|2026-06-17T01:00:00Z|2026-07-17T01:00:00Z": {
+   "last_notified_at": "2026-10-30T13:02:22Z",
+   "last_seen": "2026-11-16T15:44:02Z",
+   "notified_status": "watchlist",
+   "score": 66.68,
+   "status": "forming"
+  },
+  "tpex|stock|2061|1d|2026-07-21T01:00:00Z|2026-09-14T01:00:00Z": {
+   "last_notified_at": "2026-11-03T14:19:30Z",
+   "last_seen": "2026-11-19T15:50:44Z",
+   "notified_status": "watchlist",
+   "score": 66.02,
+   "status": "watchlist"
+  },
+  "tpex|stock|2643|1d|2025-10-13T01:00:00Z|2026-07-22T01:00:00Z": {
+   "last_notified_at": "2026-11-27T09:13:16Z",
+   "last_seen": "2026-11-27T09:13:16Z",
+   "notified_status": "forming",
+   "score": 71.96,
+   "status": "forming"
+  },
+  "tpex|stock|2724|1d|2026-07-16T01:00:00Z|2026-08-26T01:00:00Z": {
+   "last_notified_at": "2026-10-20T11:43:26Z",
+   "last_seen": "2026-11-16T15:44:02Z",
+   "notified_status": "forming",
+   "score": 64.48,
+   "status": "forming"
+  },
+  "tpex|stock|2724|4h|2026-07-16T01:00:00Z|2026-08-26T01:00:00Z": {
+   "last_notified_at": "2026-10-29T13:08:10Z",
+   "last_seen": "2026-11-27T16:43:25Z",
+   "notified_status": "forming",
+   "score": 53.67,
+   "status": "forming"
+  },
+  "tpex|stock|2756|4h|2026-06-08T01:00:00Z|2026-08-06T01:00:00Z": {
+   "last_notified_at": "2026-11-27T09:13:16Z",
+   "last_seen": "2026-11-27T16:43:25Z",
+   "notified_status": "confirmed",
+   "score": 72.99,
+   "status": "confirmed"
+  },
+  "tpex|stock|2937|4h|2026-06-05T01:00:00Z|2026-07-30T01:00:00Z": {
+   "last_notified_at": "2026-11-20T07:54:54Z",
+   "last_seen": "2026-11-27T09:13:16Z",
+   "notified_status": "forming",
+   "score": 83.82,
+   "status": "forming"
+  },
+  "tpex|stock|3105|4h|2026-09-24T01:00:00Z|2026-11-09T01:00:00Z": {
+   "last_notified_at": "2026-11-17T08:37:11Z",
+   "last_seen": "2026-11-19T15:50:44Z",
+   "notified_status": "forming",
+   "score": 50.07,
+   "status": "forming"
+  },
+  "tpex|stock|3141|4h|2026-09-24T05:00:00Z|2026-11-06T01:00:00Z": {
+   "last_notified_at": "2026-11-13T07:21:44Z",
+   "last_seen": "2026-11-16T15:44:02Z",
+   "notified_status": "forming",
+   "score": 62.41,
+   "status": "forming"
+  },
+  "tpex|stock|3213|1w|2025-08-18T01:00:00Z|2025-11-17T01:00:00Z": {
+   "last_notified_at": "2026-11-06T14:25:30Z",
+   "last_seen": "2026-11-19T15:50:44Z",
+   "notified_status": "forming",
+   "score": 59.1,
+   "status": "forming"
+  },
+  "tpex|stock|3227|4h|2026-08-25T01:00:00Z|2026-11-06T01:00:00Z": {
+   "last_notified_at": "2026-11-26T09:02:40Z",
+   "last_seen": "2026-11-26T16:58:06Z",
+   "notified_status": "forming",
+   "score": 73.7,
+   "status": "forming"
+  },
+  "tpex|stock|3288|1w|2023-10-23T01:00:00Z|2026-03-23T01:00:00Z": {
+   "last_notified_at": null,
+   "last_seen": "2026-11-26T16:58:06Z",
+   "notified_status": null,
+   "score": 49.04,
+   "status": "forming"
+  },
+  "tpex|stock|3303|1w|2024-10-07T01:00:00Z|2025-04-07T01:00:00Z": {
+   "last_notified_at": "2026-10-19T09:52:32Z",
+   "last_seen": "2026-11-27T16:43:25Z",
+   "notified_status": "watchlist",
+   "score": 48.17,
+   "status": "forming"
+  },
+  "tpex|stock|3306|4h|2026-09-21T01:00:00Z|2026-11-04T01:00:00Z": {
+   "last_notified_at": "2026-11-11T07:13:20Z",
+   "last_seen": "2026-11-16T15:44:02Z",
+   "notified_status": "forming",
+   "score": 80.14,
+   "status": "forming"
+  },
+  "tpex|stock|3444|4h|2026-08-19T01:00:00Z|2026-11-06T01:00:00Z": {
+   "last_notified_at": "2026-11-18T08:06:35Z",
+   "last_seen": "2026-11-18T15:44:14Z",
+   "notified_status": "forming",
+   "score": 52.89,
+   "status": "forming"
+  },
+  "tpex|stock|3491|4h|2026-10-01T01:00:00Z|2026-11-06T01:00:00Z": {
+   "last_notified_at": "2026-11-17T08:37:11Z",
+   "last_seen": "2026-11-18T15:44:14Z",
+   "notified_status": "forming",
+   "score": 81.99,
+   "status": "forming"
+  },
+  "tpex|stock|3546|1d|2025-06-10T01:00:00Z|2026-03-09T01:00:00Z": {
+   "last_notified_at": "2026-11-19T08:03:00Z",
+   "last_seen": "2026-11-27T16:43:25Z",
+   "notified_status": "confirmed",
+   "score": 65.87,
+   "status": "confirmed"
+  },
+  "tpex|stock|3546|1d|2025-11-17T01:00:00Z|2026-03-09T01:00:00Z": {
+   "last_notified_at": "2026-10-21T19:41:22Z",
+   "last_seen": "2026-11-27T09:13:16Z",
+   "notified_status": "watchlist",
+   "score": 76.72,
+   "status": "watchlist"
+  },
+  "tpex|stock|3546|1w|2025-06-09T01:00:00Z|2026-03-09T01:00:00Z": {
+   "last_notified_at": "2026-11-27T09:13:16Z",
+   "last_seen": "2026-11-27T16:43:25Z",
+   "notified_status": "confirmed",
+   "score": 65.67,
+   "status": "confirmed"
+  },
+  "tpex|stock|3546|1w|2025-11-17T01:00:00Z|2026-03-09T01:00:00Z": {
+   "last_notified_at": "2026-11-06T14:25:30Z",
+   "last_seen": "2026-11-19T15:50:44Z",
+   "notified_status": "forming",
+   "score": 78.68,
+   "status": "forming"
+  },
+  "tpex|stock|3556|4h|2026-09-24T01:00:00Z|2026-11-06T01:00:00Z": {
+   "last_notified_at": null,
+   "last_seen": "2026-11-18T15:44:14Z",
+   "notified_status": null,
+   "score": 46.53,
+   "status": "forming"
+  },
+  "tpex|stock|3611|4h|2026-07-29T01:00:00Z|2026-11-06T01:00:00Z": {
+   "last_notified_at": "2026-11-20T07:54:54Z",
+   "last_seen": "2026-11-20T15:29:40Z",
+   "notified_status": "forming",
+   "score": 64.61,
+   "status": "forming"
+  },
+  "tpex|stock|3624|1d|2026-06-05T01:00:00Z|2026-07-30T01:00:00Z": {
+   "last_notified_at": "2026-11-13T07:21:44Z",
+   "last_seen": "2026-11-19T15:50:44Z",
+   "notified_status": "watchlist",
+   "score": 51.7,
+   "status": "forming"
+  },
+  "tpex|stock|3628|4h|2026-09-08T01:00:00Z|2026-11-06T01:00:00Z": {
+   "last_notified_at": "2026-11-18T08:06:35Z",
+   "last_seen": "2026-11-19T15:50:44Z",
+   "notified_status": "forming",
+   "score": 72.13,
+   "status": "forming"
+  },
+  "tpex|stock|3646|4h|2026-03-05T05:00:00Z|2026-07-20T01:00:00Z": {
+   "last_notified_at": "2026-11-11T07:13:20Z",
+   "last_seen": "2026-11-18T15:44:14Z",
+   "notified_status": "watchlist",
+   "score": 83.11,
+   "status": "forming"
+  },
+  "tpex|stock|3664|1w|2026-06-15T01:00:00Z|2026-07-27T01:00:00Z": {
+   "last_notified_at": "2026-11-27T09:13:16Z",
+   "last_seen": "2026-11-27T16:43:25Z",
+   "notified_status": "forming",
+   "score": 64.42,
+   "status": "forming"
+  },
+  "tpex|stock|3666|1d|2026-05-20T01:00:00Z|2026-07-20T01:00:00Z": {
+   "last_notified_at": "2026-11-13T07:21:44Z",
+   "last_seen": "2026-11-19T15:50:44Z",
+   "notified_status": "watchlist",
+   "score": 74.08,
+   "status": "watchlist"
+  },
+  "tpex|stock|3666|4h|2026-05-20T01:00:00Z|2026-07-20T05:00:00Z": {
+   "last_notified_at": "2026-11-11T07:13:20Z",
+   "last_seen": "2026-11-19T15:50:44Z",
+   "notified_status": "watchlist",
+   "score": 73.99,
+   "status": "watchlist"
+  },
+  "tpex|stock|3693|4h|2026-10-01T01:00:00Z|2026-11-06T01:00:00Z": {
+   "last_notified_at": "2026-11-17T08:37:11Z",
+   "last_seen": "2026-11-17T16:04:21Z",
+   "notified_status": "forming",
+   "score": 59.18,
+   "status": "forming"
+  },
+  "tpex|stock|4139|1w|2023-08-14T01:00:00Z|2025-11-17T01:00:00Z": {
+   "last_notified_at": "2026-11-06T14:25:30Z",
+   "last_seen": "2026-11-19T15:50:44Z",
+   "notified_status": "forming",
+   "score": 72.54,
+   "status": "forming"
+  },
+  "tpex|stock|4147|4h|2026-08-03T01:00:00Z|2026-11-06T01:00:00Z": {
+   "last_notified_at": "2026-11-20T07:54:54Z",
+   "last_seen": "2026-11-20T15:29:40Z",
+   "notified_status": "forming",
+   "score": 56.2,
+   "status": "forming"
+  },
+  "tpex|stock|4147|4h|2026-08-07T01:00:00Z|2026-11-06T01:00:00Z": {
+   "last_notified_at": "2026-11-19T08:03:00Z",
+   "last_seen": "2026-11-19T15:50:44Z",
+   "notified_status": "forming",
+   "score": 72.21,
+   "status": "forming"
+  },
+  "tpex|stock|4147|4h|2026-09-14T01:00:00Z|2026-11-06T01:00:00Z": {
+   "last_notified_at": "2026-11-18T08:06:35Z",
+   "last_seen": "2026-11-18T15:44:14Z",
+   "notified_status": "forming",
+   "score": 84.95,
+   "status": "forming"
+  },
+  "tpex|stock|4167|1d|2024-05-31T01:00:00Z|2025-04-09T01:00:00Z": {
+   "last_notified_at": "2026-11-13T07:21:44Z",
+   "last_seen": "2026-11-18T15:44:14Z",
+   "notified_status": "watchlist",
+   "score": 55.08,
+   "status": "forming"
+  },
+  "tpex|stock|4167|1w|2024-03-18T01:00:00Z|2025-04-07T01:00:00Z": {
+   "last_notified_at": "2026-11-20T07:54:54Z",
+   "last_seen": "2026-11-27T16:43:25Z",
+   "notified_status": "forming",
+   "score": 73.08,
+   "status": "forming"
+  },
+  "tpex|stock|4174|1d|2025-11-10T01:00:00Z|2026-09-04T01:00:00Z": {
+   "last_notified_at": "2026-11-16T07:24:09Z",
+   "last_seen": "2026-11-18T15:44:14Z",
+   "notified_status": "confirmed",
+   "score": 77.56,
+   "status": "confirmed"
+  },
+  "tpex|stock|4174|1w|2025-11-10T01:00:00Z|2026-08-31T01:00:00Z": {
+   "last_notified_at": "2026-11-27T09:13:16Z",
+   "last_seen": "2026-11-27T16:43:25Z",
+   "notified_status": "confirmed",
+   "score": 77.57,
+   "status": "confirmed"
+  },
+  "tpex|stock|4188|1d|2025-06-02T01:00:00Z|2026-07-29T01:00:00Z": {
+   "last_notified_at": "2026-11-13T07:21:44Z",
+   "last_seen": "2026-11-17T16:04:21Z",
+   "notified_status": "watchlist",
+   "score": 62.87,
+   "status": "watchlist"
+  },
+  "tpex|stock|4188|1w|2025-04-07T01:00:00Z|2026-07-27T01:00:00Z": {
+   "last_notified_at": null,
+   "last_seen": "2026-11-26T16:58:06Z",
+   "notified_status": null,
+   "score": 48.69,
+   "status": "forming"
+  },
+  "tpex|stock|4413|1w|2024-04-15T01:00:00Z|2025-04-07T01:00:00Z": {
+   "last_notified_at": "2026-11-06T14:25:30Z",
+   "last_seen": "2026-11-19T15:50:44Z",
+   "notified_status": "forming",
+   "score": 66.58,
+   "status": "forming"
+  },
+  "tpex|stock|4513|4h|2026-09-14T01:00:00Z|2026-11-06T01:00:00Z": {
+   "last_notified_at": "2026-11-17T08:37:11Z",
+   "last_seen": "2026-11-18T15:44:14Z",
+   "notified_status": "forming",
+   "score": 57.53,
+   "status": "forming"
+  },
+  "tpex|stock|4533|1d|2026-04-13T01:00:00Z|2026-07-30T01:00:00Z": {
+   "last_notified_at": "2026-11-16T07:24:09Z",
+   "last_seen": "2026-11-16T15:44:02Z",
+   "notified_status": "confirmed",
+   "score": 66.87,
+   "status": "confirmed"
+  },
+  "tpex|stock|4554|1d|2025-11-05T01:00:00Z|2026-03-09T01:00:00Z": {
+   "last_notified_at": "2026-11-02T15:55:45Z",
+   "last_seen": "2026-11-27T16:43:25Z",
+   "notified_status": "forming",
+   "score": 41.99,
+   "status": "watchlist"
+  },
+  "tpex|stock|4561|4h|2026-09-14T01:00:00Z|2026-11-06T01:00:00Z": {
+   "last_notified_at": "2026-11-17T08:37:11Z",
+   "last_seen": "2026-11-18T15:44:14Z",
+   "notified_status": "forming",
+   "score": 56.36,
+   "status": "forming"
+  },
+  "tpex|stock|4563|1d|2025-12-30T01:00:00Z|2026-07-29T01:00:00Z": {
+   "last_notified_at": "2026-11-20T07:54:54Z",
+   "last_seen": "2026-11-27T16:43:25Z",
+   "notified_status": "forming",
+   "score": 65.68,
+   "status": "forming"
+  },
+  "tpex|stock|4563|1w|2025-12-29T01:00:00Z|2026-07-27T01:00:00Z": {
+   "last_notified_at": "2026-11-20T07:54:54Z",
+   "last_seen": "2026-11-27T16:43:25Z",
+   "notified_status": "forming",
+   "score": 65.68,
+   "status": "forming"
+  },
+  "tpex|stock|4577|1d|2026-05-20T01:00:00Z|2026-07-30T01:00:00Z": {
+   "last_notified_at": "2026-11-13T07:21:44Z",
+   "last_seen": "2026-11-16T15:44:02Z",
+   "notified_status": "confirmed",
+   "score": 69.34,
+   "status": "confirmed"
+  },
+  "tpex|stock|4702|1d|2025-11-11T01:00:00Z|2026-11-06T01:00:00Z": {
+   "last_notified_at": "2026-11-27T09:13:16Z",
+   "last_seen": "2026-11-27T16:43:25Z",
+   "notified_status": "watchlist",
+   "score": 75.75,
+   "status": "forming"
+  },
+  "tpex|stock|4711|1d|2024-08-21T01:00:00Z|2025-04-09T01:00:00Z": {
+   "last_notified_at": "2026-11-20T07:54:54Z",
+   "last_seen": "2026-11-27T16:43:25Z",
+   "notified_status": "forming",
+   "score": 63.67,
+   "status": "forming"
+  },
+  "tpex|stock|4728|1d|2025-09-02T01:00:00Z|2026-05-08T01:00:00Z": {
+   "last_notified_at": "2026-11-12T07:50:36Z",
+   "last_seen": "2026-11-19T15:50:44Z",
+   "notified_status": "forming",
+   "score": 77.21,
+   "status": "forming"
+  },
+  "tpex|stock|4728|4h|2025-12-18T01:00:00Z|2026-05-08T01:00:00Z": {
+   "last_notified_at": "2026-10-30T13:02:22Z",
+   "last_seen": "2026-11-19T15:50:44Z",
+   "notified_status": "forming",
+   "score": 74.45,
+   "status": "forming"
+  },
+  "tpex|stock|4741|1d|2026-06-02T01:00:00Z|2026-07-30T01:00:00Z": {
+   "last_notified_at": "2026-11-18T08:06:35Z",
+   "last_seen": "2026-11-19T15:50:44Z",
+   "notified_status": "forming",
+   "score": 49.19,
+   "status": "forming"
+  },
+  "tpex|stock|4741|4h|2026-06-02T01:00:00Z|2026-07-30T01:00:00Z": {
+   "last_notified_at": "2026-11-18T08:06:35Z",
+   "last_seen": "2026-11-19T15:50:44Z",
+   "notified_status": "forming",
+   "score": 49.29,
+   "status": "forming"
+  },
+  "tpex|stock|4744|4h|2026-09-24T01:00:00Z|2026-11-06T01:00:00Z": {
+   "last_notified_at": "2026-11-17T08:37:11Z",
+   "last_seen": "2026-11-18T15:44:14Z",
+   "notified_status": "forming",
+   "score": 69.82,
+   "status": "forming"
+  },
+  "tpex|stock|4760|1d|2026-05-20T01:00:00Z|2026-07-30T01:00:00Z": {
+   "last_notified_at": "2026-11-13T07:21:44Z",
+   "last_seen": "2026-11-19T15:50:44Z",
+   "notified_status": "watchlist",
+   "score": 57.56,
+   "status": "forming"
+  },
+  "tpex|stock|4767|1d|2025-01-13T01:00:00Z|2026-02-24T01:00:00Z": {
+   "last_notified_at": "2026-11-06T14:25:30Z",
+   "last_seen": "2026-11-19T15:50:44Z",
+   "notified_status": "watchlist",
+   "score": 66.88,
+   "status": "watchlist"
+  },
+  "tpex|stock|4767|1w|2025-04-07T01:00:00Z|2026-02-23T01:00:00Z": {
+   "last_notified_at": "2026-11-13T07:21:44Z",
+   "last_seen": "2026-11-19T15:50:44Z",
+   "notified_status": "forming",
+   "score": 66.88,
+   "status": "forming"
+  },
+  "tpex|stock|4903|1d|2024-11-01T01:00:00Z|2025-04-09T01:00:00Z": {
+   "last_notified_at": "2026-11-13T07:21:44Z",
+   "last_seen": "2026-11-16T15:44:02Z",
+   "notified_status": "watchlist",
+   "score": 78.28,
+   "status": "forming"
+  },
+  "tpex|stock|4907|1d|2025-12-16T01:00:00Z|2026-05-29T01:00:00Z": {
+   "last_notified_at": "2026-11-13T07:21:44Z",
+   "last_seen": "2026-11-19T15:50:44Z",
+   "notified_status": "watchlist",
+   "score": 61.53,
+   "status": "forming"
+  },
+  "tpex|stock|4924|1w|2024-11-25T01:00:00Z|2026-07-27T01:00:00Z": {
+   "last_notified_at": "2026-11-13T07:21:44Z",
+   "last_seen": "2026-11-19T15:50:44Z",
+   "notified_status": "forming",
+   "score": 62.43,
+   "status": "forming"
+  },
+  "tpex|stock|5201|4h|2026-09-16T01:00:00Z|2026-11-06T01:00:00Z": {
+   "last_notified_at": "2026-11-18T08:06:35Z",
+   "last_seen": "2026-11-19T15:50:44Z",
+   "notified_status": "forming",
+   "score": 72.43,
+   "status": "forming"
+  },
+  "tpex|stock|5230|1d|2024-09-30T01:00:00Z|2025-11-21T01:00:00Z": {
+   "last_notified_at": "2026-11-13T07:21:44Z",
+   "last_seen": "2026-11-17T16:04:21Z",
+   "notified_status": "confirmed",
+   "score": 68.31,
+   "status": "confirmed"
+  },
+  "tpex|stock|5301|1d|2026-08-25T01:00:00Z|2026-09-24T01:00:00Z": {
+   "last_notified_at": "2026-11-09T07:19:23Z",
+   "last_seen": "2026-11-17T16:04:21Z",
+   "notified_status": "forming",
+   "score": 47.31,
+   "status": "forming"
+  },
+  "tpex|stock|5301|4h|2026-07-29T01:00:00Z|2026-09-24T01:00:00Z": {
+   "last_notified_at": "2026-11-16T07:24:09Z",
+   "last_seen": "2026-11-16T15:44:02Z",
+   "notified_status": "forming",
+   "score": 51.19,
+   "status": "forming"
+  },
+  "tpex|stock|5309|1w|2026-04-13T01:00:00Z|2026-07-27T01:00:00Z": {
+   "last_notified_at": "2026-11-06T14:25:30Z",
+   "last_seen": "2026-11-19T15:50:44Z",
+   "notified_status": "forming",
+   "score": 56.91,
+   "status": "forming"
+  },
+  "tpex|stock|5321|1w|2023-08-07T01:00:00Z|2026-05-04T01:00:00Z": {
+   "last_notified_at": null,
+   "last_seen": "2026-11-26T16:58:06Z",
+   "notified_status": null,
+   "score": 43.1,
+   "status": "forming"
+  },
+  "tpex|stock|5324|1w|2025-06-09T01:00:00Z|2026-03-09T01:00:00Z": {
+   "last_notified_at": "2026-11-27T09:13:16Z",
+   "last_seen": "2026-11-27T16:43:25Z",
+   "notified_status": "watchlist",
+   "score": 89.24,
+   "status": "watchlist"
+  },
+  "tpex|stock|5340|1d|2026-03-24T01:00:00Z|2026-07-30T01:00:00Z": {
+   "last_notified_at": "2026-11-13T07:21:44Z",
+   "last_seen": "2026-11-19T15:50:44Z",
+   "notified_status": "watchlist",
+   "score": 36.1,
+   "status": "forming"
+  },
+  "tpex|stock|5340|1w|2026-03-23T01:00:00Z|2026-07-27T01:00:00Z": {
+   "last_notified_at": "2026-11-13T07:21:44Z",
+   "last_seen": "2026-11-19T15:50:44Z",
+   "notified_status": "forming",
+   "score": 75.39,
+   "status": "forming"
+  },
+  "tpex|stock|5353|1d|2024-11-12T01:00:00Z|2025-04-09T01:00:00Z": {
+   "last_notified_at": "2026-10-22T11:58:53Z",
+   "last_seen": "2026-11-18T15:44:14Z",
+   "notified_status": "watchlist",
+   "score": 50.32,
+   "status": "forming"
+  },
+  "tpex|stock|5353|1w|2024-11-11T01:00:00Z|2025-04-07T01:00:00Z": {
+   "last_notified_at": "2026-11-06T14:25:30Z",
+   "last_seen": "2026-11-19T15:50:44Z",
+   "notified_status": "forming",
+   "score": 51.64,
+   "status": "forming"
+  },
+  "tpex|stock|5410|4h|2026-07-30T01:00:00Z|2026-11-06T01:00:00Z": {
+   "last_notified_at": "2026-11-18T08:06:35Z",
+   "last_seen": "2026-11-19T15:50:44Z",
+   "notified_status": "forming",
+   "score": 58.57,
+   "status": "forming"
+  },
+  "tpex|stock|5452|1d|2024-06-12T01:00:00Z|2025-11-21T01:00:00Z": {
+   "last_notified_at": "2026-11-18T08:06:35Z",
+   "last_seen": "2026-11-19T15:50:44Z",
+   "notified_status": "forming",
+   "score": 60.23,
+   "status": "forming"
+  },
+  "tpex|stock|5455|1d|2025-09-02T01:00:00Z|2026-03-30T01:00:00Z": {
+   "last_notified_at": "2026-11-13T07:21:44Z",
+   "last_seen": "2026-11-25T17:17:16Z",
+   "notified_status": "watchlist",
+   "score": 84.27,
+   "status": "watchlist"
+  },
+  "tpex|stock|5455|1w|2025-07-28T01:00:00Z|2026-03-30T01:00:00Z": {
+   "last_notified_at": "2026-11-27T09:13:16Z",
+   "last_seen": "2026-11-27T16:43:25Z",
+   "notified_status": "forming",
+   "score": 73.77,
+   "status": "forming"
+  },
+  "tpex|stock|5455|1w|2025-12-15T01:00:00Z|2026-05-25T01:00:00Z": {
+   "last_notified_at": "2026-11-06T14:25:30Z",
+   "last_seen": "2026-11-26T16:58:06Z",
+   "notified_status": "forming",
+   "score": 80.47,
+   "status": "forming"
+  },
+  "tpex|stock|5455|4h|2025-09-02T01:00:00Z|2026-03-30T01:00:00Z": {
+   "last_notified_at": "2026-11-19T08:03:00Z",
+   "last_seen": "2026-11-24T17:40:27Z",
+   "notified_status": "watchlist",
+   "score": 84.23,
+   "status": "watchlist"
+  },
+  "tpex|stock|5460|1d|2024-08-05T01:00:00Z|2025-04-09T01:00:00Z": {
+   "last_notified_at": "2026-11-20T07:54:54Z",
+   "last_seen": "2026-11-27T16:43:25Z",
+   "notified_status": "forming",
+   "score": 71.05,
+   "status": "forming"
+  },
+  "tpex|stock|5460|1d|2024-08-29T01:00:00Z|2025-04-09T01:00:00Z": {
+   "last_notified_at": "2026-11-19T08:03:00Z",
+   "last_seen": "2026-11-19T15:50:44Z",
+   "notified_status": "forming",
+   "score": 62.91,
+   "status": "forming"
+  },
+  "tpex|stock|5460|1w|2024-08-05T01:00:00Z|2025-04-07T01:00:00Z": {
+   "last_notified_at": "2026-11-20T07:54:54Z",
+   "last_seen": "2026-11-27T16:43:25Z",
+   "notified_status": "forming",
+   "score": 61.23,
+   "status": "forming"
+  },
+  "tpex|stock|5481|4h|2026-07-14T01:00:00Z|2026-08-18T01:00:00Z": {
+   "last_notified_at": "2026-10-19T09:52:32Z",
+   "last_seen": "2026-11-19T08:03:00Z",
+   "notified_status": "watchlist",
+   "score": 63.8,
+   "status": "forming"
+  },
+  "tpex|stock|5481|4h|2026-09-08T01:00:00Z|2026-11-23T01:00:00Z": {
+   "last_notified_at": "2026-11-27T09:13:16Z",
+   "last_seen": "2026-11-27T16:43:25Z",
+   "notified_status": "forming",
+   "score": 71.07,
+   "status": "forming"
+  },
+  "tpex|stock|5487|1w|2025-05-05T01:00:00Z|2026-05-11T01:00:00Z": {
+   "last_notified_at": null,
+   "last_seen": "2026-11-19T15:50:44Z",
+   "notified_status": null,
+   "score": 49.02,
+   "status": "forming"
+  },
+  "tpex|stock|5548|4h|2026-06-05T01:00:00Z|2026-11-02T01:00:00Z": {
+   "last_notified_at": "2026-11-26T09:02:40Z",
+   "last_seen": "2026-11-27T16:43:25Z",
+   "notified_status": "confirmed",
+   "score": 71.29,
+   "status": "confirmed"
+  },
+  "tpex|stock|6028|1d|2026-02-25T01:00:00Z|2026-06-25T01:00:00Z": {
+   "last_notified_at": "2026-11-13T07:21:44Z",
+   "last_seen": "2026-11-27T16:43:25Z",
+   "notified_status": "watchlist",
+   "score": 81.53,
+   "status": "watchlist"
+  },
+  "tpex|stock|6028|1w|2026-01-26T01:00:00Z|2026-04-27T01:00:00Z": {
+   "last_notified_at": "2026-11-27T09:13:16Z",
+   "last_seen": "2026-11-27T16:43:25Z",
+   "notified_status": "watchlist",
+   "score": 58.07,
+   "status": "watchlist"
+  },
+  "tpex|stock|6103|4h|2025-12-02T01:00:00Z|2026-08-20T01:00:00Z": {
+   "last_notified_at": null,
+   "last_seen": "2026-11-27T16:43:25Z",
+   "notified_status": null,
+   "score": 36.09,
+   "status": "forming"
+  },
+  "tpex|stock|6130|1d|2026-07-29T01:00:00Z|2026-10-30T01:00:00Z": {
+   "last_notified_at": "2026-11-12T07:50:36Z",
+   "last_seen": "2026-11-27T16:43:25Z",
+   "notified_status": "forming",
+   "score": 65.01,
+   "status": "forming"
+  },
+  "tpex|stock|6130|4h|2026-07-29T01:00:00Z|2026-10-30T01:00:00Z": {
+   "last_notified_at": "2026-11-17T08:37:11Z",
+   "last_seen": "2026-11-27T16:43:25Z",
+   "notified_status": "watchlist",
+   "score": 64.72,
+   "status": "forming"
+  },
+  "tpex|stock|6146|1w|2023-10-30T01:00:00Z|2025-04-07T01:00:00Z": {
+   "last_notified_at": "2026-10-19T09:52:32Z",
+   "last_seen": "2026-11-27T16:43:25Z",
+   "notified_status": "watchlist",
+   "score": 54.44,
+   "status": "watchlist"
+  },
+  "tpex|stock|6150|1d|2026-05-13T01:00:00Z|2026-07-29T01:00:00Z": {
+   "last_notified_at": "2026-11-16T07:24:09Z",
+   "last_seen": "2026-11-18T15:44:14Z",
+   "notified_status": "confirmed",
+   "score": 73.24,
+   "status": "confirmed"
+  },
+  "tpex|stock|6151|1d|2024-10-09T01:00:00Z|2025-04-09T01:00:00Z": {
+   "last_notified_at": "2026-11-13T07:21:44Z",
+   "last_seen": "2026-11-19T15:50:44Z",
+   "notified_status": "watchlist",
+   "score": 43.22,
+   "status": "forming"
+  },
+  "tpex|stock|6234|4h|2026-05-20T01:00:00Z|2026-07-30T05:00:00Z": {
+   "last_notified_at": "2026-11-18T08:06:35Z",
+   "last_seen": "2026-11-19T15:50:44Z",
+   "notified_status": "forming",
+   "score": 66.59,
+   "status": "forming"
+  },
+  "tpex|stock|6241|1w|2024-08-05T01:00:00Z|2026-05-11T01:00:00Z": {
+   "last_notified_at": null,
+   "last_seen": "2026-11-27T16:43:25Z",
+   "notified_status": null,
+   "score": 39.66,
+   "status": "forming"
+  },
+  "tpex|stock|6245|1w|2025-06-23T01:00:00Z|2026-02-09T01:00:00Z": {
+   "last_notified_at": "2026-10-30T13:02:22Z",
+   "last_seen": "2026-11-19T15:50:44Z",
+   "notified_status": "confirmed",
+   "score": 97.2,
+   "status": "confirmed"
+  },
+  "tpex|stock|6263|1w|2024-08-05T01:00:00Z|2026-02-02T01:00:00Z": {
+   "last_notified_at": "2026-11-06T14:25:30Z",
+   "last_seen": "2026-11-27T16:43:25Z",
+   "notified_status": "forming",
+   "score": 62.47,
+   "status": "forming"
+  },
+  "tpex|stock|6275|1w|2024-01-15T01:00:00Z|2025-04-07T01:00:00Z": {
+   "last_notified_at": null,
+   "last_seen": "2026-11-19T15:50:44Z",
+   "notified_status": null,
+   "score": 44.04,
+   "status": "forming"
+  },
+  "tpex|stock|6423|4h|2026-09-30T01:00:00Z|2026-11-06T01:00:00Z": {
+   "last_notified_at": null,
+   "last_seen": "2026-11-19T15:50:44Z",
+   "notified_status": null,
+   "score": 39.11,
+   "status": "forming"
+  },
+  "tpex|stock|6425|4h|2026-05-18T01:00:00Z|2026-07-30T05:00:00Z": {
+   "last_notified_at": "2026-11-05T14:47:32Z",
+   "last_seen": "2026-11-19T15:50:44Z",
+   "notified_status": "forming",
+   "score": 53.97,
+   "status": "forming"
+  },
+  "tpex|stock|6470|1d|2025-04-22T01:00:00Z|2025-10-13T01:00:00Z": {
+   "last_notified_at": "2026-10-19T09:52:32Z",
+   "last_seen": "2026-11-27T16:43:25Z",
+   "notified_status": "watchlist",
+   "score": 49.42,
+   "status": "forming"
+  },
+  "tpex|stock|6516|1d|2026-07-30T01:00:00Z|2026-11-06T01:00:00Z": {
+   "last_notified_at": "2026-11-20T07:54:54Z",
+   "last_seen": "2026-11-27T16:43:25Z",
+   "notified_status": "forming",
+   "score": 75.09,
+   "status": "forming"
+  },
+  "tpex|stock|6516|4h|2026-07-30T01:00:00Z|2026-11-06T01:00:00Z": {
+   "last_notified_at": "2026-11-26T09:02:40Z",
+   "last_seen": "2026-11-27T16:43:25Z",
+   "notified_status": "confirmed",
+   "score": 75.16,
+   "status": "confirmed"
+  },
+  "tpex|stock|6527|1d|2026-01-05T01:00:00Z|2026-05-04T01:00:00Z": {
+   "last_notified_at": "2026-11-13T07:21:44Z",
+   "last_seen": "2026-11-19T15:50:44Z",
+   "notified_status": "watchlist",
+   "score": 78.24,
+   "status": "watchlist"
+  },
+  "tpex|stock|6561|4h|2026-04-13T01:00:00Z|2026-09-29T01:00:00Z": {
+   "last_notified_at": "2026-11-17T08:37:11Z",
+   "last_seen": "2026-11-17T16:04:21Z",
+   "notified_status": "forming",
+   "score": 63.16,
+   "status": "forming"
+  },
+  "tpex|stock|6561|4h|2026-05-28T01:00:00Z|2026-09-29T01:00:00Z": {
+   "last_notified_at": "2026-11-19T08:03:00Z",
+   "last_seen": "2026-11-19T15:50:44Z",
+   "notified_status": "forming",
+   "score": 68.98,
+   "status": "forming"
+  },
+  "tpex|stock|6620|1w|2025-08-18T01:00:00Z|2026-06-08T01:00:00Z": {
+   "last_notified_at": "2026-11-20T07:54:54Z",
+   "last_seen": "2026-11-27T16:43:25Z",
+   "notified_status": "forming",
+   "score": 72.83,
+   "status": "forming"
+  },
+  "tpex|stock|6620|4h|2026-09-24T01:00:00Z|2026-11-06T01:00:00Z": {
+   "last_notified_at": "2026-11-16T07:24:09Z",
+   "last_seen": "2026-11-18T15:44:14Z",
+   "notified_status": "forming",
+   "score": 44.19,
+   "status": "forming"
+  },
+  "tpex|stock|6651|4h|2026-09-30T01:00:00Z|2026-11-06T01:00:00Z": {
+   "last_notified_at": "2026-11-17T08:37:11Z",
+   "last_seen": "2026-11-18T15:44:14Z",
+   "notified_status": "forming",
+   "score": 77.58,
+   "status": "forming"
+  },
+  "tpex|stock|6690|1d|2026-04-23T01:00:00Z|2026-07-29T01:00:00Z": {
+   "last_notified_at": "2026-11-13T07:21:44Z",
+   "last_seen": "2026-11-17T08:37:11Z",
+   "notified_status": "confirmed",
+   "score": 67.23,
+   "status": "confirmed"
+  },
+  "tpex|stock|6843|1d|2026-06-12T01:00:00Z|2026-11-06T01:00:00Z": {
+   "last_notified_at": "2026-11-27T09:13:16Z",
+   "last_seen": "2026-11-27T16:43:25Z",
+   "notified_status": "watchlist",
+   "score": 54.43,
+   "status": "forming"
+  },
+  "tpex|stock|6843|4h|2026-06-12T05:00:00Z|2026-11-06T01:00:00Z": {
+   "last_notified_at": "2026-11-24T10:34:57Z",
+   "last_seen": "2026-11-27T16:43:25Z",
+   "notified_status": "watchlist",
+   "score": 54.73,
+   "status": "watchlist"
+  },
+  "tpex|stock|6884|1d|2026-05-22T01:00:00Z|2026-07-29T01:00:00Z": {
+   "last_notified_at": "2026-11-16T07:24:09Z",
+   "last_seen": "2026-11-17T16:04:21Z",
+   "notified_status": "confirmed",
+   "score": 65.98,
+   "status": "confirmed"
+  },
+  "tpex|stock|6884|4h|2026-05-22T05:00:00Z|2026-07-29T01:00:00Z": {
+   "last_notified_at": "2026-11-16T07:24:09Z",
+   "last_seen": "2026-11-17T16:04:21Z",
+   "notified_status": "confirmed",
+   "score": 65.88,
+   "status": "confirmed"
+  },
+  "tpex|stock|6899|4h|2026-09-17T01:00:00Z|2026-11-06T01:00:00Z": {
+   "last_notified_at": "2026-11-16T07:24:09Z",
+   "last_seen": "2026-11-16T15:44:02Z",
+   "notified_status": "forming",
+   "score": 66.85,
+   "status": "forming"
+  },
+  "tpex|stock|6922|1w|2025-08-04T01:00:00Z|2026-03-09T01:00:00Z": {
+   "last_notified_at": "2026-11-27T09:13:16Z",
+   "last_seen": "2026-11-27T16:43:25Z",
+   "notified_status": "watchlist",
+   "score": 66.08,
+   "status": "watchlist"
+  },
+  "tpex|stock|6967|1w|2023-10-23T01:00:00Z|2025-04-07T01:00:00Z": {
+   "last_notified_at": "2026-11-20T07:54:54Z",
+   "last_seen": "2026-11-27T16:43:25Z",
+   "notified_status": "forming",
+   "score": 68.75,
+   "status": "forming"
+  },
+  "tpex|stock|7819|1d|2026-07-31T01:00:00Z|2026-11-02T01:00:00Z": {
+   "last_notified_at": "2026-11-12T07:50:36Z",
+   "last_seen": "2026-11-17T16:04:21Z",
+   "notified_status": "forming",
+   "score": 73.68,
+   "status": "forming"
+  },
+  "tpex|stock|8048|4h|2026-09-23T01:00:00Z|2026-11-06T01:00:00Z": {
+   "last_notified_at": "2026-11-16T07:24:09Z",
+   "last_seen": "2026-11-16T15:44:02Z",
+   "notified_status": "forming",
+   "score": 63.19,
+   "status": "forming"
+  },
+  "tpex|stock|8067|4h|2026-07-09T01:00:00Z|2026-10-16T01:00:00Z": {
+   "last_notified_at": "2026-11-13T07:21:44Z",
+   "last_seen": "2026-11-18T15:44:14Z",
+   "notified_status": "watchlist",
+   "score": 53.19,
+   "status": "watchlist"
+  },
+  "tpex|stock|8291|4h|2026-07-16T01:00:00Z|2026-10-20T01:00:00Z": {
+   "last_notified_at": null,
+   "last_seen": "2026-11-18T15:44:14Z",
+   "notified_status": null,
+   "score": 39.43,
+   "status": "watchlist"
+  },
+  "tpex|stock|8416|1w|2024-11-11T01:00:00Z|2025-04-07T01:00:00Z": {
+   "last_notified_at": "2026-11-06T14:25:30Z",
+   "last_seen": "2026-11-27T16:43:25Z",
+   "notified_status": "forming",
+   "score": 73.1,
+   "status": "forming"
+  },
+  "tpex|stock|8905|4h|2026-03-24T01:00:00Z|2026-07-30T05:00:00Z": {
+   "last_notified_at": "2026-11-23T08:18:47Z",
+   "last_seen": "2026-11-27T16:43:25Z",
+   "notified_status": "forming",
+   "score": 79.34,
+   "status": "forming"
+  },
+  "twse|stock|1101|1d|2025-04-08T01:00:00Z|2025-11-19T01:00:00Z": {
+   "last_notified_at": "2026-11-13T07:21:44Z",
+   "last_seen": "2026-11-19T15:50:44Z",
+   "notified_status": "watchlist",
+   "score": 74.12,
+   "status": "watchlist"
+  },
+  "twse|stock|1101|1w|2025-01-13T01:00:00Z|2025-11-17T01:00:00Z": {
+   "last_notified_at": "2026-11-27T09:13:16Z",
+   "last_seen": "2026-11-27T16:43:25Z",
+   "notified_status": "forming",
+   "score": 65.06,
+   "status": "forming"
+  },
+  "twse|stock|1102|1d|2026-05-28T01:00:00Z|2026-08-13T01:00:00Z": {
+   "last_notified_at": "2026-11-17T08:37:11Z",
+   "last_seen": "2026-11-18T15:44:14Z",
+   "notified_status": "forming",
+   "score": 65.74,
+   "status": "forming"
+  },
+  "twse|stock|1325|1d|2024-12-24T01:00:00Z|2025-04-09T01:00:00Z": {
+   "last_notified_at": "2026-11-13T07:21:44Z",
+   "last_seen": "2026-11-19T15:50:44Z",
+   "notified_status": "watchlist",
+   "score": 50.48,
+   "status": "watchlist"
+  },
+  "twse|stock|1325|1w|2024-12-23T01:00:00Z|2025-04-07T01:00:00Z": {
+   "last_notified_at": "2026-10-23T11:47:23Z",
+   "last_seen": "2026-11-19T15:50:44Z",
+   "notified_status": "watchlist",
+   "score": 50.49,
+   "status": "forming"
+  },
+  "twse|stock|1341|1d|2025-04-23T01:00:00Z|2025-09-11T01:00:00Z": {
+   "last_notified_at": "2026-11-11T07:13:20Z",
+   "last_seen": "2026-11-17T16:04:21Z",
+   "notified_status": "forming",
+   "score": 73.71,
+   "status": "forming"
+  },
+  "twse|stock|1341|1w|2025-04-07T01:00:00Z|2025-09-08T01:00:00Z": {
+   "last_notified_at": "2026-11-13T07:21:44Z",
+   "last_seen": "2026-11-27T16:43:25Z",
+   "notified_status": "forming",
+   "score": 68.15,
+   "status": "forming"
+  },
+  "twse|stock|1342|1w|2024-02-12T01:00:00Z|2025-04-07T01:00:00Z": {
+   "last_notified_at": "2026-11-06T14:25:30Z",
+   "last_seen": "2026-11-27T16:43:25Z",
+   "notified_status": "forming",
+   "score": 56.71,
+   "status": "forming"
+  },
+  "twse|stock|1402|1d|2026-02-02T01:00:00Z|2026-05-28T01:00:00Z": {
+   "last_notified_at": "2026-11-20T07:54:54Z",
+   "last_seen": "2026-11-27T16:43:25Z",
+   "notified_status": "forming",
+   "score": 70.22,
+   "status": "forming"
+  },
+  "twse|stock|1402|1w|2025-04-07T01:00:00Z|2026-05-25T01:00:00Z": {
+   "last_notified_at": null,
+   "last_seen": "2026-11-19T15:50:44Z",
+   "notified_status": null,
+   "score": 48.18,
+   "status": "forming"
+  },
+  "twse|stock|1402|1w|2026-02-02T01:00:00Z|2026-05-25T01:00:00Z": {
+   "last_notified_at": "2026-11-20T07:54:54Z",
+   "last_seen": "2026-11-27T16:43:25Z",
+   "notified_status": "forming",
+   "score": 70.23,
+   "status": "forming"
+  },
+  "twse|stock|1410|1d|2026-07-29T01:00:00Z|2026-11-02T01:00:00Z": {
+   "last_notified_at": "2026-11-18T08:06:35Z",
+   "last_seen": "2026-11-19T15:50:44Z",
+   "notified_status": "forming",
+   "score": 73.42,
+   "status": "forming"
+  },
+  "twse|stock|1410|4h|2026-04-28T01:00:00Z|2026-11-02T01:00:00Z": {
+   "last_notified_at": "2026-11-17T08:37:11Z",
+   "last_seen": "2026-11-17T16:04:21Z",
+   "notified_status": "watchlist",
+   "score": 64.19,
+   "status": "watchlist"
+  },
+  "twse|stock|1410|4h|2026-07-29T01:00:00Z|2026-11-02T01:00:00Z": {
+   "last_notified_at": "2026-11-18T08:06:35Z",
+   "last_seen": "2026-11-19T15:50:44Z",
+   "notified_status": "forming",
+   "score": 73.39,
+   "status": "forming"
+  },
+  "twse|stock|1414|1w|2026-01-12T01:00:00Z|2026-05-25T01:00:00Z": {
+   "last_notified_at": "2026-11-06T14:25:30Z",
+   "last_seen": "2026-11-27T16:43:25Z",
+   "notified_status": "forming",
+   "score": 71.16,
+   "status": "forming"
+  },
+  "twse|stock|1439|1d|2025-12-16T01:00:00Z|2026-07-01T01:00:00Z": {
+   "last_notified_at": "2026-11-20T07:54:54Z",
+   "last_seen": "2026-11-27T16:43:25Z",
+   "notified_status": "forming",
+   "score": 77.11,
+   "status": "forming"
+  },
+  "twse|stock|1439|1d|2026-03-09T01:00:00Z|2026-07-01T01:00:00Z": {
+   "last_notified_at": "2026-11-12T15:13:19Z",
+   "last_seen": "2026-11-19T15:50:44Z",
+   "notified_status": "forming",
+   "score": 89.42,
+   "status": "forming"
+  },
+  "twse|stock|1439|1w|2025-11-17T01:00:00Z|2026-06-29T01:00:00Z": {
+   "last_notified_at": "2026-11-20T07:54:54Z",
+   "last_seen": "2026-11-27T16:43:25Z",
+   "notified_status": "forming",
+   "score": 79.84,
+   "status": "forming"
+  },
+  "twse|stock|1440|1w|2024-03-18T01:00:00Z|2025-04-07T01:00:00Z": {
+   "last_notified_at": null,
+   "last_seen": "2026-11-26T16:58:06Z",
+   "notified_status": null,
+   "score": 48.56,
+   "status": "forming"
+  },
+  "twse|stock|1454|4h|2026-06-01T01:00:00Z|2026-11-09T05:00:00Z": {
+   "last_notified_at": null,
+   "last_seen": "2026-11-27T16:43:25Z",
+   "notified_status": null,
+   "score": 41.79,
+   "status": "forming"
+  },
+  "twse|stock|1456|1d|2026-03-31T01:00:00Z|2026-06-01T01:00:00Z": {
+   "last_notified_at": "2026-11-20T07:54:54Z",
+   "last_seen": "2026-11-27T16:43:25Z",
+   "notified_status": "forming",
+   "score": 69.09,
+   "status": "forming"
+  },
+  "twse|stock|1456|4h|2026-03-31T05:00:00Z|2026-06-01T01:00:00Z": {
+   "last_notified_at": "2026-11-25T09:15:14Z",
+   "last_seen": "2026-11-27T16:43:25Z",
+   "notified_status": "watchlist",
+   "score": 69.35,
+   "status": "watchlist"
+  },
+  "twse|stock|1470|1w|2026-01-19T01:00:00Z|2026-05-18T01:00:00Z": {
+   "last_notified_at": "2026-11-27T09:13:16Z",
+   "last_seen": "2026-11-27T16:43:25Z",
+   "notified_status": "confirmed",
+   "score": 83.84,
+   "status": "confirmed"
+  },
+  "twse|stock|1470|4h|2026-02-11T01:00:00Z|2026-05-20T01:00:00Z": {
+   "last_notified_at": "2026-11-16T07:24:09Z",
+   "last_seen": "2026-11-19T15:50:44Z",
+   "notified_status": "confirmed",
+   "score": 79.77,
+   "status": "confirmed"
+  },
+  "twse|stock|1475|4h|2026-09-10T01:00:00Z|2026-11-06T01:00:00Z": {
+   "last_notified_at": "2026-11-19T08:03:00Z",
+   "last_seen": "2026-11-19T15:50:44Z",
+   "notified_status": "forming",
+   "score": 71.94,
+   "status": "forming"
+  },
+  "twse|stock|1476|1d|2026-02-02T01:00:00Z|2026-09-30T01:00:00Z": {
+   "last_notified_at": "2026-11-26T09:02:40Z",
+   "last_seen": "2026-11-27T16:43:25Z",
+   "notified_status": "forming",
+   "score": 82.05,
+   "status": "forming"
+  },
+  "twse|stock|1513|1w|2024-05-20T01:00:00Z|2025-04-07T01:00:00Z": {
+   "last_notified_at": "2026-11-06T14:25:30Z",
+   "last_seen": "2026-11-27T16:43:25Z",
+   "notified_status": "forming",
+   "score": 53.4,
+   "status": "forming"
+  },
+  "twse|stock|1515|4h|2026-09-18T01:00:00Z|2026-11-06T01:00:00Z": {
+   "last_notified_at": "2026-11-18T08:06:35Z",
+   "last_seen": "2026-11-18T15:44:14Z",
+   "notified_status": "forming",
+   "score": 75.15,
+   "status": "forming"
+  },
+  "twse|stock|1525|1d|2024-05-23T01:00:00Z|2025-04-09T01:00:00Z": {
+   "last_notified_at": "2026-11-13T07:21:44Z",
+   "last_seen": "2026-11-27T16:43:25Z",
+   "notified_status": "watchlist",
+   "score": 51.49,
+   "status": "watchlist"
+  },
+  "twse|stock|1525|1w|2024-04-15T01:00:00Z|2025-04-07T01:00:00Z": {
+   "last_notified_at": "2026-11-27T09:13:16Z",
+   "last_seen": "2026-11-27T16:43:25Z",
+   "notified_status": "watchlist",
+   "score": 67.54,
+   "status": "watchlist"
+  },
+  "twse|stock|1530|1w|2024-08-05T01:00:00Z|2025-04-07T01:00:00Z": {
+   "last_notified_at": "2026-10-30T13:02:22Z",
+   "last_seen": "2026-11-19T15:50:44Z",
+   "notified_status": "watchlist",
+   "score": 71.01,
+   "status": "forming"
+  },
+  "twse|stock|1558|1d|2024-12-17T01:00:00Z|2026-07-23T01:00:00Z": {
+   "last_notified_at": "2026-11-12T07:50:36Z",
+   "last_seen": "2026-11-25T17:17:16Z",
+   "notified_status": "watchlist",
+   "score": 70.4,
+   "status": "forming"
+  },
+  "twse|stock|1558|1w|2024-08-05T01:00:00Z|2026-07-20T01:00:00Z": {
+   "last_notified_at": "2026-11-20T07:54:54Z",
+   "last_seen": "2026-11-27T16:43:25Z",
+   "notified_status": "forming",
+   "score": 64.73,
+   "status": "forming"
+  },
+  "twse|stock|1583|1d|2025-04-09T01:00:00Z|2025-11-21T01:00:00Z": {
+   "last_notified_at": "2026-11-19T08:03:00Z",
+   "last_seen": "2026-11-27T16:43:25Z",
+   "notified_status": "forming",
+   "score": 49.78,
+   "status": "forming"
+  },
+  "twse|stock|1603|1w|2024-01-15T01:00:00Z|2025-04-07T01:00:00Z": {
+   "last_notified_at": null,
+   "last_seen": "2026-11-26T16:58:06Z",
+   "notified_status": null,
+   "score": 43.76,
+   "status": "forming"
+  },
+  "twse|stock|1617|1w|2024-03-18T01:00:00Z|2025-04-07T01:00:00Z": {
+   "last_notified_at": null,
+   "last_seen": "2026-11-27T16:43:25Z",
+   "notified_status": null,
+   "score": 33.35,
+   "status": "forming"
+  },
+  "twse|stock|1776|4h|2026-06-24T01:00:00Z|2026-07-29T01:00:00Z": {
+   "last_notified_at": "2026-11-10T07:55:13Z",
+   "last_seen": "2026-11-18T15:44:14Z",
+   "notified_status": "watchlist",
+   "score": 53.78,
+   "status": "forming"
+  },
+  "twse|stock|1786|4h|2026-05-14T05:00:00Z|2026-10-28T01:00:00Z": {
+   "last_notified_at": "2026-11-18T08:06:35Z",
+   "last_seen": "2026-11-18T15:44:14Z",
+   "notified_status": "forming",
+   "score": 51.26,
+   "status": "forming"
+  },
+  "twse|stock|1789|1d|2026-06-08T01:00:00Z|2026-09-15T01:00:00Z": {
+   "last_notified_at": "2026-11-17T08:37:11Z",
+   "last_seen": "2026-11-18T15:44:14Z",
+   "notified_status": "forming",
+   "score": 73.67,
+   "status": "forming"
+  },
+  "twse|stock|1802|1d|2026-06-11T01:00:00Z|2026-07-30T01:00:00Z": {
+   "last_notified_at": "2026-11-13T07:21:44Z",
+   "last_seen": "2026-11-18T15:44:14Z",
+   "notified_status": "confirmed",
+   "score": 88.3,
+   "status": "confirmed"
+  },
+  "twse|stock|2010|1d|2026-05-20T01:00:00Z|2026-07-20T01:00:00Z": {
+   "last_notified_at": "2026-11-13T07:21:44Z",
+   "last_seen": "2026-11-19T15:50:44Z",
+   "notified_status": "watchlist",
+   "score": 62.89,
+   "status": "watchlist"
+  },
+  "twse|stock|2010|4h|2026-06-08T01:00:00Z|2026-07-20T01:00:00Z": {
+   "last_notified_at": "2026-11-10T07:55:13Z",
+   "last_seen": "2026-11-19T15:50:44Z",
+   "notified_status": "watchlist",
+   "score": 65.02,
+   "status": "watchlist"
+  },
+  "twse|stock|2025|1w|2025-04-07T01:00:00Z|2025-11-17T01:00:00Z": {
+   "last_notified_at": null,
+   "last_seen": "2026-11-19T15:50:44Z",
+   "notified_status": null,
+   "score": 49.47,
+   "status": "forming"
+  },
+  "twse|stock|2031|1w|2025-01-13T01:00:00Z|2025-11-17T01:00:00Z": {
+   "last_notified_at": "2026-11-20T07:54:54Z",
+   "last_seen": "2026-11-27T16:43:25Z",
+   "notified_status": "forming",
+   "score": 67.58,
+   "status": "forming"
+  },
+  "twse|stock|2031|1w|2025-06-23T01:00:00Z|2025-11-17T01:00:00Z": {
+   "last_notified_at": null,
+   "last_seen": "2026-11-19T15:50:44Z",
+   "notified_status": null,
+   "score": 45.91,
+   "status": "forming"
+  },
+  "twse|stock|2034|1d|2026-01-21T01:00:00Z|2026-07-29T01:00:00Z": {
+   "last_notified_at": "2026-11-13T07:21:44Z",
+   "last_seen": "2026-11-19T15:50:44Z",
+   "notified_status": "watchlist",
+   "score": 75.3,
+   "status": "forming"
+  },
+  "twse|stock|2107|1d|2025-04-22T01:00:00Z|2025-11-05T01:00:00Z": {
+   "last_notified_at": "2026-11-27T09:13:16Z",
+   "last_seen": "2026-11-27T16:43:25Z",
+   "notified_status": "watchlist",
+   "score": 55.84,
+   "status": "forming"
+  },
+  "twse|stock|2107|1w|2025-04-07T01:00:00Z|2025-11-03T01:00:00Z": {
+   "last_notified_at": "2026-11-20T07:54:54Z",
+   "last_seen": "2026-11-20T15:29:40Z",
+   "notified_status": "forming",
+   "score": 56.88,
+   "status": "forming"
+  },
+  "twse|stock|2114|1d|2025-02-10T01:00:00Z|2025-04-09T01:00:00Z": {
+   "last_notified_at": "2026-11-23T08:18:47Z",
+   "last_seen": "2026-11-27T16:43:25Z",
+   "notified_status": "forming",
+   "score": 71.04,
+   "status": "forming"
+  },
+  "twse|stock|2115|1d|2025-04-09T01:00:00Z|2026-05-18T01:00:00Z": {
+   "last_notified_at": "2026-11-06T14:25:30Z",
+   "last_seen": "2026-11-19T15:50:44Z",
+   "notified_status": "forming",
+   "score": 61.43,
+   "status": "forming"
+  },
+  "twse|stock|2115|1w|2025-04-07T01:00:00Z|2026-05-18T01:00:00Z": {
+   "last_notified_at": "2026-11-06T14:25:30Z",
+   "last_seen": "2026-11-19T15:50:44Z",
+   "notified_status": "forming",
+   "score": 55.76,
+   "status": "forming"
+  },
+  "twse|stock|2207|1d|2026-02-06T01:00:00Z|2026-06-16T01:00:00Z": {
+   "last_notified_at": "2026-11-23T08:18:47Z",
+   "last_seen": "2026-11-27T16:43:25Z",
+   "notified_status": "forming",
+   "score": 85.05,
+   "status": "forming"
+  },
+  "twse|stock|2321|1d|2025-10-15T01:00:00Z|2026-04-15T01:00:00Z": {
+   "last_notified_at": "2026-11-19T08:03:00Z",
+   "last_seen": "2026-11-27T16:43:25Z",
+   "notified_status": "confirmed",
+   "score": 71.21,
+   "status": "forming"
+  },
+  "twse|stock|2321|4h|2025-09-05T01:00:00Z|2026-04-15T01:00:00Z": {
+   "last_notified_at": "2026-11-18T08:06:35Z",
+   "last_seen": "2026-11-27T16:43:25Z",
+   "notified_status": "confirmed",
+   "score": 83.02,
+   "status": "confirmed"
+  },
+  "twse|stock|2328|1d|2026-05-18T01:00:00Z|2026-07-29T01:00:00Z": {
+   "last_notified_at": "2026-11-05T14:47:32Z",
+   "last_seen": "2026-11-16T15:44:02Z",
+   "notified_status": "forming",
+   "score": 48.67,
+   "status": "watchlist"
+  },
+  "twse|stock|2355|1d|2026-06-08T01:00:00Z|2026-07-30T01:00:00Z": {
+   "last_notified_at": "2026-11-13T07:21:44Z",
+   "last_seen": "2026-11-19T15:50:44Z",
+   "notified_status": "confirmed",
+   "score": 87.2,
+   "status": "confirmed"
+  },
+  "twse|stock|2355|4h|2026-06-08T01:00:00Z|2026-07-30T05:00:00Z": {
+   "last_notified_at": "2026-11-12T07:50:36Z",
+   "last_seen": "2026-11-16T15:44:02Z",
+   "notified_status": "confirmed",
+   "score": 87.17,
+   "status": "confirmed"
+  },
+  "twse|stock|2393|1d|2026-05-18T01:00:00Z|2026-08-04T01:00:00Z": {
+   "last_notified_at": "2026-11-13T07:21:44Z",
+   "last_seen": "2026-11-19T15:50:44Z",
+   "notified_status": "watchlist",
+   "score": 67.47,
+   "status": "watchlist"
+  },
+  "twse|stock|2393|4h|2026-05-18T01:00:00Z|2026-08-04T01:00:00Z": {
+   "last_notified_at": "2026-11-10T07:55:13Z",
+   "last_seen": "2026-11-27T16:43:25Z",
+   "notified_status": "watchlist",
+   "score": 49.63,
+   "status": "watchlist"
+  },
+  "twse|stock|2413|1d|2026-06-08T01:00:00Z|2026-07-30T01:00:00Z": {
+   "last_notified_at": "2026-11-13T07:21:44Z",
+   "last_seen": "2026-11-27T16:43:25Z",
+   "notified_status": "watchlist",
+   "score": 65.72,
+   "status": "watchlist"
+  },
+  "twse|stock|2413|1w|2026-04-27T01:00:00Z|2026-07-27T01:00:00Z": {
+   "last_notified_at": "2026-11-27T09:13:16Z",
+   "last_seen": "2026-11-27T16:43:25Z",
+   "notified_status": "watchlist",
+   "score": 61.65,
+   "status": "watchlist"
+  },
+  "twse|stock|2413|4h|2026-06-08T01:00:00Z|2026-07-30T05:00:00Z": {
+   "last_notified_at": "2026-11-10T07:55:13Z",
+   "last_seen": "2026-11-26T16:58:06Z",
+   "notified_status": "watchlist",
+   "score": 65.76,
+   "status": "watchlist"
+  },
+  "twse|stock|2420|1w|2024-08-05T01:00:00Z|2025-04-07T01:00:00Z": {
+   "last_notified_at": null,
+   "last_seen": "2026-11-19T15:50:44Z",
+   "notified_status": null,
+   "score": 44.14,
+   "status": "forming"
+  },
+  "twse|stock|2438|4h|2026-05-15T01:00:00Z|2026-07-29T01:00:00Z": {
+   "last_notified_at": "2026-11-11T14:12:56Z",
+   "last_seen": "2026-11-17T16:04:21Z",
+   "notified_status": "watchlist",
+   "score": 65.27,
+   "status": "watchlist"
+  },
+  "twse|stock|2465|1w|2024-05-13T01:00:00Z|2025-04-07T01:00:00Z": {
+   "last_notified_at": "2026-11-06T14:25:30Z",
+   "last_seen": "2026-11-26T16:58:06Z",
+   "notified_status": "confirmed",
+   "score": 84.91,
+   "status": "confirmed"
+  },
+  "twse|stock|2515|1w|2024-02-19T01:00:00Z|2025-04-07T01:00:00Z": {
+   "last_notified_at": "2026-11-06T14:25:30Z",
+   "last_seen": "2026-11-19T15:50:44Z",
+   "notified_status": "forming",
+   "score": 65.55,
+   "status": "forming"
+  },
+  "twse|stock|2520|1d|2025-09-01T01:00:00Z|2026-05-05T01:00:00Z": {
+   "last_notified_at": "2026-11-13T07:21:44Z",
+   "last_seen": "2026-11-19T15:50:44Z",
+   "notified_status": "watchlist",
+   "score": 69.39,
+   "status": "watchlist"
+  },
+  "twse|stock|2537|1w|2025-11-17T01:00:00Z|2026-05-25T01:00:00Z": {
+   "last_notified_at": "2026-11-06T14:25:30Z",
+   "last_seen": "2026-11-26T16:58:06Z",
+   "notified_status": "forming",
+   "score": 63.0,
+   "status": "forming"
+  },
+  "twse|stock|2540|1d|2026-09-07T01:00:00Z|2026-11-06T01:00:00Z": {
+   "last_notified_at": null,
+   "last_seen": "2026-11-27T16:43:25Z",
+   "notified_status": null,
+   "score": 48.68,
+   "status": "forming"
+  },
+  "twse|stock|2540|4h|2026-09-15T01:00:00Z|2026-11-06T01:00:00Z": {
+   "last_notified_at": "2026-11-23T08:18:47Z",
+   "last_seen": "2026-11-24T17:40:27Z",
+   "notified_status": "forming",
+   "score": 54.81,
+   "status": "forming"
+  },
+  "twse|stock|2606|1d|2025-02-04T01:00:00Z|2025-04-09T01:00:00Z": {
+   "last_notified_at": "2026-11-20T07:54:54Z",
+   "last_seen": "2026-11-27T16:43:25Z",
+   "notified_status": "forming",
+   "score": 61.6,
+   "status": "forming"
+  },
+  "twse|stock|2612|1d|2026-02-06T01:00:00Z|2026-07-29T01:00:00Z": {
+   "last_notified_at": "2026-11-13T07:21:44Z",
+   "last_seen": "2026-11-19T15:50:44Z",
+   "notified_status": "watchlist",
+   "score": 53.02,
+   "status": "forming"
+  },
+  "twse|stock|2617|1d|2025-02-05T01:00:00Z|2025-04-09T01:00:00Z": {
+   "last_notified_at": "2026-11-19T08:03:00Z",
+   "last_seen": "2026-11-19T15:50:44Z",
+   "notified_status": "forming",
+   "score": 53.44,
+   "status": "forming"
+  },
+  "twse|stock|2618|1d|2025-04-30T01:00:00Z|2026-03-10T01:00:00Z": {
+   "last_notified_at": "2026-11-05T14:47:32Z",
+   "last_seen": "2026-11-27T16:43:25Z",
+   "notified_status": "confirmed",
+   "score": 66.4,
+   "status": "forming"
+  },
+  "twse|stock|2723|1d|2026-03-04T01:00:00Z|2026-05-28T01:00:00Z": {
+   "last_notified_at": "2026-11-11T07:13:20Z",
+   "last_seen": "2026-11-18T15:44:14Z",
+   "notified_status": "forming",
+   "score": 53.08,
+   "status": "forming"
+  },
+  "twse|stock|2723|1w|2026-03-02T01:00:00Z|2026-05-25T01:00:00Z": {
+   "last_notified_at": "2026-11-13T07:21:44Z",
+   "last_seen": "2026-11-19T15:50:44Z",
+   "notified_status": "forming",
+   "score": 64.13,
+   "status": "forming"
+  },
+  "twse|stock|2727|4h|2026-05-27T01:00:00Z|2026-07-16T01:00:00Z": {
+   "last_notified_at": "2026-11-06T14:25:30Z",
+   "last_seen": "2026-11-20T15:29:40Z",
+   "notified_status": "forming",
+   "score": 61.0,
+   "status": "forming"
+  },
+  "twse|stock|2836|1d|2024-06-21T01:00:00Z|2025-04-09T01:00:00Z": {
+   "last_notified_at": "2026-11-13T07:21:44Z",
+   "last_seen": "2026-11-27T16:43:25Z",
+   "notified_status": "watchlist",
+   "score": 74.79,
+   "status": "forming"
+  },
+  "twse|stock|2849|1w|2024-09-09T01:00:00Z|2025-04-07T01:00:00Z": {
+   "last_notified_at": "2026-11-20T07:54:54Z",
+   "last_seen": "2026-11-27T16:43:25Z",
+   "notified_status": "forming",
+   "score": 61.57,
+   "status": "forming"
+  },
+  "twse|stock|2881|4h|2026-10-01T01:00:00Z|2026-11-06T01:00:00Z": {
+   "last_notified_at": "2026-11-17T08:37:11Z",
+   "last_seen": "2026-11-19T15:50:44Z",
+   "notified_status": "forming",
+   "score": 61.43,
+   "status": "forming"
+  },
+  "twse|stock|2882|4h|2026-10-01T01:00:00Z|2026-11-06T01:00:00Z": {
+   "last_notified_at": "2026-11-18T08:06:35Z",
+   "last_seen": "2026-11-18T15:44:14Z",
+   "notified_status": "forming",
+   "score": 80.2,
+   "status": "forming"
+  },
+  "twse|stock|2885|4h|2026-10-01T01:00:00Z|2026-11-06T01:00:00Z": {
+   "last_notified_at": "2026-11-17T08:37:11Z",
+   "last_seen": "2026-11-18T15:44:14Z",
+   "notified_status": "forming",
+   "score": 64.91,
+   "status": "forming"
+  },
+  "twse|stock|2886|1d|2026-07-15T01:00:00Z|2026-08-13T01:00:00Z": {
+   "last_notified_at": "2026-11-24T10:34:57Z",
+   "last_seen": "2026-11-26T16:58:06Z",
+   "notified_status": "forming",
+   "score": 50.28,
+   "status": "forming"
+  },
+  "twse|stock|2886|4h|2026-07-24T01:00:00Z|2026-08-13T01:00:00Z": {
+   "last_notified_at": "2026-11-10T07:55:13Z",
+   "last_seen": "2026-11-26T16:58:06Z",
+   "notified_status": "watchlist",
+   "score": 51.72,
+   "status": "forming"
+  },
+  "twse|stock|2915|1w|2025-06-02T01:00:00Z|2026-05-25T01:00:00Z": {
+   "last_notified_at": "2026-11-06T14:25:30Z",
+   "last_seen": "2026-11-26T16:58:06Z",
+   "notified_status": "forming",
+   "score": 53.02,
+   "status": "forming"
+  },
+  "twse|stock|2923|1d|2026-07-24T01:00:00Z|2026-09-16T01:00:00Z": {
+   "last_notified_at": "2026-11-16T07:24:09Z",
+   "last_seen": "2026-11-27T09:13:16Z",
+   "notified_status": "forming",
+   "score": 72.09,
+   "status": "forming"
+  },
+  "twse|stock|2923|4h|2026-07-24T01:00:00Z|2026-09-16T01:00:00Z": {
+   "last_notified_at": "2026-11-25T09:15:14Z",
+   "last_seen": "2026-11-27T16:43:25Z",
+   "notified_status": "forming",
+   "score": 72.01,
+   "status": "forming"
+  },
+  "twse|stock|2929|4h|2026-09-09T01:00:00Z|2026-11-09T05:00:00Z": {
+   "last_notified_at": "2026-11-17T08:37:11Z",
+   "last_seen": "2026-11-19T15:50:44Z",
+   "notified_status": "watchlist",
+   "score": 81.32,
+   "status": "forming"
+  },
+  "twse|stock|2939|4h|2026-03-18T01:00:00Z|2026-07-24T01:00:00Z": {
+   "last_notified_at": "2026-11-18T08:06:35Z",
+   "last_seen": "2026-11-19T15:50:44Z",
+   "notified_status": "confirmed",
+   "score": 90.2,
+   "status": "confirmed"
+  },
+  "twse|stock|2939|4h|2026-03-25T01:00:00Z|2026-07-24T01:00:00Z": {
+   "last_notified_at": "2026-10-29T13:08:10Z",
+   "last_seen": "2026-11-17T16:04:21Z",
+   "notified_status": "watchlist",
+   "score": 89.56,
+   "status": "watchlist"
+  },
+  "twse|stock|2945|1w|2023-10-16T01:00:00Z|2025-04-07T01:00:00Z": {
+   "last_notified_at": "2026-11-20T07:54:54Z",
+   "last_seen": "2026-11-26T16:58:06Z",
+   "notified_status": "forming",
+   "score": 61.07,
+   "status": "forming"
+  },
+  "twse|stock|2945|1w|2024-03-04T01:00:00Z|2025-04-07T01:00:00Z": {
+   "last_notified_at": "2026-10-19T09:52:32Z",
+   "last_seen": "2026-11-19T15:50:44Z",
+   "notified_status": "watchlist",
+   "score": 65.99,
+   "status": "forming"
+  },
+  "twse|stock|3019|4h|2026-08-25T01:00:00Z|2026-11-04T01:00:00Z": {
+   "last_notified_at": "2026-11-19T08:03:00Z",
+   "last_seen": "2026-11-19T15:50:44Z",
+   "notified_status": "forming",
+   "score": 51.26,
+   "status": "forming"
+  },
+  "twse|stock|3022|1w|2025-01-13T01:00:00Z|2026-03-09T01:00:00Z": {
+   "last_notified_at": "2026-11-06T14:25:30Z",
+   "last_seen": "2026-11-19T15:50:44Z",
+   "notified_status": "forming",
+   "score": 76.82,
+   "status": "forming"
+  },
+  "twse|stock|3025|1w|2024-08-05T01:00:00Z|2025-09-29T01:00:00Z": {
+   "last_notified_at": "2026-10-19T09:52:32Z",
+   "last_seen": "2026-11-19T15:50:44Z",
+   "notified_status": "watchlist",
+   "score": 50.6,
+   "status": "forming"
+  },
+  "twse|stock|3029|1d|2025-04-22T01:00:00Z|2026-04-07T01:00:00Z": {
+   "last_notified_at": "2026-11-20T07:54:54Z",
+   "last_seen": "2026-11-27T16:43:25Z",
+   "notified_status": "forming",
+   "score": 54.46,
+   "status": "forming"
+  },
+  "twse|stock|3029|1w|2026-02-02T01:00:00Z|2026-04-06T01:00:00Z": {
+   "last_notified_at": "2026-11-13T07:21:44Z",
+   "last_seen": "2026-11-19T15:50:44Z",
+   "notified_status": "confirmed",
+   "score": 80.67,
+   "status": "confirmed"
+  },
+  "twse|stock|3046|1w|2024-08-05T01:00:00Z|2025-04-07T01:00:00Z": {
+   "last_notified_at": "2026-11-06T14:25:30Z",
+   "last_seen": "2026-11-27T16:43:25Z",
+   "notified_status": "forming",
+   "score": 73.34,
+   "status": "forming"
+  },
+  "twse|stock|3054|4h|2026-07-02T01:00:00Z|2026-07-30T05:00:00Z": {
+   "last_notified_at": "2026-11-19T15:50:44Z",
+   "last_seen": "2026-11-19T15:50:44Z",
+   "notified_status": "forming",
+   "score": 89.18,
+   "status": "forming"
+  },
+  "twse|stock|3054|4h|2026-07-14T01:00:00Z|2026-07-30T05:00:00Z": {
+   "last_notified_at": "2026-11-19T08:03:00Z",
+   "last_seen": "2026-11-19T08:03:00Z",
+   "notified_status": "forming",
+   "score": 76.5,
+   "status": "forming"
+  },
+  "twse|stock|3060|4h|2026-09-15T05:00:00Z|2026-11-06T01:00:00Z": {
+   "last_notified_at": "2026-11-18T08:06:35Z",
+   "last_seen": "2026-11-18T15:44:14Z",
+   "notified_status": "forming",
+   "score": 65.94,
+   "status": "forming"
+  },
+  "twse|stock|3060|4h|2026-09-24T01:00:00Z|2026-11-06T01:00:00Z": {
+   "last_notified_at": "2026-11-16T07:24:09Z",
+   "last_seen": "2026-11-17T16:04:21Z",
+   "notified_status": "forming",
+   "score": 80.22,
+   "status": "forming"
+  },
+  "twse|stock|3209|1d|2026-07-29T01:00:00Z|2026-11-06T01:00:00Z": {
+   "last_notified_at": "2026-11-18T08:06:35Z",
+   "last_seen": "2026-11-19T15:50:44Z",
+   "notified_status": "forming",
+   "score": 70.04,
+   "status": "forming"
+  },
+  "twse|stock|3209|4h|2026-07-29T01:00:00Z|2026-11-06T01:00:00Z": {
+   "last_notified_at": "2026-11-17T08:37:11Z",
+   "last_seen": "2026-11-19T15:50:44Z",
+   "notified_status": "forming",
+   "score": 70.12,
+   "status": "forming"
+  },
+  "twse|stock|3432|1w|2024-04-15T01:00:00Z|2025-04-07T01:00:00Z": {
+   "last_notified_at": "2026-10-30T13:02:22Z",
+   "last_seen": "2026-11-27T16:43:25Z",
+   "notified_status": "forming",
+   "score": 61.41,
+   "status": "forming"
+  },
+  "twse|stock|3543|1d|2026-02-06T01:00:00Z|2026-07-29T01:00:00Z": {
+   "last_notified_at": "2026-11-13T07:21:44Z",
+   "last_seen": "2026-11-23T18:07:09Z",
+   "notified_status": "watchlist",
+   "score": 55.99,
+   "status": "forming"
+  },
+  "twse|stock|3543|1w|2026-02-02T01:00:00Z|2026-07-27T01:00:00Z": {
+   "last_notified_at": "2026-11-06T14:25:30Z",
+   "last_seen": "2026-11-26T16:58:06Z",
+   "notified_status": "forming",
+   "score": 55.99,
+   "status": "forming"
+  },
+  "twse|stock|3617|4h|2026-09-24T01:00:00Z|2026-11-06T01:00:00Z": {
+   "last_notified_at": "2026-11-18T08:06:35Z",
+   "last_seen": "2026-11-19T15:50:44Z",
+   "notified_status": "forming",
+   "score": 83.5,
+   "status": "forming"
+  },
+  "twse|stock|3652|1d|2024-08-07T01:00:00Z|2025-04-09T01:00:00Z": {
+   "last_notified_at": null,
+   "last_seen": "2026-11-27T16:43:25Z",
+   "notified_status": null,
+   "score": 39.23,
+   "status": "forming"
+  },
+  "twse|stock|3652|1w|2024-08-05T01:00:00Z|2025-04-07T01:00:00Z": {
+   "last_notified_at": null,
+   "last_seen": "2026-11-27T16:43:25Z",
+   "notified_status": null,
+   "score": 39.01,
+   "status": "forming"
+  },
+  "twse|stock|3661|4h|2026-09-29T01:00:00Z|2026-11-06T01:00:00Z": {
+   "last_notified_at": "2026-11-25T09:15:14Z",
+   "last_seen": "2026-11-27T16:43:25Z",
+   "notified_status": "watchlist",
+   "score": 66.05,
+   "status": "watchlist"
+  },
+  "twse|stock|3686|1w|2024-06-17T01:00:00Z|2025-04-07T01:00:00Z": {
+   "last_notified_at": "2026-10-19T09:52:32Z",
+   "last_seen": "2026-11-19T15:50:44Z",
+   "notified_status": "watchlist",
+   "score": 42.41,
+   "status": "forming"
+  },
+  "twse|stock|3701|1d|2026-04-02T01:00:00Z|2026-07-30T01:00:00Z": {
+   "last_notified_at": "2026-11-13T07:21:44Z",
+   "last_seen": "2026-11-18T15:44:14Z",
+   "notified_status": "confirmed",
+   "score": 84.24,
+   "status": "confirmed"
+  },
+  "twse|stock|3701|4h|2026-04-13T01:00:00Z|2026-07-30T01:00:00Z": {
+   "last_notified_at": "2026-11-12T07:50:36Z",
+   "last_seen": "2026-11-16T15:44:02Z",
+   "notified_status": "confirmed",
+   "score": 91.35,
+   "status": "confirmed"
+  },
+  "twse|stock|3703|1d|2026-03-11T01:00:00Z|2026-08-31T01:00:00Z": {
+   "last_notified_at": "2026-11-18T08:06:35Z",
+   "last_seen": "2026-11-19T15:50:44Z",
+   "notified_status": "forming",
+   "score": 76.27,
+   "status": "forming"
+  },
+  "twse|stock|3705|1d|2025-04-23T01:00:00Z|2026-03-23T01:00:00Z": {
+   "last_notified_at": "2026-11-20T07:54:54Z",
+   "last_seen": "2026-11-25T17:17:16Z",
+   "notified_status": "forming",
+   "score": 63.87,
+   "status": "forming"
+  },
+  "twse|stock|3705|1w|2025-07-07T01:00:00Z|2026-03-23T01:00:00Z": {
+   "last_notified_at": "2026-11-27T09:13:16Z",
+   "last_seen": "2026-11-27T16:43:25Z",
+   "notified_status": "forming",
+   "score": 77.81,
+   "status": "forming"
+  },
+  "twse|stock|3708|1w|2024-01-15T01:00:00Z|2025-04-07T01:00:00Z": {
+   "last_notified_at": "2026-11-06T14:25:30Z",
+   "last_seen": "2026-11-19T15:50:44Z",
+   "notified_status": "forming",
+   "score": 52.38,
+   "status": "forming"
+  },
+  "twse|stock|3715|1d|2026-06-08T01:00:00Z|2026-07-30T01:00:00Z": {
+   "last_notified_at": "2026-11-20T07:54:54Z",
+   "last_seen": "2026-11-23T18:07:09Z",
+   "notified_status": "forming",
+   "score": 53.48,
+   "status": "forming"
+  },
+  "twse|stock|3715|4h|2026-06-11T01:00:00Z|2026-07-30T05:00:00Z": {
+   "last_notified_at": "2026-11-17T08:37:11Z",
+   "last_seen": "2026-11-19T15:50:44Z",
+   "notified_status": "forming",
+   "score": 59.75,
+   "status": "forming"
+  },
+  "twse|stock|3717|1d|2026-06-24T01:00:00Z|2026-07-29T01:00:00Z": {
+   "last_notified_at": "2026-11-13T07:21:44Z",
+   "last_seen": "2026-11-17T16:04:21Z",
+   "notified_status": "watchlist",
+   "score": 50.92,
+   "status": "forming"
+  },
+  "twse|stock|4155|1w|2025-08-11T01:00:00Z|2026-04-27T01:00:00Z": {
+   "last_notified_at": "2026-11-13T07:21:44Z",
+   "last_seen": "2026-11-19T15:50:44Z",
+   "notified_status": "confirmed",
+   "score": 80.4,
+   "status": "confirmed"
+  },
+  "twse|stock|4439|1w|2025-08-11T01:00:00Z|2026-03-23T01:00:00Z": {
+   "last_notified_at": "2026-11-27T09:13:16Z",
+   "last_seen": "2026-11-27T16:43:25Z",
+   "notified_status": "forming",
+   "score": 52.17,
+   "status": "forming"
+  },
+  "twse|stock|4526|1w|2024-08-05T01:00:00Z|2025-04-07T01:00:00Z": {
+   "last_notified_at": "2026-10-30T13:02:22Z",
+   "last_seen": "2026-11-19T15:50:44Z",
+   "notified_status": "confirmed",
+   "score": 84.97,
+   "status": "confirmed"
+  },
+  "twse|stock|4545|4h|2026-09-24T01:00:00Z|2026-11-06T01:00:00Z": {
+   "last_notified_at": "2026-11-25T09:15:14Z",
+   "last_seen": "2026-11-27T16:43:25Z",
+   "notified_status": "watchlist",
+   "score": 58.56,
+   "status": "watchlist"
+  },
+  "twse|stock|4566|1d|2024-07-09T01:00:00Z|2025-04-09T01:00:00Z": {
+   "last_notified_at": "2026-11-13T07:21:44Z",
+   "last_seen": "2026-11-16T15:44:02Z",
+   "notified_status": "watchlist",
+   "score": 69.18,
+   "status": "forming"
+  },
+  "twse|stock|4566|1d|2024-08-06T01:00:00Z|2025-04-09T01:00:00Z": {
+   "last_notified_at": "2026-11-17T08:37:11Z",
+   "last_seen": "2026-11-17T16:04:21Z",
+   "notified_status": "forming",
+   "score": 61.51,
+   "status": "forming"
+  },
+  "twse|stock|4571|1d|2024-11-29T01:00:00Z|2025-04-09T01:00:00Z": {
+   "last_notified_at": "2026-10-19T09:52:32Z",
+   "last_seen": "2026-11-27T16:43:25Z",
+   "notified_status": "watchlist",
+   "score": 49.2,
+   "status": "watchlist"
+  },
+  "twse|stock|4736|1w|2025-06-23T01:00:00Z|2025-10-13T01:00:00Z": {
+   "last_notified_at": "2026-11-06T14:25:30Z",
+   "last_seen": "2026-11-27T16:43:25Z",
+   "notified_status": "forming",
+   "score": 69.46,
+   "status": "forming"
+  },
+  "twse|stock|4746|4h|2026-09-14T01:00:00Z|2026-11-06T01:00:00Z": {
+   "last_notified_at": "2026-11-18T08:06:35Z",
+   "last_seen": "2026-11-18T15:44:14Z",
+   "notified_status": "forming",
+   "score": 74.82,
+   "status": "forming"
+  },
+  "twse|stock|4755|4h|2026-05-18T01:00:00Z|2026-07-29T01:00:00Z": {
+   "last_notified_at": "2026-11-19T08:03:00Z",
+   "last_seen": "2026-11-19T08:03:00Z",
+   "notified_status": "forming",
+   "score": 70.46,
+   "status": "forming"
+  },
+  "twse|stock|4766|4h|2026-05-08T01:00:00Z|2026-07-29T01:00:00Z": {
+   "last_notified_at": "2026-11-10T07:55:13Z",
+   "last_seen": "2026-11-16T15:44:02Z",
+   "notified_status": "watchlist",
+   "score": 52.83,
+   "status": "forming"
+  },
+  "twse|stock|4807|4h|2026-09-30T01:00:00Z|2026-11-06T01:00:00Z": {
+   "last_notified_at": "2026-11-23T08:18:47Z",
+   "last_seen": "2026-11-24T17:40:27Z",
+   "notified_status": "forming",
+   "score": 77.72,
+   "status": "forming"
+  },
+  "twse|stock|4927|1d|2026-05-18T01:00:00Z|2026-07-30T01:00:00Z": {
+   "last_notified_at": "2026-11-13T07:21:44Z",
+   "last_seen": "2026-11-16T15:44:02Z",
+   "notified_status": "confirmed",
+   "score": 93.58,
+   "status": "confirmed"
+  },
+  "twse|stock|4927|4h|2026-05-18T01:00:00Z|2026-07-30T01:00:00Z": {
+   "last_notified_at": "2026-11-12T07:50:36Z",
+   "last_seen": "2026-11-16T15:44:02Z",
+   "notified_status": "confirmed",
+   "score": 93.58,
+   "status": "confirmed"
+  },
+  "twse|stock|4952|1w|2024-04-01T01:00:00Z|2025-11-17T01:00:00Z": {
+   "last_notified_at": "2026-11-06T14:25:30Z",
+   "last_seen": "2026-11-26T16:58:06Z",
+   "notified_status": "forming",
+   "score": 41.93,
+   "status": "forming"
+  },
+  "twse|stock|4977|1d|2026-05-20T01:00:00Z|2026-07-30T01:00:00Z": {
+   "last_notified_at": "2026-11-18T08:06:35Z",
+   "last_seen": "2026-11-19T15:50:44Z",
+   "notified_status": "confirmed",
+   "score": 72.33,
+   "status": "confirmed"
+  },
+  "twse|stock|4977|4h|2026-05-20T05:00:00Z|2026-07-30T05:00:00Z": {
+   "last_notified_at": "2026-11-18T08:06:35Z",
+   "last_seen": "2026-11-19T15:50:44Z",
+   "notified_status": "confirmed",
+   "score": 72.37,
+   "status": "confirmed"
+  },
+  "twse|stock|5007|1w|2023-04-24T01:00:00Z|2025-04-07T01:00:00Z": {
+   "last_notified_at": "2026-11-20T07:54:54Z",
+   "last_seen": "2026-11-27T16:43:25Z",
+   "notified_status": "forming",
+   "score": 79.61,
+   "status": "forming"
+  },
+  "twse|stock|5292|1d|2026-04-07T01:00:00Z|2026-07-29T01:00:00Z": {
+   "last_notified_at": "2026-11-13T07:21:44Z",
+   "last_seen": "2026-11-23T18:07:09Z",
+   "notified_status": "watchlist",
+   "score": 71.26,
+   "status": "forming"
+  },
+  "twse|stock|5306|1d|2025-05-05T01:00:00Z|2026-05-07T01:00:00Z": {
+   "last_notified_at": "2026-11-03T14:19:30Z",
+   "last_seen": "2026-11-19T15:50:44Z",
+   "notified_status": "watchlist",
+   "score": 63.45,
+   "status": "forming"
+  },
+  "twse|stock|5306|1w|2025-11-10T01:00:00Z|2026-05-04T01:00:00Z": {
+   "last_notified_at": "2026-10-30T13:02:22Z",
+   "last_seen": "2026-11-19T15:50:44Z",
+   "notified_status": "forming",
+   "score": 51.13,
+   "status": "forming"
+  },
+  "twse|stock|5521|4h|2026-06-08T01:00:00Z|2026-08-03T01:00:00Z": {
+   "last_notified_at": "2026-11-10T07:55:13Z",
+   "last_seen": "2026-11-26T16:58:06Z",
+   "notified_status": "watchlist",
+   "score": 61.3,
+   "status": "watchlist"
+  },
+  "twse|stock|5522|1d|2024-11-27T01:00:00Z|2025-11-05T01:00:00Z": {
+   "last_notified_at": "2026-10-19T09:52:32Z",
+   "last_seen": "2026-11-27T16:43:25Z",
+   "notified_status": "watchlist",
+   "score": 44.21,
+   "status": "watchlist"
+  },
+  "twse|stock|5522|1w|2024-11-25T01:00:00Z|2025-11-03T01:00:00Z": {
+   "last_notified_at": "2026-10-30T13:02:22Z",
+   "last_seen": "2026-11-27T16:43:25Z",
+   "notified_status": "watchlist",
+   "score": 44.2,
+   "status": "watchlist"
+  },
+  "twse|stock|5538|1w|2025-01-13T01:00:00Z|2025-04-07T01:00:00Z": {
+   "last_notified_at": "2026-11-07T10:17:12Z",
+   "last_seen": "2026-11-27T16:43:25Z",
+   "notified_status": "forming",
+   "score": 79.25,
+   "status": "forming"
+  },
+  "twse|stock|5607|1w|2023-06-12T01:00:00Z|2025-04-07T01:00:00Z": {
+   "last_notified_at": "2026-11-20T07:54:54Z",
+   "last_seen": "2026-11-27T16:43:25Z",
+   "notified_status": "forming",
+   "score": 71.26,
+   "status": "forming"
+  },
+  "twse|stock|5906|1w|2026-03-23T01:00:00Z|2026-07-06T01:00:00Z": {
+   "last_notified_at": "2026-11-13T07:21:44Z",
+   "last_seen": "2026-11-19T15:50:44Z",
+   "notified_status": "watchlist",
+   "score": 67.87,
+   "status": "watchlist"
+  },
+  "twse|stock|6112|1d|2026-05-28T01:00:00Z|2026-07-29T01:00:00Z": {
+   "last_notified_at": "2026-11-13T07:21:44Z",
+   "last_seen": "2026-11-16T15:44:02Z",
+   "notified_status": "confirmed",
+   "score": 90.24,
+   "status": "confirmed"
+  },
+  "twse|stock|6112|1w|2026-05-18T01:00:00Z|2026-07-27T01:00:00Z": {
+   "last_notified_at": "2026-11-06T14:25:30Z",
+   "last_seen": "2026-11-19T15:50:44Z",
+   "notified_status": "forming",
+   "score": 83.35,
+   "status": "forming"
+  },
+  "twse|stock|6177|1d|2024-08-07T01:00:00Z|2025-04-09T01:00:00Z": {
+   "last_notified_at": "2026-11-13T07:21:44Z",
+   "last_seen": "2026-11-27T16:43:25Z",
+   "notified_status": "watchlist",
+   "score": 63.47,
+   "status": "forming"
+  },
+  "twse|stock|6177|1w|2024-08-05T01:00:00Z|2025-04-07T01:00:00Z": {
+   "last_notified_at": "2026-11-06T14:25:30Z",
+   "last_seen": "2026-11-27T16:43:25Z",
+   "notified_status": "forming",
+   "score": 63.56,
+   "status": "forming"
+  },
+  "twse|stock|6191|4h|2026-09-29T01:00:00Z|2026-11-06T01:00:00Z": {
+   "last_notified_at": "2026-11-17T08:37:11Z",
+   "last_seen": "2026-11-17T16:04:21Z",
+   "notified_status": "forming",
+   "score": 72.22,
+   "status": "forming"
+  },
+  "twse|stock|6269|1d|2026-06-08T01:00:00Z|2026-07-30T01:00:00Z": {
+   "last_notified_at": "2026-11-13T07:21:44Z",
+   "last_seen": "2026-11-19T15:50:44Z",
+   "notified_status": "watchlist",
+   "score": 55.9,
+   "status": "watchlist"
+  },
+  "twse|stock|6269|1w|2026-05-18T01:00:00Z|2026-07-27T01:00:00Z": {
+   "last_notified_at": "2026-11-13T07:21:44Z",
+   "last_seen": "2026-11-27T16:43:25Z",
+   "notified_status": "forming",
+   "score": 66.58,
+   "status": "forming"
+  },
+  "twse|stock|6271|1d|2026-06-11T01:00:00Z|2026-07-30T01:00:00Z": {
+   "last_notified_at": "2026-11-13T07:21:44Z",
+   "last_seen": "2026-11-23T18:07:09Z",
+   "notified_status": "watchlist",
+   "score": 42.33,
+   "status": "forming"
+  },
+  "twse|stock|6271|4h|2026-09-14T01:00:00Z|2026-11-06T01:00:00Z": {
+   "last_notified_at": "2026-11-16T07:24:09Z",
+   "last_seen": "2026-11-17T16:04:21Z",
+   "notified_status": "forming",
+   "score": 53.44,
+   "status": "forming"
+  },
+  "twse|stock|6491|1w|2024-09-09T01:00:00Z|2026-03-09T01:00:00Z": {
+   "last_notified_at": "2026-11-13T07:21:44Z",
+   "last_seen": "2026-11-19T15:50:44Z",
+   "notified_status": "forming",
+   "score": 74.73,
+   "status": "forming"
+  },
+  "twse|stock|6589|4h|2026-09-11T01:00:00Z|2026-11-06T01:00:00Z": {
+   "last_notified_at": "2026-11-19T08:03:00Z",
+   "last_seen": "2026-11-19T15:50:44Z",
+   "notified_status": "forming",
+   "score": 72.08,
+   "status": "forming"
+  },
+  "twse|stock|6658|1d|2026-06-11T01:00:00Z|2026-07-30T01:00:00Z": {
+   "last_notified_at": "2026-11-05T14:47:32Z",
+   "last_seen": "2026-11-17T16:04:21Z",
+   "notified_status": "forming",
+   "score": 44.45,
+   "status": "watchlist"
+  },
+  "twse|stock|6695|1w|2024-05-20T01:00:00Z|2025-04-07T01:00:00Z": {
+   "last_notified_at": "2026-11-13T07:21:44Z",
+   "last_seen": "2026-11-27T16:43:25Z",
+   "notified_status": "forming",
+   "score": 68.24,
+   "status": "forming"
+  },
+  "twse|stock|6698|1d|2024-06-12T01:00:00Z|2025-04-11T01:00:00Z": {
+   "last_notified_at": null,
+   "last_seen": "2026-11-19T15:50:44Z",
+   "notified_status": null,
+   "score": 43.83,
+   "status": "forming"
+  },
+  "twse|stock|6698|1w|2024-08-05T01:00:00Z|2025-04-07T01:00:00Z": {
+   "last_notified_at": "2026-10-30T13:02:22Z",
+   "last_seen": "2026-11-19T15:50:44Z",
+   "notified_status": "forming",
+   "score": 47.36,
+   "status": "forming"
+  },
+  "twse|stock|6742|1d|2026-06-09T01:00:00Z|2026-07-29T01:00:00Z": {
+   "last_notified_at": "2026-11-13T07:21:44Z",
+   "last_seen": "2026-11-19T15:50:44Z",
+   "notified_status": "watchlist",
+   "score": 63.44,
+   "status": "watchlist"
+  },
+  "twse|stock|6742|4h|2026-06-12T05:00:00Z|2026-07-29T01:00:00Z": {
+   "last_notified_at": "2026-11-10T07:55:13Z",
+   "last_seen": "2026-11-19T15:50:44Z",
+   "notified_status": "watchlist",
+   "score": 51.54,
+   "status": "watchlist"
+  },
+  "twse|stock|6756|1w|2025-04-07T01:00:00Z|2026-03-30T01:00:00Z": {
+   "last_notified_at": "2026-10-23T11:47:23Z",
+   "last_seen": "2026-11-19T15:50:44Z",
+   "notified_status": "confirmed",
+   "score": 80.48,
+   "status": "confirmed"
+  },
+  "twse|stock|6863|4h|2026-09-30T01:00:00Z|2026-11-06T01:00:00Z": {
+   "last_notified_at": "2026-11-17T08:37:11Z",
+   "last_seen": "2026-11-19T15:50:44Z",
+   "notified_status": "forming",
+   "score": 68.04,
+   "status": "forming"
+  },
+  "twse|stock|6909|4h|2026-06-11T01:00:00Z|2026-07-29T01:00:00Z": {
+   "last_notified_at": null,
+   "last_seen": "2026-11-18T15:44:14Z",
+   "notified_status": null,
+   "score": 41.71,
+   "status": "watchlist"
+  },
+  "twse|stock|6918|4h|2026-05-05T01:00:00Z|2026-07-29T01:00:00Z": {
+   "last_notified_at": "2026-10-19T09:52:32Z",
+   "last_seen": "2026-11-19T15:50:44Z",
+   "notified_status": "watchlist",
+   "score": 68.24,
+   "status": "watchlist"
+  },
+  "twse|stock|6928|4h|2026-06-26T01:00:00Z|2026-11-06T01:00:00Z": {
+   "last_notified_at": "2026-11-17T08:37:11Z",
+   "last_seen": "2026-11-19T15:50:44Z",
+   "notified_status": "forming",
+   "score": 70.13,
+   "status": "forming"
+  },
+  "twse|stock|6962|1d|2026-09-14T01:00:00Z|2026-11-06T01:00:00Z": {
+   "last_notified_at": "2026-11-18T08:06:35Z",
+   "last_seen": "2026-11-18T15:44:14Z",
+   "notified_status": "forming",
+   "score": 69.85,
+   "status": "forming"
+  },
+  "twse|stock|6962|4h|2026-09-29T01:00:00Z|2026-11-06T01:00:00Z": {
+   "last_notified_at": "2026-11-16T07:24:09Z",
+   "last_seen": "2026-11-18T15:44:14Z",
+   "notified_status": "forming",
+   "score": 67.19,
+   "status": "forming"
+  },
+  "twse|stock|7711|4h|2026-08-28T01:00:00Z|2026-09-15T01:00:00Z": {
+   "last_notified_at": "2026-11-16T07:24:09Z",
+   "last_seen": "2026-11-16T15:44:02Z",
+   "notified_status": "forming",
+   "score": 59.94,
+   "status": "forming"
+  },
+  "twse|stock|7765|1d|2026-05-27T01:00:00Z|2026-09-10T01:00:00Z": {
+   "last_notified_at": "2026-11-13T07:21:44Z",
+   "last_seen": "2026-11-19T15:50:44Z",
+   "notified_status": "confirmed",
+   "score": 57.36,
+   "status": "confirmed"
+  },
+  "twse|stock|7799|1w|2026-01-05T01:00:00Z|2026-05-18T01:00:00Z": {
+   "last_notified_at": "2026-11-27T09:13:16Z",
+   "last_seen": "2026-11-27T16:43:25Z",
+   "notified_status": "watchlist",
+   "score": 73.53,
+   "status": "watchlist"
+  },
+  "twse|stock|7799|4h|2026-09-24T01:00:00Z|2026-11-06T01:00:00Z": {
+   "last_notified_at": "2026-11-19T08:03:00Z",
+   "last_seen": "2026-11-19T15:50:44Z",
+   "notified_status": "forming",
+   "score": 64.55,
+   "status": "forming"
+  },
+  "twse|stock|8021|1d|2026-05-20T01:00:00Z|2026-07-30T01:00:00Z": {
+   "last_notified_at": "2026-11-05T14:47:32Z",
+   "last_seen": "2026-11-17T16:04:21Z",
+   "notified_status": "forming",
+   "score": 46.61,
+   "status": "watchlist"
+  },
+  "twse|stock|8070|1d|2024-08-06T01:00:00Z|2025-04-09T01:00:00Z": {
+   "last_notified_at": "2026-11-27T09:13:16Z",
+   "last_seen": "2026-11-27T16:43:25Z",
+   "notified_status": "watchlist",
+   "score": 51.35,
+   "status": "forming"
+  },
+  "twse|stock|8070|1w|2024-08-05T01:00:00Z|2025-04-07T01:00:00Z": {
+   "last_notified_at": "2026-11-20T07:54:54Z",
+   "last_seen": "2026-11-27T16:43:25Z",
+   "notified_status": "forming",
+   "score": 51.31,
+   "status": "forming"
+  },
+  "twse|stock|8103|1d|2026-03-31T01:00:00Z|2026-07-30T01:00:00Z": {
+   "last_notified_at": "2026-11-13T07:21:44Z",
+   "last_seen": "2026-11-19T15:50:44Z",
+   "notified_status": "watchlist",
+   "score": 51.47,
+   "status": "forming"
+  },
+  "twse|stock|8103|1w|2026-03-30T01:00:00Z|2026-07-27T01:00:00Z": {
+   "last_notified_at": "2026-11-06T14:25:30Z",
+   "last_seen": "2026-11-19T15:50:44Z",
+   "notified_status": "forming",
+   "score": 66.64,
+   "status": "forming"
+  },
+  "twse|stock|8162|1d|2026-06-11T01:00:00Z|2026-07-30T01:00:00Z": {
+   "last_notified_at": "2026-11-13T07:21:44Z",
+   "last_seen": "2026-11-18T15:44:14Z",
+   "notified_status": "watchlist",
+   "score": 47.23,
+   "status": "forming"
+  },
+  "twse|stock|8162|4h|2026-06-11T01:00:00Z|2026-07-30T05:00:00Z": {
+   "last_notified_at": "2026-11-10T07:55:13Z",
+   "last_seen": "2026-11-18T15:44:14Z",
+   "notified_status": "watchlist",
+   "score": 47.55,
+   "status": "forming"
+  },
+  "twse|stock|8201|1w|2025-12-29T01:00:00Z|2026-07-27T01:00:00Z": {
+   "last_notified_at": "2026-11-13T07:21:44Z",
+   "last_seen": "2026-11-19T15:50:44Z",
+   "notified_status": "forming",
+   "score": 50.63,
+   "status": "forming"
+  },
+  "twse|stock|8443|1w|2023-08-21T01:00:00Z|2025-04-07T01:00:00Z": {
+   "last_notified_at": "2026-11-06T14:25:30Z",
+   "last_seen": "2026-11-19T15:50:44Z",
+   "notified_status": "forming",
+   "score": 62.07,
+   "status": "forming"
+  },
+  "twse|stock|8464|1w|2025-12-29T01:00:00Z|2026-05-25T01:00:00Z": {
+   "last_notified_at": "2026-11-06T14:25:30Z",
+   "last_seen": "2026-11-27T16:43:25Z",
+   "notified_status": "forming",
+   "score": 77.67,
+   "status": "forming"
+  },
+  "twse|stock|8464|4h|2026-03-31T05:00:00Z|2026-05-28T01:00:00Z": {
+   "last_notified_at": "2026-11-10T07:55:13Z",
+   "last_seen": "2026-11-20T15:29:40Z",
+   "notified_status": "watchlist",
+   "score": 67.32,
+   "status": "watchlist"
+  },
+  "twse|stock|8473|1w|2024-06-03T01:00:00Z|2025-04-07T01:00:00Z": {
+   "last_notified_at": "2026-11-06T14:25:30Z",
+   "last_seen": "2026-11-19T15:50:44Z",
+   "notified_status": "forming",
+   "score": 71.13,
+   "status": "forming"
+  },
+  "twse|stock|8476|1w|2026-01-05T01:00:00Z|2026-05-25T01:00:00Z": {
+   "last_notified_at": "2026-11-06T14:25:30Z",
+   "last_seen": "2026-11-19T15:50:44Z",
+   "notified_status": "forming",
+   "score": 59.78,
+   "status": "forming"
+  },
+  "twse|stock|8996|1d|2026-06-08T01:00:00Z|2026-07-30T01:00:00Z": {
+   "last_notified_at": "2026-11-13T07:21:44Z",
+   "last_seen": "2026-11-19T15:50:44Z",
+   "notified_status": "watchlist",
+   "score": 54.95,
+   "status": "forming"
+  },
+  "twse|stock|9933|1d|2024-05-24T01:00:00Z|2025-04-23T01:00:00Z": {
+   "last_notified_at": "2026-11-13T07:21:44Z",
+   "last_seen": "2026-11-18T15:44:14Z",
+   "notified_status": "confirmed",
+   "score": 85.61,
+   "status": "confirmed"
+  },
+  "twse|stock|9935|1d|2026-07-29T01:00:00Z|2026-11-06T01:00:00Z": {
+   "last_notified_at": "2026-11-23T08:18:47Z",
+   "last_seen": "2026-11-27T16:43:25Z",
+   "notified_status": "forming",
+   "score": 84.87,
+   "status": "forming"
+  },
+  "twse|stock|9935|4h|2026-07-29T01:00:00Z|2026-11-06T01:00:00Z": {
+   "last_notified_at": "2026-11-25T09:15:14Z",
+   "last_seen": "2026-11-27T16:43:25Z",
+   "notified_status": "watchlist",
+   "score": 87.6,
+   "status": "watchlist"
+  }
+ },
+ "version": 2
+}
